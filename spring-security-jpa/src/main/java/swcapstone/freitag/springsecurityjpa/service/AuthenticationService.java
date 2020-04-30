@@ -9,6 +9,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -20,8 +21,8 @@ public class AuthenticationService implements AuthenticationProvider {
     // 사용자가 입력한 userPassword를 매칭하여 로그인 인증처리
     @Autowired
     UserService userService;
-
-
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
     // Spring Security 로그인 과정
     // 사용자가 요청한 서비스가 로그인이 필요 -> SpringSecurity는 SpringSecurityContext에서 Authentication이라는 객체를 찾는다.
@@ -30,6 +31,7 @@ public class AuthenticationService implements AuthenticationProvider {
     // 로그인에 성공하면 Authentication 객체를 SpringSecurityContext에 담는다.
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+
         // 유저가 입력한 정보를 userId, userPassword로 만든다.(즉, 로그인한 아이디, 비번 정보를 담는다)
         UsernamePasswordAuthenticationToken authToken = (UsernamePasswordAuthenticationToken)authentication;
         // UserDetailsService에서 유저정보를 불러온다.
@@ -47,7 +49,12 @@ public class AuthenticationService implements AuthenticationProvider {
     }
 
     private boolean matchPassword(String userPassword, Object credentials) {
-        return userPassword.equals(credentials);
+        System.out.println("userPassword: "+userPassword);
+        System.out.println("credentials: "+credentials);
+
+        return passwordEncoder.matches((String)credentials, userPassword);
+
+        //return userPassword.equals(credentials);
     }
 
     @Override

@@ -5,6 +5,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +39,7 @@ public class UserController {
 
     @RequestMapping("login")
     public String login(@Param("userId") String userId, @Param("userPassword") String userPassword) {
+
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
         Authentication authentication = authenticationService.authenticate(authToken);
 

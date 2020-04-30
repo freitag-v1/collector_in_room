@@ -1,11 +1,13 @@
 package swcapstone.freitag.springsecurityjpa.config;
 
 import lombok.AllArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @Configuration
 @EnableWebSecurity
@@ -21,5 +23,11 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/", "/signup", "/login").permitAll()
                 .antMatchers("/hello", "/success", "/failure").hasRole("ADMIN")
                 .anyRequest().authenticated();   // 나머지 모든 요청에 대해서는 인증을 요구
+    }
+
+
+    @Bean
+    public BCryptPasswordEncoder getPasswordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

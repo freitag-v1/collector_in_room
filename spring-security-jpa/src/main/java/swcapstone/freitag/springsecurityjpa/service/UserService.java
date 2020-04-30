@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -25,13 +26,22 @@ public class UserService implements UserDetailsService {
     // UserDetailsService 는 데이터베이스의 유저정보를 불러오는 역할
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
 
     @Transactional
     public boolean signUp(UserDto userDto) {
-        // 비밀번호 암호화
-        BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        userDto.setUserPassword(passwordEncoder.encode(userDto.getUserPassword()));
 
+        System.out.println("암호화 전 비번: "+userDto.getUserPassword());
+        // 비밀번호 암호화
+        userDto.setUserPassword(passwordEncoder.encode(userDto.getUserPassword()));
+        System.out.println("암호화 후 비번: "+userDto.getUserPassword());
+
+        // 이미 해당 userId가 있으면 회원가입 실패
+        if(loadUserByUsername(userDto.getUserId()) != null) {
+            System.out.println("아이디 중복");
+            return false;
+        }
         userRepository.save(userDto.toEntity());
         System.out.println("회원가입 성공! - DB 저장 성공");
         return true;
