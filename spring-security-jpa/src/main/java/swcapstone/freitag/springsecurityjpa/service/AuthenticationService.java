@@ -53,8 +53,6 @@ public class AuthenticationService implements AuthenticationProvider {
         System.out.println("credentials: "+credentials);
 
         return passwordEncoder.matches((String)credentials, userPassword);
-
-        //return userPassword.equals(credentials);
     }
 
     @Override

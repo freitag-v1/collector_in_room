@@ -20,8 +20,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
-                .antMatchers("/", "/signup", "/login").permitAll()
-                .antMatchers("/hello", "/success", "/failure").hasRole("ADMIN")
+                .antMatchers("/api/", "/api/signup", "/api/login").permitAll()
+                .antMatchers( "/api/success", "/api/failure").hasRole("ADMIN")
                 .anyRequest().authenticated();   // 나머지 모든 요청에 대해서는 인증을 요구
     }
 

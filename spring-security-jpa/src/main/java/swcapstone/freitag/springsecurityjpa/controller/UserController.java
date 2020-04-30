@@ -22,22 +22,22 @@ public class UserController {
     @Autowired
     private AuthenticationService authenticationService;
 
-    @GetMapping("/")
+    @GetMapping("/api/")
     public String home() { return "home"; }
 
-    @GetMapping("/success")
+    @GetMapping("/api/success")
     public String success()
     {
         return "success";
     }
 
-    @GetMapping("/failure")
+    @GetMapping("/api/failure")
     public String failure()
     {
         return "failure";
     }
 
-    @RequestMapping("login")
+    @RequestMapping("/api/login")
     public String login(@Param("userId") String userId, @Param("userPassword") String userPassword) {
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
@@ -50,13 +50,26 @@ public class UserController {
 
     }
 
-    // 회원가입 form 만들기 귀찮아서 ..
-    @RequestMapping("/signup")
-    public String signUp(@Param("userId") String userId, @Param("userPassword") String userPassword, @Param("userName") String userName) {
+    // 회원가입 form 만들기 귀찮아서 .. 필드 추가해야함!
+    @RequestMapping("/api/signup")
+    public String signUp(
+            @Param("userId") String userId, @Param("userPassword") String userPassword, @Param("userName") String userName,
+            @Param("userBank") int userBank, @Param("userAccount") String userAccount, @Param("userPhone") String userPhone,
+            @Param("userEmail") String userEmail, @Param("userAffiliation") String userAffiliation) {
+
         UserDto userDto = new UserDto();
+
         userDto.setUserId(userId);
         userDto.setUserPassword(userPassword);
         userDto.setUserName(userName);
+        userDto.setUserBank(userBank);
+        userDto.setUserAccount(userAccount);
+        userDto.setUserPhone(userPhone);
+        userDto.setUserEmail(userEmail);
+        userDto.setUserAffiliation(userAffiliation);
+        userDto.setUserVisit(1);
+        userDto.setTotalPoint(0);
+        userDto.setPoint(0);
 
         if(userService.signUp(userDto))
             return "redirect:/success";

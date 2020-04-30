@@ -2,6 +2,8 @@ package swcapstone.freitag.springsecurityjpa.domain;
 
 import lombok.*;
 
+import javax.persistence.Column;
+
 // Data Transfer Object: SQL를 사용(개발자가 직접 코딩)하여 DB에 접근한 후 적절한 CRUD API를 제공
 // DB에서 데이터를 얻어 Service나 Controller 등으터 보낼 때 사용하는 객체
 // 즉, DB의 데이터가 Presentation Logic Tier로 넘어오게 될 때는 DTO의 모습으로 바껴서 오고가는 것
@@ -24,6 +26,14 @@ public class UserDto {
     private String userId;
     private String userPassword;
     private String userName;
+    private int userBank;
+    private String userAccount;
+    private String userPhone;
+    private String userEmail;
+    private String userAffiliation;
+    private int userVisit;
+    private int totalPoint;
+    private int point;
 
     public UserEntity toEntity() {  // toEntity() 메서드를 통해서 DTO에서 필요한 부분을 이용하여 Entity로 만든다.
         return UserEntity.builder()
@@ -31,14 +41,32 @@ public class UserDto {
                 .userId(userId)
                 .userPassword(userPassword)
                 .userName(userName)
+                .userBank(userBank)
+                .userAccount(userAccount)
+                .userPhone(userPhone)
+                .userEmail(userEmail)
+                .userAffiliation(userAffiliation)
+                .userVisit(userVisit)
+                .totalPoint(totalPoint)
+                .point(point)
                 .build();
     }
 
     @Builder
-    public UserDto(Long id, String userId, String userPassword, String userName) {
+    public UserDto(Long id, String userId, String userPassword, String userName,
+                   int userBank, String userAccount, String userPhone, String userEmail,
+                   String userAffiliation, int userVisit, int totalPoint, int point) {
         this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
         this.userName = userName;
+        this.userBank = userBank;
+        this.userAccount = userAccount;
+        this.userPhone = userPhone;
+        this.userEmail = userEmail;
+        this.userAffiliation = userAffiliation;
+        this.userVisit = userVisit;
+        this.totalPoint = totalPoint;
+        this.point = point;
     }
 }
