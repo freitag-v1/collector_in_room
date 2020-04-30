@@ -1,6 +1,5 @@
-package swcapstone.freitag.springsecurityjpa;
+package swcapstone.freitag.springsecurityjpa.service;
 
-import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -12,6 +11,10 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.domain.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.UserRepository;
+import swcapstone.freitag.springsecurityjpa.domain.UserRole;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +22,12 @@ import java.util.Optional;
 
 @Service
 public class UserService implements UserDetailsService {
+    // UserDetailsService 는 데이터베이스의 유저정보를 불러오는 역할
     @Autowired
     private UserRepository userRepository;
 
     @Transactional
     public boolean signUp(UserDto userDto) {
-
         // 비밀번호 암호화
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         userDto.setUserPassword(passwordEncoder.encode(userDto.getUserPassword()));
@@ -52,12 +55,12 @@ public class UserService implements UserDetailsService {
             // get() 메소드를 사용하면 Optional 객체에 저장된 값에 접근
             UserEntity userEntity = userEntityWrapper.get();
 
-            List<GrantedAuthority> authority = new ArrayList<>();
+            List<GrantedAuthority> authorityList = new ArrayList<>();
             // 일단 권한은 ADMIN으로..
-            authority.add(new SimpleGrantedAuthority(UserRole.ADMIN.getValue()));
+            authorityList.add(new SimpleGrantedAuthority(UserRole.ADMIN.getValue()));
 
             // return은 SpringSecurity에서 제공하는 UserDetails를 구현한 User를 반환
-            return new User(userEntity.getUserId(), userEntity.getUserPassword(), authority);
+            return new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
         }
 
         return null;

@@ -1,6 +1,7 @@
-package swcapstone.freitag.springsecurityjpa;
+package swcapstone.freitag.springsecurityjpa.domain;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
 
 import java.util.Optional;
 

@@ -1,4 +1,4 @@
-package swcapstone.freitag.springsecurityjpa;
+package swcapstone.freitag.springsecurityjpa.domain;
 
 import lombok.AccessLevel;
 import lombok.Builder;
