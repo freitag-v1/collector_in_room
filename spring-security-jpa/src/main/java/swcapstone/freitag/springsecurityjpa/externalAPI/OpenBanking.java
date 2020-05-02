@@ -71,10 +71,9 @@ public class OpenBanking {
         requestBody.put("bank_code_std", String.format("%03d", userBank));
         requestBody.put("account_num", userAccount);
         requestBody.put("account_holder_info_type", " ");
-        requestBody.put("account_holder_info", String.valueOf(userBirthday));
+        requestBody.put("account_holder_info", String.format("%06d", userBirthday));
         requestBody.put("tran_dtime", new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(new Date()));
         con.setDoOutput(true);
-        //System.out.println(new JSONObject(requestBody).toString());
         con.getOutputStream().write(new JSONObject(requestBody).toString().getBytes());
 
         if(con.getResponseCode() == 200) {
@@ -88,7 +87,6 @@ public class OpenBanking {
             in.close();
             con.disconnect();
 
-            //System.out.println(response.toString());
             JSONObject jResponse = new JSONObject(response.toString());
             return jResponse.get("account_holder_name").toString();
         } else {

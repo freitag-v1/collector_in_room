@@ -13,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.*;
+import swcapstone.freitag.springsecurityjpa.externalAPI.OpenBanking;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,16 @@ public class UserService implements UserDetailsService {
         // 이미 해당 userId가 있으면 회원가입 실패
         if(loadUserByUsername(userDto.getUserId()) != null) {
             System.out.println("아이디 중복");
+            return false;
+        }
+        try {
+            // 오픈 뱅킹 계좌 실명 조회 - 유저 생년월일도 필요
+            if (!OpenBanking.getInstance().getRealName(userDto.getUserBank(), userDto.getUserAccount(), 1).equals(userDto.getUserName())) {
+                System.out.println("서버 통신 에러 또는 존재하지 않는 계좌 또는 예금주 불일치");
+                return false;
+            }
+        } catch (Exception e) {
+            System.out.println("실명확인 오류");
             return false;
         }
         userRepository.save(userDto.toEntity());
