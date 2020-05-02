@@ -12,10 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swcapstone.freitag.springsecurityjpa.domain.UserDto;
-import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
-import swcapstone.freitag.springsecurityjpa.domain.UserRepository;
-import swcapstone.freitag.springsecurityjpa.domain.UserRole;
+import swcapstone.freitag.springsecurityjpa.domain.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +23,12 @@ public class UserService implements UserDetailsService {
     // UserDetailsService 는 데이터베이스의 유저정보를 불러오는 역할
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @Transactional
+    public void updateVisit(String userId) {
+        // 로그인할 때 방문일 업데이트 (하루에 한 번!)
+    }
 
     @Transactional
     public boolean signUp(UserDto userDto) {
@@ -66,11 +67,18 @@ public class UserService implements UserDetailsService {
             UserEntity userEntity = userEntityWrapper.get();
 
             List<GrantedAuthority> authorityList = new ArrayList<>();
-            // 일단 권한은 ADMIN으로..
-            authorityList.add(new SimpleGrantedAuthority(UserRole.ADMIN.getValue()));
+            // 로그인한 계정에게 권한 부여하기
+            if(userEntity.getUserId().equals("woneyhoney")) {
+                authorityList.add(new SimpleGrantedAuthority(UserRole.ADMIN.getValue()));
+            }
+            else {
+                authorityList.add(new SimpleGrantedAuthority(UserRole.USER.getValue()));
+            }
 
-            // return은 SpringSecurity에서 제공하는 UserDetails를 구현한 User를 반환
-            return new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
+            // return은 SpringSecurity에서 제공하는 UserDetails를 구현한 User를 상속한 CustomUser를 반환
+            // return new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
+            User user = new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
+            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserBank(), userEntity.getUserAccount(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
         }
 
         return null;
