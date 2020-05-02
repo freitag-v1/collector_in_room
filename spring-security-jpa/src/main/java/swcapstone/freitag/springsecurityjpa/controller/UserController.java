@@ -4,15 +4,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.repository.query.Param;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
+import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
+
+import java.security.Principal;
+import java.util.List;
+import java.util.Optional;
 
 // Client <-- dto --> Controller(Servlet)
 @RestController
@@ -25,23 +32,16 @@ public class UserController {
     @GetMapping("/api/")
     public String home() { return "home"; }
 
-    @GetMapping("/api/success")
-    public String success()
-    {
-        return "success";
-    }
-
-    @GetMapping("/api/failure")
-    public String failure()
-    {
-        return "failure";
-    }
-
     @RequestMapping("/api/login")
     public String login(@Param("userId") String userId, @Param("userPassword") String userPassword) {
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
+        System.out.println(authToken.getPrincipal());
         Authentication authentication = authenticationService.authenticate(authToken);
+
+        // userId 찍힘
+        // System.out.println("authtoken.getName(): "+authToken.getName());
+        // System.out.println("authentication.getPrincipal: "+authentication.getPrincipal());
 
         if(authentication != null)
             return "redirect:/success";
@@ -76,6 +76,13 @@ public class UserController {
         else
             return "redirect:/failure";
 
+    }
+
+    // 마이페이지
+    @RequestMapping("/api/mypage")
+    // Model: 데이터만 저장
+    public String mypage(@AuthenticationPrincipal CustomUser user) {
+        return "userEmail: "+user.getUserEmail();
     }
 /*
     @GetMapping("/readOne")

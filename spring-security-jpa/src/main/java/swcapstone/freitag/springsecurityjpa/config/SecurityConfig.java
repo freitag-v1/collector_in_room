@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import swcapstone.freitag.springsecurityjpa.handler.AuthSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -21,8 +22,15 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
                 .antMatchers("/api/", "/api/signup", "/api/login").permitAll()
-                .antMatchers( "/api/success", "/api/failure").hasRole("ADMIN")
+                .antMatchers( "/api/admin").hasRole("ADMIN")
                 .anyRequest().authenticated();   // 나머지 모든 요청에 대해서는 인증을 요구
+        /*.and()
+                .formLogin()
+                .usernameParameter("userId")
+                .successHandler(new AuthSuccessHandler("/home"))
+                .permitAll();
+
+         */
     }
 
 
