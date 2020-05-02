@@ -23,8 +23,7 @@ public class UserService implements UserDetailsService {
     // UserDetailsService 는 데이터베이스의 유저정보를 불러오는 역할
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Transactional
     public void updateVisit(String userId) {

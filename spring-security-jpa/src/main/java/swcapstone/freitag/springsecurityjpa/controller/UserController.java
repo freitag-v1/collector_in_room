@@ -15,11 +15,17 @@ import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.UserDto;
 import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
+import swcapstone.freitag.springsecurityjpa.service.MyPageService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
 
+import javax.servlet.http.HttpSession;
 import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
+
+// 현재 사용자의 정보를 가지고 있는 Principal을 가져오려면?
+// Authentication에서 Principal을 가져올 수 있고 Authentication은 SecurityContext에서,
+// SecurityContext는 SecurityContextHolder를 통해 가져올 수 있다.
 
 // Client <-- dto --> Controller(Servlet)
 @RestController
@@ -28,6 +34,8 @@ public class UserController {
     private UserService userService;
     @Autowired
     private AuthenticationService authenticationService;
+    @Autowired
+    private MyPageService myPageService;
 
     @GetMapping("/api/")
     public String home() { return "home"; }
@@ -78,11 +86,26 @@ public class UserController {
 
     }
 
-    // 마이페이지
+    // 마이페이지 조회 (Read Only)
     @RequestMapping("/api/mypage")
-    // Model: 데이터만 저장
-    public String mypage(@AuthenticationPrincipal CustomUser user) {
-        return "userEmail: "+user.getUserEmail();
+    // @AuthenticationPrincipal: 컨트롤러단에서 세션의 정보들에 접근하고 싶을 때 파라미터에 선언
+    // 이거 안쓰고 확인하려면 (CustomUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal(); 이런식으로 써야한다.
+    public String mypage(@AuthenticationPrincipal CustomUser user, Model model) {
+        if(user == null) {
+            return "redirect:/login";
+        }
+        model.addAttribute(user);   // 뷰에 전달되는 모델 데이터
+        return "로그인한 사용자 마이페이지 화면";
+    }
+
+    // 마이페이지 수정 - 비밀번호 한번 더 치라고 요구하는게 일반적일거 같음?
+    @RequestMapping(value = "/api/mypage/update", method = RequestMethod.PUT)
+    public String mypageUpdate(@AuthenticationPrincipal CustomUser user, UserDto userDto) {
+        if(user == null) {
+            return "redirect:/login";
+        }
+        myPageService.updateUserInfo(userDto);
+        return "마이페이지 수정하고 반영된 마이페이지 화면";
     }
 /*
     @GetMapping("/readOne")

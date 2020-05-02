@@ -15,7 +15,7 @@ import javax.persistence.*;
 @Getter
 @Entity(name = "user_table")
 public class UserEntity {
-    @Id // Primary Key
+    @Id // Primary Key - JPA는 이 id를 통해 객체를 구분
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
