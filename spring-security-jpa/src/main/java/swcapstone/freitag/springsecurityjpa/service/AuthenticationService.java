@@ -23,7 +23,7 @@ public class AuthenticationService implements AuthenticationProvider {
     @Autowired
     UserService userService;
 
-    private BCryptPasswordEncoder passwordEncoder;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     // Spring Security 로그인 과정
     // 사용자가 요청한 서비스가 로그인이 필요 -> SpringSecurity는 SpringSecurityContext에서 Authentication이라는 객체를 찾는다.
@@ -39,9 +39,7 @@ public class AuthenticationService implements AuthenticationProvider {
         // AuthenticationManager를 통한 인증 실행
         UsernamePasswordAuthenticationToken authToken = (UsernamePasswordAuthenticationToken)authentication;
         // UserDetailsService에서 유저정보를 불러온다.
-        User userInfo = (User) userService.loadUserByUsername(authToken.getName());
-        // CustomUser userInfo = (CustomUser) userService.loadUserByUsername(authToken.getName());
-        System.out.println(userInfo.getUsername());
+        CustomUser userInfo = (CustomUser) userService.loadUserByUsername(authToken.getName());
 
         if(userInfo == null) {
             throw new UsernameNotFoundException(authToken.getName());
@@ -51,9 +49,9 @@ public class AuthenticationService implements AuthenticationProvider {
             throw new BadCredentialsException("아이디 혹은 패스워드를 잘못 입력");
         }
 
-        // 로그인에 성공하면 Authentication 객체를 SpringSecurityContext에 담은 후
-        // AuthenticationSuccessHandler 실행
-        // 인증 완료된 토큰을 리턴
+        // 로그인에 성공하면 Authentication 객체를 SpringSecurityContext에 담은 후 AuthenticationSuccessHandler 실행
+        // 실패시 AuthenticationFailureHandler를 실행한다.
+        // 즉 security의 세션들은 내부 메모리(SecurityContextHolder)에 쌓고 꺼내쓰는 것이다.
         return new UsernamePasswordAuthenticationToken(userInfo.getUsername(), userInfo.getPassword(), userInfo.getAuthorities());
     }
 

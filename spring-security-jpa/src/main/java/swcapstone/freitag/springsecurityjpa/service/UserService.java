@@ -48,6 +48,7 @@ public class UserService implements UserDetailsService {
         return true;
     }
 
+
     // UserDetailsService 인터페이스에는 DB에서 유저 정보를 불러오는 중요한 메소드가 존재 - loadUserByUsername
     @Override
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {

@@ -31,4 +31,5 @@ public class CustomUser extends User {
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
     }
+
 }

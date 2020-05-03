@@ -5,23 +5,13 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.servlet.ModelAndView;
 import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.UserDto;
-import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.MyPageService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
-
-import javax.servlet.http.HttpSession;
-import java.security.Principal;
-import java.util.List;
-import java.util.Optional;
 
 // 현재 사용자의 정보를 가지고 있는 Principal을 가져오려면?
 // Authentication에서 Principal을 가져올 수 있고 Authentication은 SecurityContext에서,
@@ -37,11 +27,8 @@ public class UserController {
     @Autowired
     private MyPageService myPageService;
 
-    @GetMapping("/api/")
-    public String home() { return "home"; }
-
     @RequestMapping("/api/login")
-    public String login(@Param("userId") String userId, @Param("userPassword") String userPassword) {
+    public Authentication login(@Param("userId") String userId, @Param("userPassword") String userPassword) {
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
         System.out.println(authToken.getPrincipal());
@@ -51,14 +38,19 @@ public class UserController {
         // System.out.println("authtoken.getName(): "+authToken.getName());
         // System.out.println("authentication.getPrincipal: "+authentication.getPrincipal());
 
-        if(authentication != null)
-            return "redirect:/success";
-        else
-            return "redirect:/failure";
+        if(authentication != null) {
+            System.out.println(authentication.getPrincipal()+" 님이 로그인하셨습니다.");
+            return authentication;
+        }
+        else {
+            System.out.println("회원이 아닙니다.");
+            return null;
+        }
 
     }
 
-    // 회원가입 form 만들기 귀찮아서 .. 필드 추가해야함!
+
+    // 회원가입
     @RequestMapping("/api/signup")
     public String signUp(
             @Param("userId") String userId, @Param("userPassword") String userPassword, @Param("userName") String userName,
@@ -90,11 +82,11 @@ public class UserController {
     @RequestMapping("/api/mypage")
     // @AuthenticationPrincipal: 컨트롤러단에서 세션의 정보들에 접근하고 싶을 때 파라미터에 선언
     // 이거 안쓰고 확인하려면 (CustomUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal(); 이런식으로 써야한다.
-    public String mypage(@AuthenticationPrincipal CustomUser user, Model model) {
+    public String mypage(@AuthenticationPrincipal CustomUser user) {
         if(user == null) {
             return "redirect:/login";
         }
-        model.addAttribute(user);   // 뷰에 전달되는 모델 데이터
+        // model.addAttribute(user);   // 뷰에 전달되는 모델 데이터
         return "로그인한 사용자 마이페이지 화면";
     }
 

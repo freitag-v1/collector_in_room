@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import swcapstone.freitag.springsecurityjpa.handler.AuthSuccessHandler;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
@@ -33,16 +34,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
-                .antMatchers("/api/", "/api/signup", "/api/login").permitAll()
+                .antMatchers( "/api/signup", "/api/login").permitAll()
                 .antMatchers( "/api/admin").hasRole("ADMIN")
-                .anyRequest().authenticated();   // 나머지 모든 요청에 대해서는 인증을 요구
-        /*.and()
-                .formLogin()
-                .usernameParameter("userId")
-                .successHandler(new AuthSuccessHandler("/home"))
-                .permitAll();
+                .antMatchers("/api/**").hasRole("USER");
+    }
 
-         */
+    /*
+     * Security Filter 적용을 무시한다.
+     */
+    @Override
+    public void configure(WebSecurity web) throws Exception {
+        web.ignoring()
+                .antMatchers("/resources/**")
+                .antMatchers("/css/**")
+        ;
     }
 
     @Override
@@ -60,4 +65,5 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public BCryptPasswordEncoder getPasswordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
 }
