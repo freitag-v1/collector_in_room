@@ -5,13 +5,16 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.ui.Model;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.UserDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.MyPageService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 // 현재 사용자의 정보를 가지고 있는 Principal을 가져오려면?
 // Authentication에서 Principal을 가져올 수 있고 Authentication은 SecurityContext에서,
@@ -27,11 +30,14 @@ public class UserController {
     @Autowired
     private MyPageService myPageService;
 
-    @RequestMapping("/api/login")
-    public Authentication login(@Param("userId") String userId, @Param("userPassword") String userPassword) {
+
+    @RequestMapping(value = "/api/login")
+    public Authentication login(HttpServletRequest request, HttpServletResponse response) {
+
+        String userId = request.getParameter("userId");
+        String userPassword = request.getParameter("userPassword");
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
-        System.out.println(authToken.getPrincipal());
         Authentication authentication = authenticationService.authenticate(authToken);
 
         // userId 찍힘
@@ -40,6 +46,8 @@ public class UserController {
 
         if(authentication != null) {
             System.out.println(authentication.getPrincipal()+" 님이 로그인하셨습니다.");
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            System.out.println("SecurityContextHolder: "+SecurityContextHolder.getContext().getAuthentication().getPrincipal());
             return authentication;
         }
         else {
@@ -82,12 +90,20 @@ public class UserController {
     @RequestMapping("/api/mypage")
     // @AuthenticationPrincipal: 컨트롤러단에서 세션의 정보들에 접근하고 싶을 때 파라미터에 선언
     // 이거 안쓰고 확인하려면 (CustomUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal(); 이런식으로 써야한다.
-    public String mypage(@AuthenticationPrincipal CustomUser user) {
-        if(user == null) {
-            return "redirect:/login";
+    // @AuthenticationPrincipal CustomUser user
+    public String mypage(HttpServletRequest httpServletRequest) {
+
+        String userId = httpServletRequest.getParameter("userId");
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if(authentication.getPrincipal().equals(userId)) {
+            return userId + " 님의 마이페이지 입니다.";
         }
-        // model.addAttribute(user);   // 뷰에 전달되는 모델 데이터
-        return "로그인한 사용자 마이페이지 화면";
+
+        else {
+            return "로그인부터 하세요.";
+        }
     }
 
     // 마이페이지 수정 - 비밀번호 한번 더 치라고 요구하는게 일반적일거 같음?

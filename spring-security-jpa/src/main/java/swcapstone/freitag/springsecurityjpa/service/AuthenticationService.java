@@ -7,6 +7,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -49,8 +51,6 @@ public class AuthenticationService implements AuthenticationProvider {
             throw new BadCredentialsException("아이디 혹은 패스워드를 잘못 입력");
         }
 
-        // 로그인에 성공하면 Authentication 객체를 SpringSecurityContext에 담은 후 AuthenticationSuccessHandler 실행
-        // 실패시 AuthenticationFailureHandler를 실행한다.
         // 즉 security의 세션들은 내부 메모리(SecurityContextHolder)에 쌓고 꺼내쓰는 것이다.
         return new UsernamePasswordAuthenticationToken(userInfo.getUsername(), userInfo.getPassword(), userInfo.getAuthorities());
     }
@@ -58,9 +58,6 @@ public class AuthenticationService implements AuthenticationProvider {
     private boolean matchPassword(String userPassword, Object credentials) {
         // Spring Security는 Authentication(principal: 아이디, credential: 비밀번호)
         // 방식 중 credential 기반으로 함
-        System.out.println("userPassword: "+userPassword);
-        System.out.println("credentials: "+credentials);
-
         return passwordEncoder.matches((String)credentials, userPassword);
     }
 
@@ -69,4 +66,5 @@ public class AuthenticationService implements AuthenticationProvider {
     public boolean supports(Class<?> authentication) {
         return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
+
 }
