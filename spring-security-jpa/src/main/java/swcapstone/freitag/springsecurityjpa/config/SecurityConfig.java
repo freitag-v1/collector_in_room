@@ -4,25 +4,26 @@ import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
+import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
 
 @Configuration
 @EnableWebSecurity
 @AllArgsConstructor
-
 // SpringSecurity에게 어플리케이션이 어느 요청에 "인증이 필요한지 안한지"를 알려주기 위해서 커스텀 filter 생성
 // 왜냐, SpringSecurity는 Servlet의 filter를 기반으로 동작하므로
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     UserService userService;
-
     @Autowired
     AuthenticationService authProvider;
 
@@ -30,11 +31,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     // 다음에 같은 세션으로 접근이 되면 HttpSession에 저장되어 있는 SecurityContext가 얻어 지고 SecurityContextHolder에 저장
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        http.authorizeRequests()
+
+        http
+                // csrf랑 session status 필요 없음
+                // 왜냐하면 JWT 쓸거니까~
+                .csrf().disable()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                // jwt 추가 (Authorization Service)
+                // .addFilter(new AuthorizationService(authenticationManager()))
+                .authorizeRequests()
+                // access rule 설정
                 .antMatchers( "/api/signup", "/api/login", "/api/mypage").permitAll()
                 .antMatchers( "/api/admin").hasRole("ADMIN")
-                .antMatchers("/api/**").hasRole("USER")
-                .anyRequest().authenticated();
+                .antMatchers("/api/**").hasRole("USER");
+                //.anyRequest().authenticated();
+
     }
 
     @Override
@@ -53,4 +65,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         return new BCryptPasswordEncoder();
     }
 
+    @Bean
+    @Override
+    protected AuthenticationManager authenticationManager() throws Exception {
+        return super.authenticationManager();
+    }
 }

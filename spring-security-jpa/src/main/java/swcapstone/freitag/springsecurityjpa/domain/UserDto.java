@@ -17,12 +17,10 @@ import javax.persistence.Column;
 // 즉 DTO는 Domain Model을 복사한 형태로, 다양한 Presentation Logic을 추가한 정도로 사용하며
 // Domain Model 객체는 Persistent만을 위해서 사용
 
-@Getter
-@Setter
 @ToString
 @NoArgsConstructor
 public class UserDto {
-    private Long id;
+    // private Long id;
     private String userId;
     private String userPassword;
     private String userName;
@@ -31,13 +29,13 @@ public class UserDto {
     private String userPhone;
     private String userEmail;
     private String userAffiliation;
-    private int userVisit;
-    private int totalPoint;
-    private int point;
+    // private int userVisit;
+    // private int totalPoint;
+    // private int point;
 
     public UserEntity toEntity() {  // toEntity() 메서드를 통해서 DTO에서 필요한 부분을 이용하여 Entity로 만든다.
         return UserEntity.builder()
-                .id(id)
+                //.id(id)
                 .userId(userId)
                 .userPassword(userPassword)
                 .userName(userName)
@@ -46,17 +44,17 @@ public class UserDto {
                 .userPhone(userPhone)
                 .userEmail(userEmail)
                 .userAffiliation(userAffiliation)
-                .userVisit(userVisit)
-                .totalPoint(totalPoint)
-                .point(point)
+                // .userVisit(userVisit)
+                // .totalPoint(totalPoint)
+                // .point(point)
                 .build();
     }
 
     @Builder
-    public UserDto(Long id, String userId, String userPassword, String userName,
+    public UserDto(/*Long id, */String userId, String userPassword, String userName,
                    int userBank, String userAccount, String userPhone, String userEmail,
-                   String userAffiliation, int userVisit, int totalPoint, int point) {
-        this.id = id;
+                   String userAffiliation/*, int userVisit, int totalPoint, int point*/) {
+        // this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
         this.userName = userName;
@@ -65,8 +63,10 @@ public class UserDto {
         this.userPhone = userPhone;
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
+        /*
         this.userVisit = userVisit;
         this.totalPoint = totalPoint;
         this.point = point;
+         */
     }
 }
