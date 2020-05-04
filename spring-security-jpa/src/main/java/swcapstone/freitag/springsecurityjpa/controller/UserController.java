@@ -6,22 +6,15 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
-import swcapstone.freitag.springsecurityjpa.domain.AuthenticationToken;
 import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.UserDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.MyPageService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
 
-import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionContext;
-import java.util.Enumeration;
 
 // 현재 사용자의 정보를 가지고 있는 Principal을 가져오려면?
 // Authentication에서 Principal을 가져올 수 있고 Authentication은 SecurityContext에서,
@@ -37,26 +30,16 @@ public class UserController {
     @Autowired
     private MyPageService myPageService;
 
-    @RequestMapping(value = "/api/logout")
-    public String logout(HttpServletRequest request, HttpServletResponse response){
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        HttpSession session = request.getSession();
-        Object name = session.getAttribute("authenticationUser");
-        System.out.println(name);
-        session.invalidate();
-        return "success";
-
-    }
 
     @RequestMapping(value = "/api/login")
-    public AuthenticationToken login(HttpServletRequest request, HttpServletResponse response, HttpSession session) {
+    public Authentication login(HttpServletRequest request, HttpServletResponse response) {
 
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
         Authentication authentication = authenticationService.authenticate(authToken);
-        System.out.println(authentication);
+
         // userId 찍힘
         // System.out.println("authtoken.getName(): "+authToken.getName());
         // System.out.println("authentication.getPrincipal: "+authentication.getPrincipal());
@@ -65,11 +48,7 @@ public class UserController {
             System.out.println(authentication.getPrincipal()+" 님이 로그인하셨습니다.");
             SecurityContextHolder.getContext().setAuthentication(authentication);
             System.out.println("SecurityContextHolder: "+SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                    SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString());
-            session.setAttribute("authenticationUser",authentication.getPrincipal().toString());
-
-            return new AuthenticationToken(authentication.getPrincipal().toString(),authentication.getAuthorities(),session.getId());
+            return authentication;
         }
         else {
             System.out.println("회원이 아닙니다.");
@@ -113,11 +92,11 @@ public class UserController {
     // 이거 안쓰고 확인하려면 (CustomUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal(); 이런식으로 써야한다.
     // @AuthenticationPrincipal CustomUser user
     public String mypage(HttpServletRequest httpServletRequest) {
-        HttpSession session = httpServletRequest.getSession(); //vue에서 요청한 request의 session에 접근
-        Object userId = session.getAttribute("authenticationUser"); //request의 session에 접근해서 session attribute에 있는 userID를 가져옴
-                //httpServletRequest.getParameter("userId")
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication(); //context에 있는 정보랑 같은지 확인 session에 있는 정보랑
-        System.out.println(authentication.getPrincipal());
+
+        String userId = httpServletRequest.getParameter("userId");
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         if(authentication.getPrincipal().equals(userId)) {
             return userId + " 님의 마이페이지 입니다.";
         }
