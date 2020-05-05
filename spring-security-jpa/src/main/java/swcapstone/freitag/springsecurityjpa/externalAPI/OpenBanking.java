@@ -13,7 +13,7 @@ import java.util.Locale;
 import java.util.Map;
 
 public class OpenBanking {
-    private static OpenBanking instance;
+    private static OpenBanking instance = null;
     private static final String clientID = "IXkyzGt3C2JzogL2hqufC0YH97xx3hTJ5IFZrMDe";
     private static final String clientSecret = "HfCtT44inej7uHR1Bo5WurHsruG7pnfTWYKNQurM";
     private static final String baseURL = "https://testapi.openbanking.or.kr";
@@ -21,32 +21,16 @@ public class OpenBanking {
     private String clientCode;
 
     private OpenBanking() throws Exception {
-        URL url = new URL(baseURL + "/oauth/2.0/token" +
-                "?client_id=" + clientID +
-                "&client_secret=" + clientSecret +
-                "&grant_type=client_credentials" +
-                "&scope=oob");
-        HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
-        con.setRequestMethod("POST");
+        APICaller getAccessToken = new APICaller("POST", baseURL + "/oauth/2.0/token");
+        getAccessToken.setQueryParameter("client_id", clientID);
+        getAccessToken.setQueryParameter("client_secret", clientSecret);
+        getAccessToken.setQueryParameter("grant_type", "client_credentials");
+        getAccessToken.setQueryParameter("scope", "oob");
 
-        if(con.getResponseCode() == 200) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-            con.disconnect();
-
-            JSONObject jResponse = new JSONObject(response.toString());
-            this.accessToken = jResponse.get("access_token").toString();
-            this.clientCode = jResponse.get("client_use_code").toString();
-        } else {
-            con.disconnect();
-            throw new Exception("Can not get OpenBanking access token.");
-        }
+        String response = getAccessToken.getResponse();
+        JSONObject jResponse = new JSONObject(response);
+        this.accessToken = jResponse.get("access_token").toString();
+        this.clientCode = jResponse.get("client_use_code").toString();
     }
 
     public static OpenBanking getInstance() {
@@ -54,7 +38,6 @@ public class OpenBanking {
             try {
                 instance = new OpenBanking();
             } catch (Exception e) {
-                instance = null;
                 e.printStackTrace();
             }
         }
@@ -62,37 +45,18 @@ public class OpenBanking {
     }
 
     public String getRealName(int userBank, String userAccount, int userBirthday) throws Exception {
-        URL url = new URL(baseURL + "/v2.0/inquiry/real_name");
-        HttpsURLConnection con = (HttpsURLConnection) url.openConnection();
-        con.setRequestMethod("POST");
-        con.setRequestProperty("Authorization", "Bearer " + accessToken);
-        Map<String, String> requestBody = new HashMap<>();
-        requestBody.put("bank_tran_id", getTransactionID());
-        requestBody.put("bank_code_std", String.format("%03d", userBank));
-        requestBody.put("account_num", userAccount);
-        requestBody.put("account_holder_info_type", " ");
-        requestBody.put("account_holder_info", String.format("%06d", userBirthday));
-        requestBody.put("tran_dtime", new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(new Date()));
-        con.setDoOutput(true);
-        con.getOutputStream().write(new JSONObject(requestBody).toString().getBytes());
+        APICaller getRealName = new APICaller("POST", baseURL + "/v2.0/inquiry/real_name");
+        getRealName.setHeader("Authorization", "Bearer " + accessToken);
+        getRealName.setJsonBody("bank_tran_id", getTransactionID());
+        getRealName.setJsonBody("bank_code_std", String.format("%03d", userBank));
+        getRealName.setJsonBody("account_num", userAccount);
+        getRealName.setJsonBody("account_holder_info_type", " ");
+        getRealName.setJsonBody("account_holder_info", String.format("%06d", userBirthday));
+        getRealName.setJsonBody("tran_dtime", new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(new Date()));
 
-        if(con.getResponseCode() == 200) {
-            BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-            String inputLine;
-            StringBuilder response = new StringBuilder();
-
-            while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-            }
-            in.close();
-            con.disconnect();
-
-            JSONObject jResponse = new JSONObject(response.toString());
-            return jResponse.get("account_holder_name").toString();
-        } else {
-            con.disconnect();
-            throw new Exception("Can not get real name.");
-        }
+        String response = getRealName.getResponse();
+        JSONObject jResponse = new JSONObject(response);
+        return jResponse.get("account_holder_name").toString();
     }
 
     private String getTransactionID() {
