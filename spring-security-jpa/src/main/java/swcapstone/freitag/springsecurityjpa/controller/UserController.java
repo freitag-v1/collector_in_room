@@ -33,12 +33,11 @@ public class UserController {
     private AuthenticationService authenticationService;
     @Autowired
     private AuthorizationService authorizationService;
-
     @Autowired
     private MyPageService myPageService;
 
 
-    @RequestMapping(value = "/api/login")
+    @RequestMapping("/api/login")
     public Authentication login(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
         String userId = request.getParameter("userId");
@@ -59,7 +58,7 @@ public class UserController {
             authenticationService.successfulAuthentication(response, authentication);
 
             System.out.println("SecurityContextHolder: "+SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-            System.out.println(response.getHeader(JwtProperties.HEADER_STRING));
+            // System.out.println(response.getHeader(JwtProperties.HEADER_STRING));
 
             return authentication;
         }
@@ -70,35 +69,16 @@ public class UserController {
 
     }
 
-/*
     // 회원가입
     @RequestMapping("/api/signup")
-    public String signUp(
-            @Param("userId") String userId, @Param("userPassword") String userPassword, @Param("userName") String userName,
-            @Param("userBank") int userBank, @Param("userAccount") String userAccount, @Param("userPhone") String userPhone,
-            @Param("userEmail") String userEmail, @Param("userAffiliation") String userAffiliation) {
+    public String signUp(HttpServletRequest request) {
 
-        UserDto userDto = new UserDto();
-
-        userDto.setUserId(userId);
-        userDto.setUserPassword(userPassword);
-        userDto.setUserName(userName);
-        userDto.setUserBank(userBank);
-        userDto.setUserAccount(userAccount);
-        userDto.setUserPhone(userPhone);
-        userDto.setUserEmail(userEmail);
-        userDto.setUserAffiliation(userAffiliation);
-        userDto.setUserVisit(1);
-        userDto.setTotalPoint(0);
-        userDto.setPoint(0);
-
-        if(userService.signUp(userDto))
-            return "redirect:/success";
+        if(userService.signUp(request))
+            return "success";
         else
-            return "redirect:/failure";
+            return "fail";
 
     }
-    */
 
 
     // 마이페이지 조회 (Read Only)
@@ -106,7 +86,7 @@ public class UserController {
     // @AuthenticationPrincipal: 컨트롤러단에서 세션의 정보들에 접근하고 싶을 때 파라미터에 선언
     // 이거 안쓰고 확인하려면 (CustomUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal(); 이런식으로 써야한다.
     // @AuthenticationPrincipal CustomUser user
-    public CustomUser mypage(HttpServletRequest request) {
+    public CustomUser mypage(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
             CustomUser user = (CustomUser) userService.loadUserByUsername(request.getParameter("userId"));
@@ -120,35 +100,16 @@ public class UserController {
         }
     }
 
-    /*s
+
     // 마이페이지 수정
     @RequestMapping(value = "/api/mypage/update", method = RequestMethod.PUT)
-    public String mypageUpdate(HttpServletRequest request, CustomUser user) {
-        // 마이페이지 수정 시 비밀번호 한번 더 치도록!
-        String userId = request.getParameter("userId");
-        String userPassword = request.getParameter("userPassword"); // 암호화된 형태
+    public String mypageUpdate(HttpServletRequest request) {
 
-        if(authorizationService.isAuthenticated(request)) {
-            System.out.println("수정 전: "+userService.loadUserByUsername(userId));
-            UserDto userDto = new UserDto(userId, userPassword, user.getUserName(), user.getUserBank(),
-                    user.getUserAccount(), user.getUserPhone(), user.getUserEmail(), user.getUserAffiliation());
-            myPageService.updateUserInfo(userDto);
-            System.out.println("수정 후: "+userService.loadUserByUsername(userId));
-
+        if(authorizationService.isAuthorized(request)) {
+            myPageService.updateUserInfo(request);
             return "수정 완료";
         }
-
         return "수정 실패";
     }
 
-    @GetMapping("/readOne")
-    public Optional readOne(Long id) {
-        return userRepository.findById(id);
-    }
-
-    @GetMapping("/readAll")
-    public List readAll() {
-        return userRepository.findAll();
-    }
- */
 }

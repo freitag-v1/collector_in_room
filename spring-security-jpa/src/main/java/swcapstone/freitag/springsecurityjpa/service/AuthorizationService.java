@@ -35,7 +35,7 @@ import java.util.Optional;
 
 // BasicAuthenticationFilter: HTTP request (for user authentication) 를 받고,
 // userId와 userPassword를 뽑아냄 (from http request)
-@Component
+@Service
 public class AuthorizationService extends BasicAuthenticationFilter {
 
     @Autowired
