@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.*;
 import swcapstone.freitag.springsecurityjpa.externalAPI.OpenBanking;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -32,7 +33,30 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public boolean signUp(UserDto userDto) {
+    public boolean signUp(HttpServletRequest request) {
+
+        String userId = request.getParameter("userId");
+        String userPassword = request.getParameter("userPassword");
+        String userName = request.getParameter("userName");
+
+        int userBank = 0;
+        try {
+            userBank = Integer.parseInt(request.getParameter("userBank"));
+        } catch (Exception e) {
+
+        }
+
+        String userAccount = request.getParameter("userAccount");
+        String userPhone = request.getParameter("userPhone");
+        String userEmail = request.getParameter("userEmail");
+        String userAffiliation = request.getParameter("userAffiliation");
+        int userVisit = 0;
+        int totalPoint = 0;
+        int point = 0;
+
+        UserDto userDto = new UserDto
+                (userId, userPassword, userName, userBank, userAccount, userPhone, userEmail, userAffiliation
+                        , userVisit, totalPoint, point);
 
         System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
@@ -58,6 +82,7 @@ public class UserService implements UserDetailsService {
         System.out.println("회원가입 성공! - DB 저장 성공");
         return true;
     }
+
 
     // UserDetailsService 인터페이스에는 DB에서 유저 정보를 불러오는 중요한 메소드가 존재 - loadUserByUsername
     @Override

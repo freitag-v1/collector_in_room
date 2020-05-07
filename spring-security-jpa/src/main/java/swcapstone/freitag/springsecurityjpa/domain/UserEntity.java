@@ -1,9 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.domain;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import javax.persistence.*;
 
@@ -13,6 +10,7 @@ import javax.persistence.*;
 
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Getter
+@Setter
 @Entity(name = "user_table")
 public class UserEntity {
     @Id // Primary Key - JPA는 이 id를 통해 객체를 구분

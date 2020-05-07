@@ -1,13 +1,17 @@
 package swcapstone.freitag.springsecurityjpa.domain;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 @Getter
+@Setter
 public class CustomUser extends User {
 
     private User user;
@@ -31,4 +35,5 @@ public class CustomUser extends User {
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
     }
+
 }

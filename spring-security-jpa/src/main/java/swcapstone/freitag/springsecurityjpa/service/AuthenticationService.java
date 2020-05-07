@@ -1,20 +1,24 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.sun.security.auth.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
+import swcapstone.freitag.springsecurityjpa.JwtProperties;
 import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Date;
 
 @Component
 public class AuthenticationService implements AuthenticationProvider {
@@ -23,7 +27,7 @@ public class AuthenticationService implements AuthenticationProvider {
     @Autowired
     UserService userService;
 
-    private BCryptPasswordEncoder passwordEncoder;
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     // Spring Security 로그인 과정
     // 사용자가 요청한 서비스가 로그인이 필요 -> SpringSecurity는 SpringSecurityContext에서 Authentication이라는 객체를 찾는다.
@@ -39,9 +43,7 @@ public class AuthenticationService implements AuthenticationProvider {
         // AuthenticationManager를 통한 인증 실행
         UsernamePasswordAuthenticationToken authToken = (UsernamePasswordAuthenticationToken)authentication;
         // UserDetailsService에서 유저정보를 불러온다.
-        User userInfo = (User) userService.loadUserByUsername(authToken.getName());
-        // CustomUser userInfo = (CustomUser) userService.loadUserByUsername(authToken.getName());
-        System.out.println(userInfo.getUsername());
+        CustomUser userInfo = (CustomUser) userService.loadUserByUsername(authToken.getName());
 
         if(userInfo == null) {
             throw new UsernameNotFoundException(authToken.getName());
@@ -51,24 +53,35 @@ public class AuthenticationService implements AuthenticationProvider {
             throw new BadCredentialsException("아이디 혹은 패스워드를 잘못 입력");
         }
 
-        // 로그인에 성공하면 Authentication 객체를 SpringSecurityContext에 담은 후
-        // AuthenticationSuccessHandler 실행
-        // 인증 완료된 토큰을 리턴
+        // 즉 security의 세션들은 내부 메모리(SecurityContextHolder)에 쌓고 꺼내쓰는 것이다.
         return new UsernamePasswordAuthenticationToken(userInfo.getUsername(), userInfo.getPassword(), userInfo.getAuthorities());
     }
 
     private boolean matchPassword(String userPassword, Object credentials) {
         // Spring Security는 Authentication(principal: 아이디, credential: 비밀번호)
         // 방식 중 credential 기반으로 함
-        System.out.println("userPassword: "+userPassword);
-        System.out.println("credentials: "+credentials);
-
         return passwordEncoder.matches((String)credentials, userPassword);
     }
+
 
     // 앞에서 필터에서 보내준 Authentication 객체를 이 AuthenticationProvider가 인증 가능한 클래스인지 확인하는 메서드
     @Override
     public boolean supports(Class<?> authentication) {
         return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
+    }
+
+    public void successfulAuthentication(HttpServletResponse response, Authentication authResult)
+        throws IOException, ServletException {
+
+        String principal = (String) authResult.getPrincipal();
+
+        // JWT 토큰 생성
+        String jwtToken = JWT.create()
+                .withSubject(principal)   // userId
+                .withExpiresAt(new Date(System.currentTimeMillis() + JwtProperties.EXPIRATION_TIME))
+                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+
+        // response에 JWT 토큰 추가
+        response.addHeader(JwtProperties.HEADER_STRING, JwtProperties.TOKEN_PREFIX + jwtToken);
     }
 }

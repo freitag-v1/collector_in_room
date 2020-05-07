@@ -22,7 +22,7 @@ import javax.persistence.Column;
 @ToString
 @NoArgsConstructor
 public class UserDto {
-    private Long id;
+    // private Long id;
     private String userId;
     private String userPassword;
     private String userName;
@@ -37,7 +37,7 @@ public class UserDto {
 
     public UserEntity toEntity() {  // toEntity() 메서드를 통해서 DTO에서 필요한 부분을 이용하여 Entity로 만든다.
         return UserEntity.builder()
-                .id(id)
+                //.id(id)
                 .userId(userId)
                 .userPassword(userPassword)
                 .userName(userName)
@@ -53,10 +53,10 @@ public class UserDto {
     }
 
     @Builder
-    public UserDto(Long id, String userId, String userPassword, String userName,
+    public UserDto(/*Long id, */String userId, String userPassword, String userName,
                    int userBank, String userAccount, String userPhone, String userEmail,
                    String userAffiliation, int userVisit, int totalPoint, int point) {
-        this.id = id;
+        // this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
         this.userName = userName;
