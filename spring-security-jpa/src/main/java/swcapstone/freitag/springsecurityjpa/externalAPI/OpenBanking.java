@@ -2,20 +2,14 @@ package swcapstone.freitag.springsecurityjpa.externalAPI;
 
 import org.json.JSONObject;
 
-import javax.net.ssl.HttpsURLConnection;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 public class OpenBanking {
     private static OpenBanking instance = null;
-    private static final String clientID = "IXkyzGt3C2JzogL2hqufC0YH97xx3hTJ5IFZrMDe";
-    private static final String clientSecret = "HfCtT44inej7uHR1Bo5WurHsruG7pnfTWYKNQurM";
+    private static final String clientID = "4wbVEVJf0Iuj9ckTMvO9uNMVg9kdJq5kJEZ7QiHS";
+    private static final String clientSecret = "lzp4N3ao3vRdpKZRW2AxtPDVv496ZV7DQQAkNNp8";
     private static final String baseURL = "https://testapi.openbanking.or.kr";
     private String accessToken;
     private String clientCode;

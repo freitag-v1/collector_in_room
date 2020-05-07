@@ -7,16 +7,18 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 
 public class APICaller {
     private String method;
     private String url;
-    private Map<String, String> queryParameters = new HashMap<>();
+    private ArrayList<AbstractMap.SimpleEntry<String, String>> queryParameters = new ArrayList<>();
     private Map<String, String> headers = new HashMap<>();
     private Map<String, String> jsonBody = new HashMap<>();
+    private ArrayList<AbstractMap.SimpleEntry<String, String>> filed = new ArrayList<>();
 
     public APICaller(String method, String baseURL) {
         url = baseURL;
@@ -24,7 +26,7 @@ public class APICaller {
     }
 
     public void setQueryParameter(String key, String value) {
-        queryParameters.put(key, value);
+        queryParameters.add(new AbstractMap.SimpleEntry<>(key, value));
     }
 
     public void setHeader(String key, String value) {
@@ -35,14 +37,19 @@ public class APICaller {
         jsonBody.put(key, value);
     }
 
+    public void setFiled(String key, String value) {
+        filed.add(new AbstractMap.SimpleEntry<>(key, value));
+    }
+
     public String getResponse() throws Exception {
         if(!queryParameters.isEmpty()) {
-            Iterator<String> iterator = queryParameters.keySet().iterator();
-            String key = iterator.next();
-            url += "?" + URLEncoder.encode(key, "UTF-8") + "=" + URLEncoder.encode(queryParameters.get(key), "UTF-8");
-            while(iterator.hasNext()) {
-                key = iterator.next();
-                url += "&" + URLEncoder.encode(key, "UTF-8") + "=" + URLEncoder.encode(queryParameters.get(key), "UTF-8");
+            for(int i = 0; i < queryParameters.size(); i++) {
+                if(i > 0) {
+                    url += "&";
+                } else {
+                    url += "?";
+                }
+                url += URLEncoder.encode(queryParameters.get(i).getKey(), "UTF-8") + "=" + URLEncoder.encode(queryParameters.get(i).getValue(), "UTF-8");
             }
         }
 
@@ -58,6 +65,17 @@ public class APICaller {
         if(!jsonBody.isEmpty()) {
             con.setDoOutput(true);
             con.getOutputStream().write(new JSONObject(jsonBody).toString().getBytes());
+        } else if(!filed.isEmpty()) {
+            String body = "";
+            for (int i = 0; i < filed.size(); i++) {
+                if (i > 0) {
+                    body += "&";
+                }
+                body += URLEncoder.encode(filed.get(i).getKey(), "UTF-8") + "=" + URLEncoder.encode(filed.get(i).getValue(), "UTF-8");
+            }
+            System.out.println(body);
+            con.setDoOutput(true);
+            con.getOutputStream().write(body.getBytes());
         }
 
         int responseCode = con.getResponseCode();
