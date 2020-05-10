@@ -1,5 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.externalAPI;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -44,8 +45,58 @@ public class OpenBanking {
         return result;
     }
 
+    public boolean withdraw(String accessToken, int userSeqNo, String AccountNum, String memo, int amount) {
+        try {
+            Map<String, String> account = getAccount(accessToken, userSeqNo);
+            APICaller withdraw = new APICaller("POST", baseURL + "/v2.0/transfer/withdraw/fin_num");
+            withdraw.setHeader("Authorization", accessToken);
+            withdraw.setJsonBody("bank_tran_id", getTransactionID());
+            withdraw.setJsonBody("cntr_account_type", "N");
+            withdraw.setJsonBody("cntr_account_num", "1111111111");
+            withdraw.setJsonBody("dps_print_content", memo);
+            withdraw.setJsonBody("fintech_use_num", account.get("fintech_use_num"));
+            withdraw.setJsonBody("tran_amt", String.valueOf(amount));
+            withdraw.setJsonBody("tran_dtime", getTransactionTime());
+            withdraw.setJsonBody("req_client_name", account.get("account_holder_name"));
+            withdraw.setJsonBody("req_client_bank_code", account.get("bank_code_std"));
+            withdraw.setJsonBody("req_client_account_num", AccountNum);
+            withdraw.setJsonBody("req_client_num", String.valueOf(userSeqNo));
+            withdraw.setJsonBody("transfer_purpose", "TR");
+            withdraw.setJsonBody("recv_client_name", "방구석 수집가");
+            withdraw.setJsonBody("recv_client_bank_code", "097");
+            withdraw.setJsonBody("recv_client_account_num", "1111111111");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    private Map<String, String> getAccount(String accessToken, int userSeqNo) throws Exception {
+        APICaller getAccount = new APICaller("GET", baseURL + "/v2.0/account/list");
+        getAccount.setHeader("Authorization", accessToken);
+        getAccount.setQueryParameter("user_seq_no", String.valueOf(userSeqNo));
+        getAccount.setQueryParameter("include_cancel_yn", "N");
+        getAccount.setQueryParameter("sort_order", "D");
+
+        String response = getAccount.getResponse();
+        JSONObject jResponse = new JSONObject(response);
+        JSONArray resList = (JSONArray) jResponse.get("res_list");
+        JSONObject account = (JSONObject) resList.get(0);
+        Map<String, String> result = new HashMap<>();
+        result.put("fintech_use_num", account.get("fintech_use_num").toString());
+        result.put("bank_code_std", account.get("bank_code_std").toString());
+        result.put("account_holder_name", account.get("account_holder_name").toString());
+
+        return result;
+    }
+
     private String getTransactionID() {
         String uniqueCode = new SimpleDateFormat("HHmmssSSS", Locale.KOREA).format(new Date());
         return String.format("%sU%s", clientCode, uniqueCode);
+    }
+
+    private String getTransactionTime() {
+        return new SimpleDateFormat("yyyyMMHHmmss", Locale.KOREA).format(new Date());
     }
 }
