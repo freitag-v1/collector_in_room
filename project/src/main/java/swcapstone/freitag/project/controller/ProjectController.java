@@ -3,6 +3,7 @@ package swcapstone.freitag.project.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import swcapstone.freitag.project.api.ObjectStorageApiClient;
 import swcapstone.freitag.project.service.CollectionProjectService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -14,6 +15,8 @@ import java.io.IOException;
 public class ProjectController {
     @Autowired
     CollectionProjectService collectionProjectService;
+    @Autowired
+    ObjectStorageApiClient objectStorageApiClient;
 
     @RequestMapping("/api/project/collection")
     public String createCollectionProject(HttpServletRequest request, HttpServletResponse response) {
@@ -26,14 +29,17 @@ public class ProjectController {
     }
 
     @RequestMapping(value = "/api/project/upload/example", method = RequestMethod.POST)
-    public void uploadExampleData(@RequestParam("file") MultipartFile file) throws IOException {
+    public void uploadExampleData(@RequestParam("file") MultipartFile file) throws Exception {
 
         String fileName = file.getOriginalFilename();
 
-        File destinationFile = new File("/Users/woneyhoney/Desktop/collector_in_room/files" + fileName);
+        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
         file.transferTo(destinationFile);
 
         System.out.println(fileName + " is uploaded in my macbook!");
+
+        objectStorageApiClient.putObject("woneyhoney", destinationFile);
+
     }
 }
