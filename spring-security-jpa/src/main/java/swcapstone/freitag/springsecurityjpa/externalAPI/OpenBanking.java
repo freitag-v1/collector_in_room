@@ -65,11 +65,19 @@ public class OpenBanking {
             withdraw.setJsonBody("recv_client_name", "방구석 수집가");
             withdraw.setJsonBody("recv_client_bank_code", "097");
             withdraw.setJsonBody("recv_client_account_num", "1111111111");
+
+            String response = withdraw.getResponse();
+            System.out.println(response);
+            JSONObject jResponse = new JSONObject(response);
+            if(jResponse.get("rsp_code").equals("A0000")) {
+                return true;
+            } else {
+                return false;
+            }
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-        return true;
     }
 
     private Map<String, String> getAccount(String accessToken, int userSeqNo) throws Exception {
@@ -97,6 +105,6 @@ public class OpenBanking {
     }
 
     private String getTransactionTime() {
-        return new SimpleDateFormat("yyyyMMHHmmss", Locale.KOREA).format(new Date());
+        return new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(new Date());
     }
 }
