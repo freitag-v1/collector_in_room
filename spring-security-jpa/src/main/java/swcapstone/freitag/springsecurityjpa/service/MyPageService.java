@@ -30,6 +30,9 @@ public class MyPageService {
 
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
+
+
+
         String userName = request.getParameter("userName");
 
         int userBank = 0;
