@@ -43,7 +43,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 // access rule 설정
                 .antMatchers( "/api/signup", "/api/login", "/api/mypage", "/api/mypage/update").permitAll()
-                .antMatchers( "/externalapi/authorizetoken", "/externalapi/accesstoken").permitAll()
+                .antMatchers( "/externalapi/openbanking/oauth/token").permitAll()
                 .antMatchers( "/api/admin").hasRole("ADMIN")
                 .antMatchers("/api/**").hasRole("USER");
                 //.anyRequest().authenticated();
