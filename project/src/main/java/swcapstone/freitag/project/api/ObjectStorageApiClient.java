@@ -10,9 +10,5 @@ public class ObjectStorageApiClient {
     private final String accessKeyId = "sQG5BeaHcnvvqK4FI01A";
     private final String NCloudObjectStorageHostUrl = "https://kr.object.ncloudstorage.com";
 
-    @Autowired
-    RestTemplate restTemplate1;
-
-    
 
 }
