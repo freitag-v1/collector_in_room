@@ -2,8 +2,6 @@ package swcapstone.freitag.springsecurityjpa.domain;
 
 import lombok.*;
 
-import javax.persistence.Column;
-
 // Data Transfer Object: SQL를 사용(개발자가 직접 코딩)하여 DB에 접근한 후 적절한 CRUD API를 제공
 // DB에서 데이터를 얻어 Service나 Controller 등으터 보낼 때 사용하는 객체
 // 즉, DB의 데이터가 Presentation Logic Tier로 넘어오게 될 때는 DTO의 모습으로 바껴서 오고가는 것
@@ -26,8 +24,8 @@ public class UserDto {
     private String userId;
     private String userPassword;
     private String userName;
-    private int userBank;
-    private String userAccount;
+    private String userOpenBankingAccessToken;
+    private int userOpenBankingNum;
     private String userPhone;
     private String userEmail;
     private String userAffiliation;
@@ -41,8 +39,8 @@ public class UserDto {
                 .userId(userId)
                 .userPassword(userPassword)
                 .userName(userName)
-                .userBank(userBank)
-                .userAccount(userAccount)
+                .userOpenBankingAccessToken(userOpenBankingAccessToken)
+                .userOpenBankingNum(userOpenBankingNum)
                 .userPhone(userPhone)
                 .userEmail(userEmail)
                 .userAffiliation(userAffiliation)
@@ -54,14 +52,14 @@ public class UserDto {
 
     @Builder
     public UserDto(/*Long id, */String userId, String userPassword, String userName,
-                   int userBank, String userAccount, String userPhone, String userEmail,
-                   String userAffiliation, int userVisit, int totalPoint, int point) {
+                                int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
+                                String userAffiliation, int userVisit, int totalPoint, int point) {
         // this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
         this.userName = userName;
-        this.userBank = userBank;
-        this.userAccount = userAccount;
+        this.userOpenBankingNum = userOpenBankingNum;
+        this.userOpenBankingAccessToken = userOpenBankingAccessToken;
         this.userPhone = userPhone;
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;

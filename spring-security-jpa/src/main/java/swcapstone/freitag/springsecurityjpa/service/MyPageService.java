@@ -31,26 +31,14 @@ public class MyPageService {
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
         String userName = request.getParameter("userName");
-
-        int userBank = 0;
-        try {
-            userBank = Integer.parseInt(request.getParameter("userBank"));
-        } catch (Exception e) {
-
-        }
-
-        String userAccount = request.getParameter("userAccount");
         String userPhone = request.getParameter("userPhone");
         String userEmail = request.getParameter("userEmail");
         String userAffiliation = request.getParameter("userAffiliation");
 
         // 마이페이지 수정
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
-        int finalUserBank = userBank;
         userEntityWrapper.ifPresent(selectUser -> {
             selectUser.setUserName(userName);
-            selectUser.setUserBank(finalUserBank);
-            selectUser.setUserAccount(userAccount);
             selectUser.setUserPhone(userPhone);
             selectUser.setUserEmail(userEmail);
             selectUser.setUserAffiliation(userAffiliation);

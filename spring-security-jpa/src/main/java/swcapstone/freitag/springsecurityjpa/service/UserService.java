@@ -1,7 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -13,12 +12,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.*;
-import swcapstone.freitag.springsecurityjpa.externalAPI.OpenBanking;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -33,20 +33,13 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public boolean signUp(HttpServletRequest request) {
+    public boolean signUp(HttpServletRequest request, HttpServletResponse response) {
 
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
         String userName = request.getParameter("userName");
-
-        int userBank = 0;
-        try {
-            userBank = Integer.parseInt(request.getParameter("userBank"));
-        } catch (Exception e) {
-
-        }
-
-        String userAccount = request.getParameter("userAccount");
+        int userOpenBankingNum = 0;
+        String userOpenBankingAccessToken = UUID.randomUUID().toString().replace("-", "");
         String userPhone = request.getParameter("userPhone");
         String userEmail = request.getParameter("userEmail");
         String userAffiliation = request.getParameter("userAffiliation");
@@ -55,7 +48,7 @@ public class UserService implements UserDetailsService {
         int point = 0;
 
         UserDto userDto = new UserDto
-                (userId, userPassword, userName, userBank, userAccount, userPhone, userEmail, userAffiliation
+                (userId, userPassword, userName, userOpenBankingNum, userOpenBankingAccessToken, userPhone, userEmail, userAffiliation
                         , userVisit, totalPoint, point);
 
         System.out.println("암호화 전 비번: "+userDto.getUserPassword());
@@ -68,18 +61,11 @@ public class UserService implements UserDetailsService {
             System.out.println("아이디 중복");
             return false;
         }
-        try {
-            // 오픈 뱅킹 계좌 실명 조회 - 유저 생년월일도 필요
-            if (!OpenBanking.getInstance().getRealName(userDto.getUserBank(), userDto.getUserAccount(), 1).equals(userDto.getUserName())) {
-                System.out.println("서버 통신 에러 또는 존재하지 않는 계좌 또는 예금주 불일치");
-                return false;
-            }
-        } catch (Exception e) {
-            System.out.println("실명확인 오류");
-            return false;
-        }
         userRepository.save(userDto.toEntity());
         System.out.println("회원가입 성공! - DB 저장 성공");
+
+        // 유저가 오픈뱅킹 등록시 사용할 고유한 state를 헤더로 전달
+        response.addHeader("state", userOpenBankingAccessToken);
         return true;
     }
 
@@ -114,7 +100,7 @@ public class UserService implements UserDetailsService {
             // return은 SpringSecurity에서 제공하는 UserDetails를 구현한 User를 상속한 CustomUser를 반환
             // return new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
             User user = new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
-            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserBank(), userEntity.getUserAccount(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
+            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserOpenBankingNum(), userEntity.getUserOpenBankingAccessToken(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
         }
 
         return null;

@@ -26,11 +26,11 @@ public class UserEntity {
     @Column(name = "user_name")
     private String userName;
 
-    @Column(name = "user_bank")
-    private int userBank;
+    @Column(name = "user_openbanking_access_token")
+    private String userOpenBankingAccessToken;
 
-    @Column(name = "user_account")
-    private String userAccount;
+    @Column(name = "user_openbanking_num")
+    private int userOpenBankingNum;
 
     @Column(name = "user_phone")
     private String userPhone;
@@ -52,14 +52,14 @@ public class UserEntity {
 
     @Builder
     public UserEntity(Long id, String userId, String userPassword, String userName,
-                       int userBank, String userAccount, String userPhone, String userEmail,
-                        String userAffiliation, int userVisit, int totalPoint, int point) {
+                      int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
+                      String userAffiliation, int userVisit, int totalPoint, int point) {
         this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
         this.userName = userName;
-        this.userBank = userBank;
-        this.userAccount = userAccount;
+        this.userOpenBankingAccessToken = userOpenBankingAccessToken;
+        this.userOpenBankingNum = userOpenBankingNum;
         this.userPhone = userPhone;
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
