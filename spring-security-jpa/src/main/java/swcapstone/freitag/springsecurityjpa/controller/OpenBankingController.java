@@ -1,5 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
+import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
@@ -11,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.Optional;
 
+@AllArgsConstructor
 @RestController
 public class OpenBankingController {
 
@@ -18,7 +20,7 @@ public class OpenBankingController {
 
     @RequestMapping("/externalapi/openbanking/oauth/token")
     public void autorizetoken(HttpServletRequest request, HttpServletResponse response)  {
-        if(isAuthorizeToken(request)) {
+        if(hasAuthorizeToken(request)) {
             String authorizeToken = request.getParameter("code");
             String state = request.getParameter("state");
 
@@ -37,7 +39,7 @@ public class OpenBankingController {
         }
     }
 
-    private boolean isAuthorizeToken(HttpServletRequest request) {
+    private boolean hasAuthorizeToken(HttpServletRequest request) {
         return !request.getParameterMap().isEmpty();
     }
 }
