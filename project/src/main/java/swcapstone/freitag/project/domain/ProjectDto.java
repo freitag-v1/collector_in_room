@@ -8,7 +8,7 @@ public class ProjectDto {
 
     private String userId;
     private String projectName;
-    private int bucketId;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷
+    private String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷
     private String status;  // 없음, 진행중, 완료
     private String workType;
     private String dataType;
@@ -16,7 +16,7 @@ public class ProjectDto {
     private int difficulty;  // 0~5점
     private String wayContent;  // 작업 방법
     private String conditionContent;    // 작업 조건
-    private int exampleContent;
+    private String exampleContent;
     private String description; // 프로젝트 설명
     private int totalData;
     private int progressData;
@@ -26,7 +26,7 @@ public class ProjectDto {
         return ProjectEntity.builder()
                 .userId(userId)
                 .projectName(projectName)
-                .bucketId(bucketId)
+                .bucketName(bucketName)
                 .status(status)
                 .workType(workType)
                 .dataType(dataType)
@@ -43,13 +43,13 @@ public class ProjectDto {
     }
 
     @Builder
-    public ProjectDto(String userId, String projectName, int bucketId, String status,
+    public ProjectDto(String userId, String projectName, String bucketName, String status,
                       String workType, String dataType, String subject, int difficulty, String wayContent,
-                      String conditionContent, int exampleContent, String description, int totalData, int progressData, int cost) {
+                      String conditionContent, String exampleContent, String description, int totalData, int progressData, int cost) {
 
         this.userId = userId;
         this.projectName = projectName;
-        this.bucketId = bucketId;
+        this.bucketName = bucketName;
         this.status = status;
         this.workType = workType;
         this.dataType = dataType;

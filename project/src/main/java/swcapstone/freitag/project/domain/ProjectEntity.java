@@ -15,7 +15,6 @@ import javax.persistence.*;
 public class ProjectEntity {
     @Id // Primary Key - JPA는 이 id를 통해 객체를 구분
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "project_id")
     private int projectId;
 
     @Column(name = "user_id")
@@ -24,8 +23,8 @@ public class ProjectEntity {
     @Column(name = "project_name")
     private String projectName;
 
-    @Column(name = "bucket_id")
-    private int bucketId;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷
+    @Column(name = "bucket_name")
+    private String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷
 
     @Column(name = "status")
     private String status;  // 없음, 진행중, 완료
@@ -49,7 +48,7 @@ public class ProjectEntity {
     private String conditionContent;    // 작업 조건
 
     @Column(name = "example_content")
-    private int exampleContent;         // 예시 데이터의 object id
+    private String exampleContent;         // 예시 데이터의 object Etag
 
     @Column(name = "description")
     private String description; // 프로젝트 설명
@@ -64,14 +63,14 @@ public class ProjectEntity {
     private int cost;
 
     @Builder
-    public ProjectEntity(int projectId, String userId, String projectName, int bucketId, String status,
+    public ProjectEntity(int projectId, String userId, String projectName, String bucketName, String status,
                          String workType, String dataType, String subject, int difficulty, String wayContent,
-                         String conditionContent, int exampleContent, String description, int totalData, int progressData, int cost) {
+                         String conditionContent, String exampleContent, String description, int totalData, int progressData, int cost) {
 
         this.projectId = projectId;
         this.userId = userId;
         this.projectName = projectName;
-        this.bucketId = bucketId;
+        this.bucketName = bucketName;
         this.status = status;
         this.workType = workType;
         this.dataType = dataType;

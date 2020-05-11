@@ -19,27 +19,43 @@ public class ProjectController {
     ObjectStorageApiClient objectStorageApiClient;
 
     @RequestMapping("/api/project/collection")
-    public String createCollectionProject(HttpServletRequest request, HttpServletResponse response) {
+    public void createCollectionProject(HttpServletRequest request, HttpServletResponse response) {
 
-        if(collectionProjectService.createProject(request, response)) {
-            return "성공";
+        String userId = request.getParameter("userId");
+        int howManyProjects = collectionProjectService.howManyProjects(userId) + 1;
+
+        // 버킷 생성
+        String bucketName = userId+howManyProjects;
+        if(objectStorageApiClient.putBucket(bucketName)) {
+            // 버킷 생성되면 수집 프로젝트 생성에 필요한 사용자 입력 필드와 함께 디비 저장
+            collectionProjectService.createProject(request, bucketName, response);
         }
 
-        return "실패";
     }
 
     @RequestMapping(value = "/api/project/upload/example", method = RequestMethod.POST)
-    public void uploadExampleData(@RequestParam("file") MultipartFile file) throws Exception {
+    public void uploadExampleData(HttpServletRequest request, @RequestParam("file") MultipartFile file,
+                                  HttpServletResponse response) throws Exception {
 
         String fileName = file.getOriginalFilename();
+        String bucketName = request.getParameter("bucketName");
 
         File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
         file.transferTo(destinationFile);
 
-        System.out.println(fileName + " is uploaded in my macbook!");
+        String exampleContent = objectStorageApiClient.putObject(bucketName, destinationFile);
 
-        objectStorageApiClient.putObject(destinationFile);
+        // 예시 데이터 object의 Etag를 exampleContent로 지정
+        if(collectionProjectService.setExampleContent(/*HttpServletRequest request, */exampleContent, response)) {
+            System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
+            return;
+        }
 
+        System.out.println("status: 없음 - 예시 데이터 Object Storage 업로드 실패");
+        return;
     }
+
+    // 오픈 뱅킹 결제
+    // 결제 완료되면 status 없음 -> 진행중 변경할 것
 }
