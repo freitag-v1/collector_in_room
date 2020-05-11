@@ -2,7 +2,6 @@ package swcapstone.freitag.springsecurityjpa.service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.sun.security.auth.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -13,7 +12,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import swcapstone.freitag.springsecurityjpa.JwtProperties;
-import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;

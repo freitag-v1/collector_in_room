@@ -1,7 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -13,6 +12,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.*;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
@@ -54,8 +57,7 @@ public class UserService implements UserDetailsService {
         int point = 0;
 
         UserDto userDto = new UserDto
-                (userId, userPassword, userName, userBank, userAccount, userPhone, userEmail, userAffiliation
-                        , userVisit, totalPoint, point);
+                (userId, userPassword, userName, userPhone, userEmail, userAffiliation, userVisit, totalPoint, point);
 
         System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
@@ -103,7 +105,7 @@ public class UserService implements UserDetailsService {
             // return은 SpringSecurity에서 제공하는 UserDetails를 구현한 User를 상속한 CustomUser를 반환
             // return new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
             User user = new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
-            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserBank(), userEntity.getUserAccount(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
+            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
         }
 
         return null;

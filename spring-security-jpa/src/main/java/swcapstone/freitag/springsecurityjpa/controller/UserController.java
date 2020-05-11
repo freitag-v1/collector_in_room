@@ -1,15 +1,11 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.repository.query.Param;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import swcapstone.freitag.springsecurityjpa.JwtProperties;
-import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
-import swcapstone.freitag.springsecurityjpa.domain.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.MyPageService;
@@ -83,13 +79,11 @@ public class UserController {
 
     // 마이페이지 조회 (Read Only)
     @RequestMapping("/api/mypage")
-    // @AuthenticationPrincipal: 컨트롤러단에서 세션의 정보들에 접근하고 싶을 때 파라미터에 선언
-    // 이거 안쓰고 확인하려면 (CustomUser) SecurityContextHolder.getContext().getAuthentication().getPrincipal(); 이런식으로 써야한다.
-    // @AuthenticationPrincipal CustomUser user
     public CustomUser mypage(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
-            CustomUser user = (CustomUser) userService.loadUserByUsername(request.getParameter("userId"));
+            String userId = authorizationService.getUserId(request);
+            CustomUser user = (CustomUser) userService.loadUserByUsername(userId);
             System.out.println(user.getUsername()+" 님의 마이페이지 입니다!");
             return user;
         }
@@ -102,11 +96,12 @@ public class UserController {
 
 
     // 마이페이지 수정
-    @RequestMapping(value = "/api/mypage/update", method = RequestMethod.PUT)
+    @RequestMapping(value = "/api/user/mypage/update", method = RequestMethod.PUT)
     public String mypageUpdate(HttpServletRequest request) {
 
         if(authorizationService.isAuthorized(request)) {
-            myPageService.updateUserInfo(request);
+            String userId = authorizationService.getUserId(request);
+            myPageService.updateUserInfo(request, userId);
             return "수정 완료";
         }
         return "수정 실패";

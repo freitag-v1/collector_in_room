@@ -42,9 +42,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 // .addFilter(new AuthorizationService(authenticationManager()))
                 .authorizeRequests()
                 // access rule 설정
-                .antMatchers( "/api/signup", "/api/login", "/api/mypage", "/api/mypage/update").permitAll()
-                .antMatchers( "/api/admin").hasRole("ADMIN")
-                .antMatchers("/api/**").hasRole("USER");
+                .antMatchers( "/api/**").permitAll()
+                .antMatchers( "/api/admin").hasRole("ADMIN");
                 //.anyRequest().authenticated();
 
     }
