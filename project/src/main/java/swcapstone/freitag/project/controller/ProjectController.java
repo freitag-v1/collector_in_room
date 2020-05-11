@@ -39,7 +39,7 @@ public class ProjectController {
 
         System.out.println(fileName + " is uploaded in my macbook!");
 
-        objectStorageApiClient.putObject("woneyhoney", destinationFile);
+        objectStorageApiClient.putObject(destinationFile);
 
     }
 }

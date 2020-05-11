@@ -6,7 +6,6 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.client.ResponseErrorHandler;
 
 import java.io.IOException;
-import java.util.logging.Logger;
 
 public class RestTemplateResponseErrorHandler implements ResponseErrorHandler {
     @Override
