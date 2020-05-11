@@ -21,6 +21,7 @@ import java.io.IOException;
 // SecurityContext는 SecurityContextHolder를 통해 가져올 수 있다.
 
 // Client <-- dto --> Controller(Servlet)
+@CrossOrigin(origins = "*")
 @RestController
 public class UserController {
     @Autowired
