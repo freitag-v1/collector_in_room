@@ -21,7 +21,7 @@ public class OpenBankingController {
 
     @RequestMapping("/externalapi/openbanking/oauth/token")
     @Transactional
-    public void autorizetoken(HttpServletRequest request, HttpServletResponse response)  {
+    public String autorizetoken(HttpServletRequest request, HttpServletResponse response)  {
         if(hasAuthorizeToken(request)) {
             String authorizeToken = request.getParameter("code");
             String state = request.getParameter("state");
@@ -37,10 +37,13 @@ public class OpenBankingController {
                     selectUser.setUserOpenBankingAccessToken(result.get("access_token"));
                     selectUser.setUserOpenBankingNum(Integer.parseInt(result.get("user_seq_no")));
                 });
+                return "<html><head><title>계좌 등록 완료</title></head><meta charset=\"UTF-8\"><body onLoad=\"setTimeout('window.close()',2000);\"><p>계좌등록이 완료되었습니다.</p></body></html>";
             } catch (Exception e) {
                 e.printStackTrace();
+                return "<html><head><title>계좌 등록 실패</title></head><meta charset=\"UTF-8\"><body><p>계좌등록이 실패했습니다. 다시 시도해 주세요.</p></body></html>";
             }
         }
+        return null;
     }
 
     private boolean hasAuthorizeToken(HttpServletRequest request) {
