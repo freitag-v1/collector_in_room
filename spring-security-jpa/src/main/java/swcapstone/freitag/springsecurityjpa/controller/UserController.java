@@ -67,12 +67,14 @@ public class UserController {
 
     // 회원가입
     @RequestMapping("/api/signup")
-    public String signUp(HttpServletRequest request) {
+    public void signUp(HttpServletRequest request, HttpServletResponse response) {
 
-        if(userService.signUp(request))
-            return "success";
-        else
-            return "fail";
+        if(userService.signUp(request)) {
+            response.setHeader("update", "success");
+            return;
+        }
+
+        response.setHeader("update", "fail");
 
     }
 
@@ -85,6 +87,7 @@ public class UserController {
             String userId = authorizationService.getUserId(request);
             CustomUser user = (CustomUser) userService.loadUserByUsername(userId);
             System.out.println(user.getUsername()+" 님의 마이페이지 입니다!");
+            myPageService.getUpdateProhibitedUserInfo(userId, response);
             return user;
         }
 
@@ -96,15 +99,25 @@ public class UserController {
 
 
     // 마이페이지 수정
-    @RequestMapping(value = "/api/user/mypage/update", method = RequestMethod.PUT)
-    public String mypageUpdate(HttpServletRequest request) {
+    @RequestMapping(value = "/api/mypage/update", method = RequestMethod.PUT)
+    public void mypageUpdate(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
             myPageService.updateUserInfo(request, userId);
-            return "수정 완료";
+            response.setHeader("update", "success");
+            return;
         }
-        return "수정 실패";
+        response.setHeader("update", "fail");
     }
 
+    // 마이페이지 - 포인트 환전
+    @RequestMapping(value = "/api/mypage/exchange", method = RequestMethod.PUT)
+    public void exchangePoint(HttpServletRequest request, HttpServletResponse response) {
+
+        if(authorizationService.isAuthorized(request)) {
+            String userId = authorizationService.getUserId(request);
+            // 오픈뱅킹
+        }
+    }
 }

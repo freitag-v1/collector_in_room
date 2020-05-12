@@ -45,7 +45,7 @@ public class CollectionProjectService implements ProjectService {
         // int cost;
 
         ProjectDto projectDto = new ProjectDto(userId, projectName, bucketName, "없음", workType, dataType, subject,
-                0, wayContent, conditionContent, null, description, totalData, 0, 0);
+                0, wayContent, conditionContent, "없음", description, totalData, 0, 0);
 
         projectRepository.save(projectDto.toEntity());
         System.out.println("데이터 업로드 전 - 그 외 필요한 사용자 입력 필드는 DB 저장 완료");
@@ -54,16 +54,32 @@ public class CollectionProjectService implements ProjectService {
     }
 
     @Override
-    public boolean setExampleContent(String userId, String exampleContent, HttpServletResponse response) {
+    public boolean setExampleContentAndCost(String userId, String exampleContent, HttpServletResponse response) {
 
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserId(userId);
+        if(exampleContent == null)
+            return false;
 
-        if (projectEntityWrapper != null) {
+        System.out.println("exampleContent: "+exampleContent);
+
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByStatus("없음");
+
+
+        if (projectEntityWrapper.get().getUserId().equals(userId)) {
+
+            int totalData = projectEntityWrapper.get().getTotalData();
+            int cost = calculateBasicCost(totalData);
+
+            if( cost == -1)
+                return false;
+
+            // 디비 업데이트가 안됨.. 왜지...? ㅠ
             projectEntityWrapper.ifPresent(selectProject -> {
                 selectProject.setExampleContent(exampleContent);
+                selectProject.setCost(cost);
             });
-            // cost 설정 및 response 헤더에 넣기
-            setCost(userId, projectEntityWrapper.get().getTotalData(), response);
+
+            // cost response 헤더에 넣기
+            response.setHeader("cost", String.valueOf(cost));
             return true;
         }
 
@@ -71,26 +87,35 @@ public class CollectionProjectService implements ProjectService {
     }
 
     @Override
-    public void setCost(String userId, int totalData, HttpServletResponse response) {
-
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserId(userId);
-
-        int cost = calculateBasicCost(totalData);
-
-        if(projectEntityWrapper != null) {
-            projectEntityWrapper.ifPresent(selectProject -> {
-                selectProject.setCost(cost);
-            });
-
-            response.setHeader("cost", String.valueOf(cost));
-            return;
-        }
-
-    }
-
-    @Override
     public int calculateBasicCost(int totalData) {
         return COST_PER_DATA * totalData;
+    }
+
+    // 결제 미완료된 프로젝트 비용 가져오기
+    public int getCost(String userId) {
+        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+
+        if(projectEntity != null) {
+            return projectEntity.getCost();
+        }
+
+        return -1;
+    }
+
+
+    // 결제 미완료된 프로젝트 찾기
+    private ProjectEntity findNotYetPaidProject(String userId) {
+
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByStatus("없음");
+
+        if (projectEntityWrapper.isPresent()) {
+            ProjectEntity projectEntity = projectEntityWrapper.get();
+
+            if(projectEntity.getUserId().equals(userId))
+                return projectEntity;
+        }
+
+        return null;
     }
 }
 

@@ -18,6 +18,7 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -40,18 +41,10 @@ public class UserService implements UserDetailsService {
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
         String userName = request.getParameter("userName");
-
-        int userBank = 0;
-        try {
-            userBank = Integer.parseInt(request.getParameter("userBank"));
-        } catch (Exception e) {
-
-        }
-
-        String userAccount = request.getParameter("userAccount");
         String userPhone = request.getParameter("userPhone");
         String userEmail = request.getParameter("userEmail");
         String userAffiliation = request.getParameter("userAffiliation");
+
         int userVisit = 0;
         int totalPoint = 0;
         int point = 0;
@@ -74,23 +67,13 @@ public class UserService implements UserDetailsService {
         return true;
     }
 
-
     // UserDetailsService 인터페이스에는 DB에서 유저 정보를 불러오는 중요한 메소드가 존재 - loadUserByUsername
     @Override
     public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-        // UserDetails: Spring Security에서 사용자의 정보를 담는 인터페이스는 UserDetails 인터페이스
-        // 이 인터페이스를 구현하게 되면 Spring Security에서 구현한 클래스를 사용자 정보로 인식하고 인증 작업을 함
-        // 쉽게 말하면 UserDetails 인터페이스는 VO 역할 - VO는 DTO와 동일한 개념이지만 read only 속성
-
-        // Optional<T> 클래스는 Integer나 Double 클래스처럼 'T'타입의 객체를 포장해 주는 래퍼 클래스(Wrapper class)
-        // Optional 객체를 사용하면 예상치 못한 NullPointerException 예외를 제공되는 메소드로 간단히 회피
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
-        // Optional 객체에 저장된 값이 null이면, NoSuchElementException 예외
-        // 따라서 get() 메소드를 호출하기 전에 isPresent() 메소드를 사용하여 Optional 객체에 저장된 값이 null인지 아닌지를 먼저 확인한 후 호출
-
         if(userEntityWrapper.isPresent()) {
-            // get() 메소드를 사용하면 Optional 객체에 저장된 값에 접근
+
             UserEntity userEntity = userEntityWrapper.get();
 
             List<GrantedAuthority> authorityList = new ArrayList<>();
@@ -102,12 +85,53 @@ public class UserService implements UserDetailsService {
                 authorityList.add(new SimpleGrantedAuthority(UserRole.USER.getValue()));
             }
 
-            // return은 SpringSecurity에서 제공하는 UserDetails를 구현한 User를 상속한 CustomUser를 반환
-            // return new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
             User user = new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
             return new CustomUser(user, userEntity.getUserName(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
         }
 
         return null;
     }
+
+    // ***** 아주 중요한 메소드 *****
+    private UserEntity loadUserEntityByUserIdString(String userId) {
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        if(userEntityWrapper.isPresent()) {
+            UserEntity userEntity = userEntityWrapper.get();
+            return userEntity;
+        }
+
+        return null;
+    }
+
+    private int getPoint(String userId) {
+
+        UserEntity userEntity = loadUserEntityByUserIdString(userId);
+
+        if(userEntity != null) {
+            return userEntity.getPoint();
+        }
+
+        return -1;
+    }
+
+    @Transactional
+    public void pointPayment(String userId, int cost, HttpServletResponse response) {
+
+        int point = getPoint(userId);
+        System.out.println("결제 전 포인트: " + point);
+
+        if(cost <= point) {
+            UserEntity userEntity = loadUserEntityByUserIdString(userId);
+            userEntity.setPoint(point - cost);
+
+            System.out.println("결제 후 포인트: " + userEntity.getPoint());
+            response.setHeader("payment", "success");
+            return;
+        }
+
+        response.setHeader("payment", "fail");
+        return;
+    }
+
 }

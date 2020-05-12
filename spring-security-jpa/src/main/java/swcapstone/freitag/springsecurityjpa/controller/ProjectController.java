@@ -1,11 +1,13 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.CollectionProjectService;
+import swcapstone.freitag.springsecurityjpa.service.UserService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -13,12 +15,15 @@ import java.io.File;
 
 @RestController
 public class ProjectController {
+
     @Autowired
     CollectionProjectService collectionProjectService;
     @Autowired
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
     AuthorizationService authorizationService;
+    @Autowired
+    UserService userService;
 
 
     @RequestMapping("/api/project/collection")
@@ -53,8 +58,8 @@ public class ProjectController {
             String exampleContent = objectStorageApiClient.putObject(bucketName, destinationFile);
             String userId = authorizationService.getUserId(request);
 
-            // 예시 데이터 object의 Etag를 exampleContent로 지정
-            if(collectionProjectService.setExampleContent(userId, exampleContent, response)) {
+            // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
+            if(collectionProjectService.setExampleContentAndCost(userId, exampleContent, response)) {
                 System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
                 return;
             }
@@ -65,4 +70,21 @@ public class ProjectController {
 
     // 오픈 뱅킹 결제
     // 결제 완료되면 status 없음 -> 진행중 변경할 것
+
+
+
+
+    // 사용자 포인트로 결제
+    // 결제 완료되면 status 없음 -> 진행중 변경할 것
+    @RequestMapping(value = "/api/project/pointPayment")
+    public void payInPoints(HttpServletRequest request, HttpServletResponse response) {
+
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int cost = collectionProjectService.getCost(userId);
+
+            userService.pointPayment(userId, cost, response);
+        }
+    }
 }

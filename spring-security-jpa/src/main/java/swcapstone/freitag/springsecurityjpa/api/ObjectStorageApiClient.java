@@ -11,6 +11,7 @@ import com.amazonaws.services.s3.model.*;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.List;
 
 @Service
 public class ObjectStorageApiClient {
@@ -30,13 +31,18 @@ public class ObjectStorageApiClient {
 
     // private static final String BUCKET_NAME = "woneyhoney";
 
+
     public String putObject(String bucketName, File uploadFile) throws Exception {
 
         String objectName = uploadFile.getName();
 
         try {
-            s3.putObject(bucketName, objectName, uploadFile);
+            PutObjectResult putObjectResult = s3.putObject(bucketName, objectName, uploadFile);
             System.out.format("Object %s has been created.\n", objectName);
+
+            String eTag = putObjectResult.getETag();
+            // System.out.println("eTag: "+eTag);
+            return eTag;
 
         } catch (AmazonS3Exception e) {
             e.printStackTrace();
@@ -44,8 +50,7 @@ public class ObjectStorageApiClient {
             e.printStackTrace();
         }
 
-        S3Object s3Object = s3.getObject(bucketName, objectName);
-        return s3Object.getObjectMetadata().getETag();
+        return null;
     }
 
     public boolean putBucket(String bucketName) {
