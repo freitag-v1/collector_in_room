@@ -72,8 +72,6 @@ public class AuthorizationService extends BasicAuthenticationFilter {
                     .verify(token.replace(JwtProperties.TOKEN_PREFIX, ""))
                     .getSubject();
 
-            System.out.println("-----------------------------------"+userId+"-----------------------------------");
-
             // 토큰 subject에서 userId를 찾았다면 DB에서 정보를 확인!
             if (userId != null) {
 

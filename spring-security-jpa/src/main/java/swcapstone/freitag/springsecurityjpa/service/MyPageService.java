@@ -50,8 +50,8 @@ public class MyPageService {
             int userVist = userEntity.getUserVisit();
             response.setHeader("userVisit", String.valueOf(userVist));
 
-            int totalPoint = userEntity.getTotalPoint();
-            response.setHeader("totalPoint", String.valueOf(totalPoint));
+            // int totalPoint = userEntity.getTotalPoint();
+            // response.setHeader("totalPoint", String.valueOf(totalPoint));
 
             int point = userEntity.getPoint();
             response.setHeader("point", String.valueOf(point));

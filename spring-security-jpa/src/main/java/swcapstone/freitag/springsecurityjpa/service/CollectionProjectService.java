@@ -2,6 +2,7 @@ package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
@@ -16,7 +17,7 @@ public class CollectionProjectService implements ProjectService {
     @Autowired
     ProjectRepository projectRepository;
 
-    private static final int COST_PER_DATA = 100;
+    private static final int COST_PER_DATA = 50;
 
     @Override
     public int howManyProjects(String userId) {
@@ -24,6 +25,7 @@ public class CollectionProjectService implements ProjectService {
         return projectEntityList.size();
     }
 
+    @Transactional
     @Override
     public void createProject(HttpServletRequest request, String userId, String bucketName, HttpServletResponse response)
             throws NullPointerException {
@@ -53,6 +55,7 @@ public class CollectionProjectService implements ProjectService {
 
     }
 
+    @Transactional
     @Override
     public boolean setExampleContentAndCost(String userId, String exampleContent, HttpServletResponse response) {
 
@@ -61,22 +64,18 @@ public class CollectionProjectService implements ProjectService {
 
         System.out.println("exampleContent: "+exampleContent);
 
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByStatus("없음");
+        ProjectEntity projectEntity = findNotYetPaidProject(userId);
 
+        if (projectEntity != null) {
 
-        if (projectEntityWrapper.get().getUserId().equals(userId)) {
-
-            int totalData = projectEntityWrapper.get().getTotalData();
+            int totalData = projectEntity.getTotalData();
             int cost = calculateBasicCost(totalData);
 
             if( cost == -1)
                 return false;
 
-            // 디비 업데이트가 안됨.. 왜지...? ㅠ
-            projectEntityWrapper.ifPresent(selectProject -> {
-                selectProject.setExampleContent(exampleContent);
-                selectProject.setCost(cost);
-            });
+            projectEntity.setExampleContent(exampleContent);
+            projectEntity.setCost(cost);
 
             // cost response 헤더에 넣기
             response.setHeader("cost", String.valueOf(cost));
