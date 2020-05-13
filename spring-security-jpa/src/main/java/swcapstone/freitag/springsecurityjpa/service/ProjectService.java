@@ -7,6 +7,6 @@ public interface ProjectService {
     int howManyProjects(String userId);
     void createProject(HttpServletRequest request, String userId, String bucketName, HttpServletResponse response);
     boolean setExampleContentAndCost(String userId, String exampleContent, HttpServletResponse response);
-    // void setCost(String userId, int totalData, HttpServletResponse response);
+    void setStatus(String userId, HttpServletResponse response);
     int calculateBasicCost(int totalData);
 }

@@ -55,23 +55,15 @@ public class ObjectStorageApiClient {
 
     public boolean putBucket(String bucketName) {
 
-        try {
-            // create bucket if the bucket name does not exist
-            if (s3.doesBucketExistV2(bucketName)) {
-                System.out.format("Bucket %s already exists.\n", bucketName);
-                return true;
-            } else {
-                s3.createBucket(bucketName);
-                System.out.format("Bucket %s has been created.\n", bucketName);
-                return true;
-            }
-        } catch (AmazonS3Exception e) {
-            e.printStackTrace();
-        } catch(SdkClientException e) {
-            e.printStackTrace();
+        if (s3.doesBucketExistV2(bucketName)) {
+            System.out.format("Bucket %s already exists.\n", bucketName);
+            return true;
         }
 
-        return false;
+        s3.createBucket(bucketName);
+        System.out.format("Bucket %s has been created.\n", bucketName);
+        return true;
+
     }
 }
 

@@ -1,7 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpRequest;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
@@ -76,15 +75,17 @@ public class ProjectController {
 
     // 사용자 포인트로 결제
     // 결제 완료되면 status 없음 -> 진행중 변경할 것
-    @RequestMapping(value = "/api/project/pointPayment")
+    @RequestMapping(value = "/api/project/point/payment")
     public void payInPoints(HttpServletRequest request, HttpServletResponse response) {
-
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
             int cost = collectionProjectService.getCost(userId);
 
-            userService.pointPayment(userId, cost, response);
+            if(userService.pointPayment(userId, cost, response)) {
+                collectionProjectService.setStatus(userId, response);
+            }
+
         }
     }
 }

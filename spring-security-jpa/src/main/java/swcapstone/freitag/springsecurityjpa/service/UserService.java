@@ -1,6 +1,8 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -32,7 +34,7 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public void updateVisit(String userId) {
-        // 로그인할 때 방문일 업데이트 (하루에 한 번!)
+        //
     }
 
     @Transactional
@@ -104,7 +106,7 @@ public class UserService implements UserDetailsService {
         return null;
     }
 
-    private int getPoint(String userId) {
+    public int getPoint(String userId) {
 
         UserEntity userEntity = loadUserEntityByUserIdString(userId);
 
@@ -116,7 +118,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public void pointPayment(String userId, int cost, HttpServletResponse response) {
+    public boolean pointPayment(String userId, int cost, HttpServletResponse response) {
 
         int point = getPoint(userId);
         System.out.println("결제 전 포인트: " + point);
@@ -127,11 +129,11 @@ public class UserService implements UserDetailsService {
 
             System.out.println("결제 후 포인트: " + userEntity.getPoint());
             response.setHeader("payment", "success");
-            return;
+            return true;
         }
 
         response.setHeader("payment", "fail");
-        return;
+        return false;
     }
 
 }

@@ -32,37 +32,13 @@ public class UserController {
     @Autowired
     private MyPageService myPageService;
 
-
-    @RequestMapping("/api/login")
-    public Authentication login(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
+    @RequestMapping(value = "/api/login", method = RequestMethod.POST)
+    public void login(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
 
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
 
-        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
-        Authentication authentication = authenticationService.authenticate(authToken);
-
-        // userId 찍힘
-        // System.out.println("authtoken.getName(): "+authToken.getName());
-        // System.out.println("authentication.getPrincipal: "+authentication.getPrincipal());
-
-        if(authentication != null) {
-            System.out.println(authentication.getPrincipal()+" 님이 로그인하셨습니다.");
-            SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            // JWT 토큰 생성
-            authenticationService.successfulAuthentication(response, authentication);
-
-            System.out.println("SecurityContextHolder: "+SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-            // System.out.println(response.getHeader(JwtProperties.HEADER_STRING));
-
-            return authentication;
-        }
-        else {
-            System.out.println("회원이 아닙니다.");
-            return null;
-        }
-
+        authenticationService.login(userId, userPassword, response);
     }
 
     // 회원가입

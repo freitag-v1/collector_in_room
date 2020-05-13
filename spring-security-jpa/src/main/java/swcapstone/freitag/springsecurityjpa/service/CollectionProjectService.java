@@ -85,6 +85,19 @@ public class CollectionProjectService implements ProjectService {
         return false;
     }
 
+    @Transactional
+    @Override
+    public void setStatus(String userId, HttpServletResponse response) {
+        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+
+        if (projectEntity != null) {
+            projectEntity.setStatus("진행중");
+            String status = projectEntity.getStatus();
+            // status response 헤더에 넣기
+            response.setHeader("status", status);
+        }
+    }
+
     @Override
     public int calculateBasicCost(int totalData) {
         return COST_PER_DATA * totalData;
