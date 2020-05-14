@@ -1,4 +1,4 @@
-package swcapstone.freitag.springsecurityjpa.externalAPI;
+package swcapstone.freitag.springsecurityjpa.api;
 
 import org.json.JSONArray;
 import org.json.JSONObject;

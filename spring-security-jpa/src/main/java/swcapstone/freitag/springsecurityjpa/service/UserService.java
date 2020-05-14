@@ -1,7 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -13,11 +12,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.*;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -32,7 +37,7 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public boolean signUp(HttpServletRequest request) {
+    public boolean signUp(HttpServletRequest request, HttpServletResponse response) {
 
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");

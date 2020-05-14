@@ -1,6 +1,7 @@
-package swcapstone.freitag.springsecurityjpa.domain;
+package swcapstone.freitag.springsecurityjpa.domain.dto;
 
 import lombok.*;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
 import javax.persistence.Column;
 

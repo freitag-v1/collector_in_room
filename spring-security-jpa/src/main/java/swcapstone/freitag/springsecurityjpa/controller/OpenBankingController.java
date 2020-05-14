@@ -4,9 +4,9 @@ import lombok.AllArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
-import swcapstone.freitag.springsecurityjpa.domain.UserRepository;
-import swcapstone.freitag.springsecurityjpa.externalAPI.OpenBanking;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
+import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

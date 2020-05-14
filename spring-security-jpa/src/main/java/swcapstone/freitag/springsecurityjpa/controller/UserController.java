@@ -1,15 +1,8 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.repository.query.Param;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import swcapstone.freitag.springsecurityjpa.JwtProperties;
-import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
-import swcapstone.freitag.springsecurityjpa.domain.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.MyPageService;
@@ -50,7 +43,7 @@ public class UserController {
     @RequestMapping("/api/signup")
     public void signUp(HttpServletRequest request, HttpServletResponse response) {
 
-        if(userService.signUp(request)) {
+        if(userService.signUp(request, response)) {
             response.setHeader("update", "success");
             return;
         }

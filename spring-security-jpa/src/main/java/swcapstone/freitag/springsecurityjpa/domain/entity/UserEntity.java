@@ -1,4 +1,4 @@
-package swcapstone.freitag.springsecurityjpa.domain;
+package swcapstone.freitag.springsecurityjpa.domain.entity;
 
 import lombok.*;
 
