@@ -2,18 +2,18 @@ package swcapstone.freitag.springsecurityjpa.service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.sun.security.auth.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 import swcapstone.freitag.springsecurityjpa.JwtProperties;
-import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
@@ -29,11 +29,24 @@ public class AuthenticationService implements AuthenticationProvider {
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // Spring Security 로그인 과정
-    // 사용자가 요청한 서비스가 로그인이 필요 -> SpringSecurity는 SpringSecurityContext에서 Authentication이라는 객체를 찾는다.
+    public void login(String userId, String userPassword, HttpServletResponse response) throws IOException, ServletException {
 
-    // 이때 Authentication 객체가 없으면 사용자에게 login 페이지를 보여주고
-    // 사용자가 로그인 정보를 입력하고 로그인을 하면 사용자가 입력한 userID에 대한 User(UserDetails)를 읽어와서 사용자가 입력한 정보들과 비교
+        UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userId, userPassword);
+        Authentication authentication = authenticate(authToken);
+
+        if(authentication != null) {
+            System.out.println(authentication.getPrincipal()+" 님이 로그인하셨습니다.");
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // JWT 토큰 생성
+            successfulAuthentication(response, authentication);
+            // System.out.println("SecurityContextHolder: "+SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+            response.setHeader("login", "success");
+        }
+        else {
+            response.setHeader("login", "fail");
+        }
+    }
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {

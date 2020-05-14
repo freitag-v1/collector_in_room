@@ -2,6 +2,8 @@ package swcapstone.freitag.springsecurityjpa.domain;
 
 import lombok.*;
 
+import javax.persistence.Column;
+
 // Data Transfer Object: SQL를 사용(개발자가 직접 코딩)하여 DB에 접근한 후 적절한 CRUD API를 제공
 // DB에서 데이터를 얻어 Service나 Controller 등으터 보낼 때 사용하는 객체
 // 즉, DB의 데이터가 Presentation Logic Tier로 넘어오게 될 때는 DTO의 모습으로 바껴서 오고가는 것

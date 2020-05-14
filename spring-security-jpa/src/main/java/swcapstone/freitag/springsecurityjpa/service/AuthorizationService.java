@@ -2,34 +2,22 @@ package swcapstone.freitag.springsecurityjpa.service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import lombok.AllArgsConstructor;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import swcapstone.freitag.springsecurityjpa.JwtProperties;
-import swcapstone.freitag.springsecurityjpa.domain.CustomUser;
-import swcapstone.freitag.springsecurityjpa.domain.UserEntity;
-import swcapstone.freitag.springsecurityjpa.domain.UserRepository;
-import swcapstone.freitag.springsecurityjpa.domain.UserRole;
+import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.file.attribute.UserPrincipal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 // Authorization은 앞서 Authentication에서 획득한 JWT Token을 가지고 request를 요청할때 수행
 
@@ -84,8 +72,6 @@ public class AuthorizationService extends BasicAuthenticationFilter {
                     .verify(token.replace(JwtProperties.TOKEN_PREFIX, ""))
                     .getSubject();
 
-            System.out.println("-----------------------------------"+userId+"-----------------------------------");
-
             // 토큰 subject에서 userId를 찾았다면 DB에서 정보를 확인!
             if (userId != null) {
 
@@ -102,5 +88,9 @@ public class AuthorizationService extends BasicAuthenticationFilter {
         }
 
         return null;
+    }
+
+    public String getUserId(HttpServletRequest request) {
+        return getUsernamePasswordAuthentication(request).getName();
     }
 }
