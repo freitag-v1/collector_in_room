@@ -1,8 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -24,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -34,15 +33,17 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public void updateVisit(String userId) {
-        //
+        // 로그인할 때 방문일 업데이트 (하루에 한 번!)
     }
 
     @Transactional
-    public boolean signUp(HttpServletRequest request) {
+    public boolean signUp(HttpServletRequest request, HttpServletResponse response) {
 
         String userId = request.getParameter("userId");
         String userPassword = request.getParameter("userPassword");
         String userName = request.getParameter("userName");
+        int userOpenBankingNum = 0;
+        String userOpenBankingAccessToken = UUID.randomUUID().toString().replace("-", "");
         String userPhone = request.getParameter("userPhone");
         String userEmail = request.getParameter("userEmail");
         String userAffiliation = request.getParameter("userAffiliation");
@@ -52,7 +53,8 @@ public class UserService implements UserDetailsService {
         int point = 0;
 
         UserDto userDto = new UserDto
-                (userId, userPassword, userName, userPhone, userEmail, userAffiliation, userVisit, totalPoint, point);
+                (userId, userPassword, userName, userOpenBankingNum, userOpenBankingAccessToken, userPhone, userEmail, userAffiliation
+                        , userVisit, totalPoint, point);
 
         System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
@@ -66,6 +68,9 @@ public class UserService implements UserDetailsService {
         }
         userRepository.save(userDto.toEntity());
         System.out.println("회원가입 성공! - DB 저장 성공");
+
+        // 유저가 오픈뱅킹 등록시 사용할 고유한 state를 헤더로 전달
+        response.addHeader("state", userOpenBankingAccessToken);
         return true;
     }
 

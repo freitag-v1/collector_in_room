@@ -1,9 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
@@ -21,6 +18,7 @@ import java.io.IOException;
 // SecurityContext는 SecurityContextHolder를 통해 가져올 수 있다.
 
 // Client <-- dto --> Controller(Servlet)
+@CrossOrigin(origins = "*")
 @RestController
 public class UserController {
     @Autowired
@@ -45,7 +43,7 @@ public class UserController {
     @RequestMapping("/api/signup")
     public void signUp(HttpServletRequest request, HttpServletResponse response) {
 
-        if(userService.signUp(request)) {
+        if(userService.signUp(request, response)) {
             response.setHeader("update", "success");
             return;
         }
