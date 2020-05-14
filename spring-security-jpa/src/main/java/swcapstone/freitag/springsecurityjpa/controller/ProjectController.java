@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.CollectionProjectService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
@@ -11,6 +12,7 @@ import swcapstone.freitag.springsecurityjpa.service.UserService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.util.List;
 
 @RestController
 public class ProjectController {
@@ -66,6 +68,16 @@ public class ProjectController {
             System.out.println("status: 없음 - 예시 데이터 Object Storage 업로드 실패");
         }
     }
+
+    // 수집 프로젝트 검색 결과 반환
+    // workType, dataType, subject, difficulty
+    @RequestMapping(value = "/api/project/list/collection")
+    public List<ProjectDto> getCollectionSearchResults(HttpServletRequest request, HttpServletResponse response) {
+
+        collectionProjectService.getSearchResults(request, response);
+
+    }
+
 
     // 오픈 뱅킹 결제
     // 결제 완료되면 status 없음 -> 진행중 변경할 것

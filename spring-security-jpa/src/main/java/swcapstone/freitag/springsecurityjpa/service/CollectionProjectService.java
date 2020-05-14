@@ -33,8 +33,8 @@ public class CollectionProjectService implements ProjectService {
         String projectName = request.getParameter("projectName");
         // String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷 - userId+projectName 조합
         // String status;  // 없음, 진행중, 완료
-        String workType = request.getParameter("workType"); // collection, boundingBox, classification
-        String dataType = request.getParameter("dataType"); // image, audio, text
+        String workType = request.getParameter("workType"); // collection / labelling
+        String dataType = request.getParameter("dataType"); // image, audio, text / boundingBox, classfication
         String subject = request.getParameter("subject");
         // int difficulty;
         String wayContent = request.getParameter("wayContent");  // 작업 방법
@@ -129,5 +129,28 @@ public class CollectionProjectService implements ProjectService {
 
         return null;
     }
+
+
+    // 수집 프로젝트 검색 결과 반환
+    // workType, dataType, subject, difficulty
+    @Transactional
+    @Override
+    public List<ProjectDto> getSearchResults(HttpServletRequest request, HttpServletResponse response) {
+
+        String workType = "collection";
+        String dataType = request.getParameter("dataType");
+        String subject = request.getParameter("subject");
+        String strDifficulty = request.getParameter("difficulty");
+        int difficulty = Integer.parseInt(strDifficulty);
+
+        List<ProjectEntity> projectEntityList = projectRepository
+                .findAllByWorkTypeDAndDataTypeAndSubjectAndDifficulty(workType, dataType, subject, difficulty);
+
+        for(ProjectEntity p : projectEntityList) {
+            
+        }
+    }
+
+
 }
 

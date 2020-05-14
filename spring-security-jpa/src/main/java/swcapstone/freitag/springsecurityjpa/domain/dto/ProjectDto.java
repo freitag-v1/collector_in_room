@@ -2,7 +2,9 @@ package swcapstone.freitag.springsecurityjpa.domain.dto;
 
 import lombok.Builder;
 import lombok.NoArgsConstructor;
+import org.modelmapper.ModelMapper;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.utils.ModelMapperUtils;
 
 @NoArgsConstructor
 public class ProjectDto {
@@ -22,6 +24,10 @@ public class ProjectDto {
     private int totalData;
     private int progressData;
     private int cost;
+
+    public static ProjectDto of(ProjectEntity projectEntity) {
+        return ModelMapperUtils.getModelMapper().map(projectEntity, ProjectDto.class);
+    }
 
     public ProjectEntity toEntity() {
         return ProjectEntity.builder()
