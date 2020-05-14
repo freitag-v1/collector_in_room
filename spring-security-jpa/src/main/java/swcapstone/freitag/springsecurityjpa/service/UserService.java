@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
 import swcapstone.freitag.springsecurityjpa.domain.*;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
@@ -141,4 +142,19 @@ public class UserService implements UserDetailsService {
         return false;
     }
 
+    @Transactional
+    public boolean accountPayment(String userId, int cost, String accountNum, HttpServletResponse response) {
+
+        UserEntity userEntity = loadUserEntityByUserIdString(userId);
+        String openbankingAccessToken = userEntity.getUserOpenBankingAccessToken();
+        int openbankingNum = userEntity.getUserOpenBankingNum();
+        if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum, accountNum,"오픈뱅킹 프로젝트 생성", cost)) {
+            response.setHeader("payment", "success");
+            return true;
+        }
+
+        response.setHeader("payment", "fail");
+        return false;
+
+    }
 }

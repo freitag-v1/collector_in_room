@@ -69,9 +69,20 @@ public class ProjectController {
 
     // 오픈 뱅킹 결제
     // 결제 완료되면 status 없음 -> 진행중 변경할 것
+    @RequestMapping(value = "/api/project/account/payment")
+    public void payInAccount(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
 
+            String userId = authorizationService.getUserId(request);
+            String accountNum = request.getHeader("accountNum");
+            int cost = collectionProjectService.getCost(userId);
 
+            if(userService.accountPayment(userId, cost, accountNum, response)) {
+                collectionProjectService.setStatus(userId, response);
+            }
 
+        }
+    }
 
     // 사용자 포인트로 결제
     // 결제 완료되면 status 없음 -> 진행중 변경할 것
