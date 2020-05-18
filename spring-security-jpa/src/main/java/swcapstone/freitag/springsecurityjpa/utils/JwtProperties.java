@@ -1,4 +1,4 @@
-package swcapstone.freitag.springsecurityjpa;
+package swcapstone.freitag.springsecurityjpa.utils;
 
 public class JwtProperties {
     public static final String SECRET = "freitag";

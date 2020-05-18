@@ -10,7 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.stereotype.Service;
-import swcapstone.freitag.springsecurityjpa.JwtProperties;
+import swcapstone.freitag.springsecurityjpa.utils.JwtProperties;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 
 import javax.servlet.FilterChain;

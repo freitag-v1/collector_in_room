@@ -12,7 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
-import swcapstone.freitag.springsecurityjpa.JwtProperties;
+import swcapstone.freitag.springsecurityjpa.utils.JwtProperties;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 
 import javax.servlet.ServletException;
