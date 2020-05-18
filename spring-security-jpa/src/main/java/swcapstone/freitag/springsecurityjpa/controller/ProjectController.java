@@ -105,10 +105,10 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-            int cost = collectionProjectService.getCost(userId);
+            int cost = projectService.getCost(userId);
 
             if(userService.accountPayment(userId, cost, response)) {
-                collectionProjectService.setStatus(userId, response);
+                projectService.setStatus(userId, response);
             }
 
         }
