@@ -148,7 +148,7 @@ public class UserService implements UserDetailsService {
         UserEntity userEntity = loadUserEntityByUserIdString(userId);
         String openbankingAccessToken = userEntity.getUserOpenBankingAccessToken();
         int openbankingNum = userEntity.getUserOpenBankingNum();
-        if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum,"오픈뱅킹 프로젝트 생성", cost)) {
+        if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum,"프로젝트 생성", cost)) {
             response.setHeader("payment", "success");
             return true;
         }
