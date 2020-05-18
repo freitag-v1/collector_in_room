@@ -143,12 +143,12 @@ public class UserService implements UserDetailsService {
     }
 
     @Transactional
-    public boolean accountPayment(String userId, int cost, String accountNum, HttpServletResponse response) {
+    public boolean accountPayment(String userId, int cost, HttpServletResponse response) {
 
         UserEntity userEntity = loadUserEntityByUserIdString(userId);
         String openbankingAccessToken = userEntity.getUserOpenBankingAccessToken();
         int openbankingNum = userEntity.getUserOpenBankingNum();
-        if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum, accountNum,"오픈뱅킹 프로젝트 생성", cost)) {
+        if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum,"오픈뱅킹 프로젝트 생성", cost)) {
             response.setHeader("payment", "success");
             return true;
         }

@@ -19,12 +19,12 @@ class OpenBankingTest {
 
     @Test
     public void withdraw() {
-        assertTrue(OpenBanking.getInstance().withdraw(accessToken, Integer.parseInt(userSeqNo), "1111122222", "테스트", 10000));
+        assertTrue(OpenBanking.getInstance().withdraw(accessToken, Integer.parseInt(userSeqNo), "테스트", 10000));
     }
 
     @Test
     public void withdrawFail() {
-        assertFalse(OpenBanking.getInstance().withdraw(accessToken, Integer.parseInt(userSeqNo), "1111122222", "테스트", 1000000000));
+        assertFalse(OpenBanking.getInstance().withdraw(accessToken, Integer.parseInt(userSeqNo), "테스트", 1000000000));
     }
 
     @Test

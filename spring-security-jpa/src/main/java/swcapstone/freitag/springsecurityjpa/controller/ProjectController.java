@@ -74,10 +74,9 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-            String accountNum = request.getHeader("accountNum");
             int cost = collectionProjectService.getCost(userId);
 
-            if(userService.accountPayment(userId, cost, accountNum, response)) {
+            if(userService.accountPayment(userId, cost, response)) {
                 collectionProjectService.setStatus(userId, response);
             }
 

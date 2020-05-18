@@ -62,7 +62,7 @@ public class OpenBanking {
         return result;
     }
 
-    public boolean withdraw(String accessToken, int userSeqNo, String AccountNum, String memo, int amount) {
+    public boolean withdraw(String accessToken, int userSeqNo, String memo, int amount) {
         try {
             Map<String, String> account = getAccount(accessToken, userSeqNo);
             APICaller withdraw = new APICaller("POST", baseURL + "/v2.0/transfer/withdraw/fin_num");
@@ -75,8 +75,7 @@ public class OpenBanking {
             withdraw.setJsonBody("tran_amt", String.valueOf(amount));
             withdraw.setJsonBody("tran_dtime", getTransactionTime());
             withdraw.setJsonBody("req_client_name", account.get("account_holder_name"));
-            withdraw.setJsonBody("req_client_bank_code", account.get("bank_code_std"));
-            withdraw.setJsonBody("req_client_account_num", AccountNum);
+            withdraw.setJsonBody("req_client_fintech_use_num", account.get("fintech_use_num"));
             withdraw.setJsonBody("req_client_num", String.valueOf(userSeqNo));
             withdraw.setJsonBody("transfer_purpose", "TR");
             withdraw.setJsonBody("recv_client_name", "방구석 수집가");
