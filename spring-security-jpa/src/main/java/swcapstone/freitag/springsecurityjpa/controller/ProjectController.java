@@ -7,19 +7,19 @@ import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.CollectionProjectService;
+import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 public class ProjectController {
 
     @Autowired
-    CollectionProjectService collectionProjectService;
+    ProjectService projectService;
     @Autowired
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
@@ -28,18 +28,18 @@ public class ProjectController {
     UserService userService;
 
 
-    @RequestMapping("/api/project/collection")
+    @RequestMapping("/api/project/create")
     public void createCollectionProject(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            int howManyProjects = collectionProjectService.howManyProjects(userId) + 1;
+            int howManyProjects = projectService.howManyProjects(userId) + 1;
 
             // 버킷 생성
             String bucketName = userId+howManyProjects;
             if(objectStorageApiClient.putBucket(bucketName)) {
                 // 버킷 생성되면 수집 프로젝트 생성에 필요한 사용자 입력 필드와 함께 디비 저장
-                collectionProjectService.createProject(request, userId, bucketName, response);
+                projectService.createProject(request, userId, bucketName, response);
             }
         }
 
@@ -61,22 +61,37 @@ public class ProjectController {
             String userId = authorizationService.getUserId(request);
 
             // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
-            if(collectionProjectService.setExampleContentAndCost(userId, exampleContent, response)) {
-                System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
+            if(projectService.setExampleContent(userId, exampleContent, response)) {
+                // 수집 프로젝트는 예시 데이터 업로드 성공하면 바로 결제할 수 있도록 cost 계산해서 헤더에 쓰기
+                if(projectService.isCollection(userId))
+                    projectService.setCost(userId, response);
+
+                // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
                 return;
             }
 
-            System.out.println("status: 없음 - 예시 데이터 Object Storage 업로드 실패");
+            // System.out.println("status: 없음 - 예시 데이터 Object Storage 업로드 실패");
         }
     }
 
-    // 수집 프로젝트 검색 결과 반환
+
+    @RequestMapping(value = "/api/project/upload/labelling")
+    public void uploadLabellingData(HttpServletRequest request, @RequestParam("file") List<MultipartFile> files,
+                                    HttpServletResponse response) {
+
+        if(authorizationService.isAuthorized(request)) {
+
+        }
+    }
+
+
+    // 프로젝트 검색 결과 반환
     // workType, dataType, subject, difficulty
-    @RequestMapping(value = "/api/project/list/collection")
+    @RequestMapping(value = "/api/project/list")
     public List<ProjectDto> getCollectionSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
-            return collectionProjectService.getSearchResults(request, response);
+            return projectService.getSearchResults(request, response);
         }
 
         return null;
@@ -96,10 +111,10 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-            int cost = collectionProjectService.getCost(userId);
+            int cost = projectService.getCost(userId);
 
             if(userService.pointPayment(userId, cost, response)) {
-                collectionProjectService.setStatus(userId, response);
+                projectService.setStatus(userId, response);
             }
 
         }
