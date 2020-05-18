@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
@@ -92,7 +93,7 @@ public class UserController {
     }
 
     // 마이페이지 - 포인트 환전
-    /*@RequestMapping(value = "/api/mypage/exchange", method = RequestMethod.PUT)
+    @RequestMapping(value = "/api/mypage/exchange", method = RequestMethod.PUT)
     public void exchangePoint(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
@@ -102,9 +103,11 @@ public class UserController {
             Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
             userEntityWrapper.ifPresent(selectUser -> {
                 if(amount <= selectUser.getPoint()) {
-                    OpenBanking.getInstance().deposit();
+                    if(OpenBanking.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "테스트", amount)) {
+                        selectUser.setPoint(selectUser.getPoint() - amount);
+                    }
                 }
             });
         }
-    }*/
+    }
 }
