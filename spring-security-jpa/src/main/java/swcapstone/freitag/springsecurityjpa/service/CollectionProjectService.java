@@ -1,21 +1,26 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
+import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepositoryImpl;
+import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class CollectionProjectService implements ProjectService {
 
     @Autowired
     ProjectRepository projectRepository;
+    @Autowired
+    ProjectRepositoryImpl projectRepositoryImpl;
 
     private static final int COST_PER_DATA = 50;
 
@@ -133,22 +138,32 @@ public class CollectionProjectService implements ProjectService {
 
     // 수집 프로젝트 검색 결과 반환
     // workType, dataType, subject, difficulty
-    @Transactional
     @Override
     public List<ProjectDto> getSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
-        String workType = "collection";
-        String dataType = request.getParameter("dataType");
+        String workType = request.getParameter("workType"); // collection / labelling
+        String dataType = request.getParameter("dataType"); // image, audio, text / boundingBox, classfication
         String subject = request.getParameter("subject");
+
         String strDifficulty = request.getParameter("difficulty");
         int difficulty = Integer.parseInt(strDifficulty);
 
-        List<ProjectEntity> projectEntityList = projectRepository
-                .findAllByWorkTypeDAndDataTypeAndSubjectAndDifficulty(workType, dataType, subject, difficulty);
+        List<ProjectEntity> projectEntityList = projectRepositoryImpl.findDynamicQuery(workType, dataType, subject, difficulty);
+        System.out.println("=================");
+        System.out.println(projectEntityList.get(0).getUserId());
 
-        for(ProjectEntity p : projectEntityList) {
-            
+        if(!projectEntityList.isEmpty()) {
+            List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
+
+            System.out.println("=================");
+            System.out.println(searchResults.get(0).getUserId());
+
+            response.setHeader("search", "success");
+            return searchResults;
         }
+
+        response.setHeader("search", "fail");
+        return null;
     }
 
 

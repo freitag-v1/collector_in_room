@@ -5,6 +5,7 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Map;
 
 public interface ProjectService {
     int howManyProjects(String userId);

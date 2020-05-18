@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class ProjectController {
@@ -74,8 +75,11 @@ public class ProjectController {
     @RequestMapping(value = "/api/project/list/collection")
     public List<ProjectDto> getCollectionSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
-        collectionProjectService.getSearchResults(request, response);
+        if(authorizationService.isAuthorized(request)) {
+            return collectionProjectService.getSearchResults(request, response);
+        }
 
+        return null;
     }
 
 
