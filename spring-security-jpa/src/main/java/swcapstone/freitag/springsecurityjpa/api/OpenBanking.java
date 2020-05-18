@@ -15,14 +15,31 @@ public class OpenBanking {
     private static final String clientSecret = "p947iEbMvXjslhyTw4d4p2HK8U0DkOHR7o83Mtdx";
     private static final String baseURL = "https://testapi.openbanking.or.kr";
     private static final String callbackURL = "http://wodnd999999.iptime.org:8080/externalapi/openbanking/oauth/token";
-    private static String clientCode = "T991627830";
+    private final String oobAccountNum = "1111111111";
+    private final String oobAccessToken;
+    private final String clientCode;
 
-    private OpenBanking() {
+    private OpenBanking() throws Exception {
+        APICaller getAccessToken = new APICaller("POST", baseURL + "/oauth/2.0/token");
+        getAccessToken.setQueryParameter("client_id", clientID);
+        getAccessToken.setQueryParameter("client_secret", clientSecret);
+        getAccessToken.setQueryParameter("grant_type", "client_credentials");
+        getAccessToken.setQueryParameter("scope", "oob");
+
+        String response = getAccessToken.getResponse();
+        JSONObject jResponse = new JSONObject(response);
+        this.oobAccessToken = "Bearer " + jResponse.get("access_token").toString();
+        this.clientCode = jResponse.get("client_use_code").toString();
     }
 
     public static OpenBanking getInstance() {
         if(instance == null) {
-            instance = new OpenBanking();
+            try {
+                instance = new OpenBanking();
+            } catch (Exception e) {
+                e.printStackTrace();
+                instance = null;
+            }
         }
         return instance;
     }
@@ -52,7 +69,7 @@ public class OpenBanking {
             withdraw.setHeader("Authorization", accessToken);
             withdraw.setJsonBody("bank_tran_id", getTransactionID());
             withdraw.setJsonBody("cntr_account_type", "N");
-            withdraw.setJsonBody("cntr_account_num", "1111111111");
+            withdraw.setJsonBody("cntr_account_num", oobAccountNum);
             withdraw.setJsonBody("dps_print_content", memo);
             withdraw.setJsonBody("fintech_use_num", account.get("fintech_use_num"));
             withdraw.setJsonBody("tran_amt", String.valueOf(amount));
@@ -64,10 +81,35 @@ public class OpenBanking {
             withdraw.setJsonBody("transfer_purpose", "TR");
             withdraw.setJsonBody("recv_client_name", "방구석 수집가");
             withdraw.setJsonBody("recv_client_bank_code", "097");
-            withdraw.setJsonBody("recv_client_account_num", "1111111111");
+            withdraw.setJsonBody("recv_client_account_num", oobAccountNum);
 
             String response = withdraw.getResponse();
-            System.out.println(response);
+            JSONObject jResponse = new JSONObject(response);
+            if(jResponse.get("rsp_code").equals("A0000")) {
+                return true;
+            } else {
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deposit(String accessToken, int userSeqNo, String memo, int amount) {
+        try {
+            Map<String, String> account = getAccount(accessToken, userSeqNo);
+            APICaller deposit = new APICaller("POST", baseURL + "/v2.0/transfer/deposit/fin_num");
+            deposit.setHeader("Authorization", oobAccessToken);
+            deposit.setJsonBody("cntr_account_type", "N");
+            deposit.setJsonBody("cntr_account_num", oobAccountNum);
+            deposit.setJsonBody("wd_pass_phrase", "NONE");
+            deposit.setJsonBody("wd_print_content", memo);
+            deposit.setJsonBody("tran_dtime", getTransactionTime());
+            deposit.setJsonBody("req_cnt", "1");
+            deposit.setJsonBody("req_list", makeDepositRequest(account, userSeqNo, memo, amount));
+
+            String response = deposit.getResponse();
             JSONObject jResponse = new JSONObject(response);
             if(jResponse.get("rsp_code").equals("A0000")) {
                 return true;
@@ -106,5 +148,19 @@ public class OpenBanking {
 
     private String getTransactionTime() {
         return new SimpleDateFormat("yyyyMMddHHmmss", Locale.KOREA).format(new Date());
+    }
+
+    private JSONArray makeDepositRequest(Map<String, String> account, int userSeqNo, String memo, int amount) {
+        JSONObject depositRequest = new JSONObject();
+        depositRequest.put("tran_no", "1");
+        depositRequest.put("bank_tran_id", getTransactionID());
+        depositRequest.put("fintech_use_num", account.get("fintech_use_num"));
+        depositRequest.put("print_content", memo);
+        depositRequest.put("tran_amt", amount);
+        depositRequest.put("req_client_name", account.get("account_holder_name"));
+        depositRequest.put("req_client_fintech_use_num", account.get("fintech_use_num"));
+        depositRequest.put("req_client_num", String.valueOf(userSeqNo));
+        depositRequest.put("transfer_purpose", "TR");
+        return new JSONArray().put(depositRequest);
     }
 }
