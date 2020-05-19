@@ -3,10 +3,11 @@ package swcapstone.freitag.springsecurityjpa.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
-import swcapstone.freitag.springsecurityjpa.service.CollectionProjectService;
+import swcapstone.freitag.springsecurityjpa.service.ClassService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.UserService;
 
@@ -26,10 +27,12 @@ public class ProjectController {
     AuthorizationService authorizationService;
     @Autowired
     UserService userService;
+    @Autowired
+    ClassService classService;
 
 
-    @RequestMapping("/api/project/create")
-    public void createCollectionProject(HttpServletRequest request, HttpServletResponse response) {
+    @RequestMapping(value = "/api/project/create", method = RequestMethod.POST)
+    public void createProject(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
@@ -41,6 +44,15 @@ public class ProjectController {
                 // 버킷 생성되면 수집 프로젝트 생성에 필요한 사용자 입력 필드와 함께 디비 저장
                 projectService.createProject(request, userId, bucketName, response);
             }
+        }
+
+    }
+
+    @RequestMapping(value = "/api/project/class", method = RequestMethod.POST)
+    public void createClass(HttpServletRequest request, HttpServletResponse response) {
+
+        if(authorizationService.isAuthorized(request)) {
+            classService.createClass(request, response);
         }
 
     }
@@ -67,7 +79,7 @@ public class ProjectController {
                     projectService.setCost(userId, response);
 
                 // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
-                return;
+
             }
 
             // System.out.println("status: 없음 - 예시 데이터 Object Storage 업로드 실패");
@@ -75,12 +87,25 @@ public class ProjectController {
     }
 
 
-    @RequestMapping(value = "/api/project/upload/labelling")
-    public void uploadLabellingData(HttpServletRequest request, @RequestParam("file") List<MultipartFile> files,
-                                    HttpServletResponse response) {
+    @RequestMapping(value = "/api/project/upload/labelling", method = RequestMethod.POST)
+    public void uploadLabellingData(MultipartHttpServletRequest uploadRequest,
+                                    HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         if(authorizationService.isAuthorized(request)) {
+            List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
 
+            String bucketName = request.getHeader("bucketName");
+
+            for(MultipartFile f : labellingDataList) {
+                String fileName = f.getOriginalFilename();
+                File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+                f.transferTo(destinationFile);
+
+                String temp = objectStorageApiClient.putObject(bucketName, destinationFile);
+
+
+
+            }
         }
     }
 

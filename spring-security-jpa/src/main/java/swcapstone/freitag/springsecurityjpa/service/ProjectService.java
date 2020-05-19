@@ -3,6 +3,7 @@ package swcapstone.freitag.springsecurityjpa.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
@@ -52,10 +53,17 @@ public class ProjectService {
         ProjectDto projectDto = new ProjectDto(userId, projectName, bucketName, "없음", workType, dataType, subject,
                 0, wayContent, conditionContent, "없음", description, totalData, 0, 0);
 
-        projectRepository.save(projectDto.toEntity());
-        System.out.println("데이터 업로드 전 - 그 외 필요한 사용자 입력 필드는 DB 저장 완료");
-        response.setHeader("bucketName", bucketName);
+        if(projectRepository.save(projectDto.toEntity()) != null) {
+            response.setHeader("create", "success");
 
+            int projectId = getProjectId(userId);
+
+            response.setHeader("projectId", String.valueOf(projectId));
+            return;
+        }
+
+        response.setHeader("create", "fail");
+        return;
     }
 
     @Transactional
@@ -104,6 +112,16 @@ public class ProjectService {
         }
 
         return false;
+    }
+
+    private int getProjectId(String userId) {
+        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+
+        if(projectEntity != null) {
+            return projectEntity.getProjectId();
+        }
+
+        return -1;
     }
 
     @Transactional
@@ -162,14 +180,14 @@ public class ProjectService {
         int difficulty = Integer.parseInt(strDifficulty);
 
         List<ProjectEntity> projectEntityList = projectRepositoryImpl.findDynamicQuery(workType, dataType, subject, difficulty);
-        System.out.println("=================");
-        System.out.println(projectEntityList.get(0).getUserId());
+        // System.out.println("=================");
+        // System.out.println(projectEntityList.get(0).getUserId());
 
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
 
-            System.out.println("=================");
-            System.out.println(searchResults.get(0).getUserId());
+            // System.out.println("=================");
+            // System.out.println(searchResults.get(0).getUserId());
 
             response.setHeader("search", "success");
             return searchResults;
