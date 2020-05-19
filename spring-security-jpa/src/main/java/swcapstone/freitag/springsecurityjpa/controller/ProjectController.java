@@ -6,14 +6,10 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
-import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
-import swcapstone.freitag.springsecurityjpa.service.ClassService;
-import swcapstone.freitag.springsecurityjpa.service.ProjectService;
-import swcapstone.freitag.springsecurityjpa.service.UserService;
+import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
 import java.util.List;
 
 @RestController
@@ -21,6 +17,8 @@ public class ProjectController {
 
     @Autowired
     ProjectService projectService;
+    @Autowired
+    LabellingProjectService labellingProjectService;
     @Autowired
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
@@ -62,27 +60,10 @@ public class ProjectController {
                                   HttpServletResponse response) throws Exception {
 
         if(authorizationService.isAuthorized(request)) {
-            String fileName = file.getOriginalFilename();
-            String bucketName = request.getHeader("bucketName");
-
-            File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
-            // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
-            file.transferTo(destinationFile);
-
-            String exampleContent = objectStorageApiClient.putObject(bucketName, destinationFile);
             String userId = authorizationService.getUserId(request);
 
             // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
-            if(projectService.setExampleContent(userId, exampleContent, response)) {
-                // 수집 프로젝트는 예시 데이터 업로드 성공하면 바로 결제할 수 있도록 cost 계산해서 헤더에 쓰기
-                if(projectService.isCollection(userId))
-                    projectService.setCost(userId, response);
-
-                // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
-
-            }
-
-            // System.out.println("status: 없음 - 예시 데이터 Object Storage 업로드 실패");
+            projectService.uploadExampleContent(userId, request, file, response);
         }
     }
 
@@ -92,21 +73,11 @@ public class ProjectController {
                                     HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         if(authorizationService.isAuthorized(request)) {
-            List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
+            String userId = authorizationService.getUserId(request);
 
-            String bucketName = request.getHeader("bucketName");
-
-            for(MultipartFile f : labellingDataList) {
-                String fileName = f.getOriginalFilename();
-                File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
-                f.transferTo(destinationFile);
-
-                String temp = objectStorageApiClient.putObject(bucketName, destinationFile);
-
-
-
-            }
+            labellingProjectService.createLabellingProblem(userId, uploadRequest, request, response);
         }
+
     }
 
 
