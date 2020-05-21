@@ -89,9 +89,10 @@ public class AuthenticationService implements AuthenticationProvider {
         String principal = (String) authResult.getPrincipal();
 
         // JWT 토큰 생성
+        int oneDay = 24 * 3600 * 1000;
         String jwtToken = JWT.create()
                 .withSubject(principal)   // userId
-                .withExpiresAt(new Date(System.currentTimeMillis() + JwtProperties.EXPIRATION_TIME))
+                .withExpiresAt(new Date(System.currentTimeMillis() + oneDay))
                 .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
 
         // response에 JWT 토큰 추가
