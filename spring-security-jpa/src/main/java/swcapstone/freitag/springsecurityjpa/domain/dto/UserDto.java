@@ -33,6 +33,7 @@ public class UserDto {
     private String userEmail;
     private String userAffiliation;
     private int userVisit;
+    private int userLastVisit;
     private int totalPoint;
     private int point;
 
@@ -56,7 +57,7 @@ public class UserDto {
     @Builder
     public UserDto(/*Long id, */String userId, String userPassword, String userName,
                                 int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
-                                String userAffiliation, int userVisit, int totalPoint, int point) {
+                                String userAffiliation, int userVisit, int userLastVisit, int totalPoint, int point) {
         // this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
@@ -67,6 +68,7 @@ public class UserDto {
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
         this.userVisit = userVisit;
+        this.userLastVisit = userLastVisit;
         this.totalPoint = totalPoint;
         this.point = point;
     }

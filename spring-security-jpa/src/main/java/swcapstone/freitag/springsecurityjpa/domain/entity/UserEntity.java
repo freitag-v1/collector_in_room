@@ -44,6 +44,9 @@ public class UserEntity {
     @Column(name = "user_visit")
     private int userVisit;
 
+    @Column(name = "user_last_visit")
+    private int userLastVisit;
+
     @Column(name = "user_total_point")
     private int totalPoint;
 
@@ -53,7 +56,7 @@ public class UserEntity {
     @Builder
     public UserEntity(Long id, String userId, String userPassword, String userName,
                       int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
-                      String userAffiliation, int userVisit, int totalPoint, int point) {
+                      String userAffiliation, int userVisit, int userLastVisit, int totalPoint, int point) {
         this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
@@ -64,6 +67,7 @@ public class UserEntity {
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
         this.userVisit = userVisit;
+        this.userLastVisit = userLastVisit;
         this.totalPoint = totalPoint;
         this.point = point;
     }

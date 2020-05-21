@@ -50,12 +50,13 @@ public class UserService implements UserDetailsService {
         String userAffiliation = request.getParameter("userAffiliation");
 
         int userVisit = 0;
+        int userLastVisit = 0;
         int totalPoint = 0;
         int point = 0;
 
         UserDto userDto = new UserDto
                 (userId, userPassword, userName, userOpenBankingNum, userOpenBankingAccessToken, userPhone, userEmail, userAffiliation
-                        , userVisit, totalPoint, point);
+                        , userVisit, userLastVisit, totalPoint, point);
 
         System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
