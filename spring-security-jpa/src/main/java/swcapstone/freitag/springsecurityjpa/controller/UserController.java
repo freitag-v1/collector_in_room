@@ -1,8 +1,12 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
+import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.MyPageService;
@@ -12,6 +16,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Optional;
 
 // 현재 사용자의 정보를 가지고 있는 Principal을 가져오려면?
 // Authentication에서 Principal을 가져올 수 있고 Authentication은 SecurityContext에서,
@@ -29,6 +34,8 @@ public class UserController {
     private AuthorizationService authorizationService;
     @Autowired
     private MyPageService myPageService;
+    @Autowired
+    private UserRepository userRepository;
 
     @RequestMapping(value = "/api/login", method = RequestMethod.POST)
     public void login(HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
@@ -91,7 +98,16 @@ public class UserController {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            // 오픈뱅킹
+            int amount = request.getIntHeader("amount");
+
+            Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+            userEntityWrapper.ifPresent(selectUser -> {
+                if(amount <= selectUser.getPoint()) {
+                    if(OpenBanking.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "테스트", amount)) {
+                        selectUser.setPoint(selectUser.getPoint() - amount);
+                    }
+                }
+            });
         }
     }
 }

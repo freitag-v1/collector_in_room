@@ -34,7 +34,7 @@ public class OpenBankingController {
                 userEntityWrapper.ifPresent(selectUser -> {
                     System.out.println("해당하는 유저 찾음.");
                     System.out.println("access token, user_seq_no 저장");
-                    selectUser.setUserOpenBankingAccessToken(result.get("access_token"));
+                    selectUser.setUserOpenBankingAccessToken("Bearer " + result.get("access_token"));
                     selectUser.setUserOpenBankingNum(Integer.parseInt(result.get("user_seq_no")));
                 });
                 return "<html><head><title>계좌 등록 완료</title></head><meta charset=\"UTF-8\"><body onLoad=\"setTimeout('window.close()',2000);\"><p>계좌등록이 완료되었습니다.</p></body></html>";

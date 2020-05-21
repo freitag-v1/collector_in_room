@@ -17,7 +17,7 @@ public class APICaller {
     private String url;
     private ArrayList<AbstractMap.SimpleEntry<String, String>> queryParameters = new ArrayList<>();
     private Map<String, String> headers = new HashMap<>();
-    private Map<String, String> jsonBody = new HashMap<>();
+    private Map<String, Object> jsonBody = new HashMap<>();
     private ArrayList<AbstractMap.SimpleEntry<String, String>> filed = new ArrayList<>();
 
     public APICaller(String method, String baseURL) {
@@ -33,7 +33,7 @@ public class APICaller {
         headers.put(key, value);
     }
 
-    public void setJsonBody(String key, String value) {
+    public void setJsonBody(String key, Object value) {
         jsonBody.put(key, value);
     }
 
@@ -73,7 +73,6 @@ public class APICaller {
                 }
                 body += URLEncoder.encode(filed.get(i).getKey(), "UTF-8") + "=" + URLEncoder.encode(filed.get(i).getValue(), "UTF-8");
             }
-            System.out.println(body);
             con.setDoOutput(true);
             con.getOutputStream().write(body.getBytes());
         }
