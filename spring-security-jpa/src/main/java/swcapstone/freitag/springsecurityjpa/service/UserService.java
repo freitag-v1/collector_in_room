@@ -34,7 +34,17 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public void updateVisit(String userId) {
-        // 로그인할 때 방문일 업데이트 (하루에 한 번!)
+        int oneDay = 24 * 3600 * 1000;
+        int currentTime = (int) System.currentTimeMillis();
+        UserEntity loginedUser = loadUserEntityByUserIdString(userId);
+        if(oneDay < currentTime - loginedUser.getUserLastVisit()) {
+            if(loginedUser.getUserVisit() < 30) {
+                loginedUser.setUserVisit(loginedUser.getUserVisit() + 1);
+                loginedUser.setUserLastVisit(currentTime);
+                loginedUser.setTotalPoint(loginedUser.getTotalPoint() + 100);
+                loginedUser.setPoint(loginedUser.getPoint() + 100);
+            }
+        }
     }
 
     @Transactional
