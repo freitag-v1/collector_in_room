@@ -3,6 +3,8 @@ package swcapstone.freitag.springsecurityjpa.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
@@ -11,6 +13,7 @@ import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +24,8 @@ public class ProjectService {
     ProjectRepository projectRepository;
     @Autowired
     ProjectRepositoryImpl projectRepositoryImpl;
+    @Autowired
+    ObjectStorageApiClient objectStorageApiClient;
 
     private static final int COST_PER_DATA = 50;
 
@@ -52,10 +57,40 @@ public class ProjectService {
         ProjectDto projectDto = new ProjectDto(userId, projectName, bucketName, "없음", workType, dataType, subject,
                 0, wayContent, conditionContent, "없음", description, totalData, 0, 0);
 
-        projectRepository.save(projectDto.toEntity());
-        System.out.println("데이터 업로드 전 - 그 외 필요한 사용자 입력 필드는 DB 저장 완료");
-        response.setHeader("bucketName", bucketName);
+        if(projectRepository.save(projectDto.toEntity()) != null) {
+            response.setHeader("create", "success");
 
+            int projectId = getProjectId(userId);
+
+            response.setHeader("projectId", String.valueOf(projectId));
+            return;
+        }
+
+        response.setHeader("create", "fail");
+        return;
+    }
+
+    @Transactional
+    public void uploadExampleContent(String userId, HttpServletRequest request, MultipartFile file, HttpServletResponse response) throws Exception {
+
+        String fileName = file.getOriginalFilename();
+        String bucketName = request.getHeader("bucketName");
+
+        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+        // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
+        file.transferTo(destinationFile);
+
+        String exampleContent = objectStorageApiClient.putObject(bucketName, destinationFile);
+
+        // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
+        if(setExampleContent(userId, exampleContent, response)) {
+            // 수집 프로젝트는 예시 데이터 업로드 성공하면 바로 결제할 수 있도록 cost 계산해서 헤더에 쓰기
+            if(isCollection(userId))
+                setCost(userId, response);
+
+            // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
+
+        }
     }
 
     @Transactional
@@ -95,7 +130,7 @@ public class ProjectService {
 
     }
 
-    public boolean isCollection(String userId) {
+    private boolean isCollection(String userId) {
         ProjectEntity projectEntity = findNotYetPaidProject(userId);
 
         if(projectEntity != null) {
@@ -104,6 +139,16 @@ public class ProjectService {
         }
 
         return false;
+    }
+
+    private int getProjectId(String userId) {
+        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+
+        if(projectEntity != null) {
+            return projectEntity.getProjectId();
+        }
+
+        return -1;
     }
 
     @Transactional
@@ -135,7 +180,7 @@ public class ProjectService {
 
 
     // 결제 미완료된 프로젝트 찾기
-    private ProjectEntity findNotYetPaidProject(String userId) {
+    protected ProjectEntity findNotYetPaidProject(String userId) {
 
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByStatus("없음");
 
@@ -162,14 +207,14 @@ public class ProjectService {
         int difficulty = Integer.parseInt(strDifficulty);
 
         List<ProjectEntity> projectEntityList = projectRepositoryImpl.findDynamicQuery(workType, dataType, subject, difficulty);
-        System.out.println("=================");
-        System.out.println(projectEntityList.get(0).getUserId());
+        // System.out.println("=================");
+        // System.out.println(projectEntityList.get(0).getUserId());
 
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
 
-            System.out.println("=================");
-            System.out.println(searchResults.get(0).getUserId());
+            // System.out.println("=================");
+            // System.out.println(searchResults.get(0).getUserId());
 
             response.setHeader("search", "success");
             return searchResults;
