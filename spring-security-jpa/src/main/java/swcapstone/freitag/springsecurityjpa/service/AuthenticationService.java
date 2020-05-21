@@ -42,6 +42,7 @@ public class AuthenticationService implements AuthenticationProvider {
             successfulAuthentication(response, authentication);
             // System.out.println("SecurityContextHolder: "+SecurityContextHolder.getContext().getAuthentication().getPrincipal());
             response.setHeader("login", "success");
+            userService.updateVisit(userId);
         }
         else {
             response.setHeader("login", "fail");
