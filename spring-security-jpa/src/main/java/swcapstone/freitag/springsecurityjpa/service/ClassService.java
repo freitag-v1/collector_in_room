@@ -16,7 +16,7 @@ public class ClassService {
     ClassRepository classRepository;
 
     @Transactional
-    public void createClass(HttpServletRequest request, HttpServletResponse response) {
+    public void createClass(String bucketName, HttpServletRequest request, HttpServletResponse response) {
 
         String[] classNameList = request.getParameterValues("className");
         String strProjectId = request.getParameter("projectId");
@@ -36,6 +36,7 @@ public class ClassService {
             }
         }
 
+        response.setHeader("bucketName", bucketName);
         response.setHeader("class", "success");
         return;
 

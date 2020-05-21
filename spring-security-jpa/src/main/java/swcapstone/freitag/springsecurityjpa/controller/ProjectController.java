@@ -50,7 +50,9 @@ public class ProjectController {
     public void createClass(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
-            classService.createClass(request, response);
+            String userId = authorizationService.getUserId(request);
+            String bucketName = projectService.getBucketName(userId);
+            classService.createClass(bucketName, request, response);
         }
 
     }

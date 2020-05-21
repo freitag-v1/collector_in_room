@@ -179,6 +179,17 @@ public class ProjectService {
     }
 
 
+    public String getBucketName(String userId) {
+        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+
+        if(projectEntity != null) {
+            return projectEntity.getBucketName();
+        }
+
+        return null;
+    }
+
+
     // 결제 미완료된 프로젝트 찾기
     protected ProjectEntity findNotYetPaidProject(String userId) {
 
