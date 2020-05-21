@@ -20,10 +20,8 @@ import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.sql.Timestamp;
+import java.util.*;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -35,9 +33,9 @@ public class UserService implements UserDetailsService {
     @Transactional
     public void updateVisit(String userId) {
         int oneDay = 24 * 3600 * 1000;
-        int currentTime = (int) System.currentTimeMillis();
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         UserEntity loginedUser = loadUserEntityByUserIdString(userId);
-        if(oneDay < currentTime - loginedUser.getUserLastVisit()) {
+        if(oneDay < currentTime.getTime() - loginedUser.getUserLastVisit().getTime()) {
             if(loginedUser.getUserVisit() < 30) {
                 loginedUser.setUserVisit(loginedUser.getUserVisit() + 1);
                 loginedUser.setUserLastVisit(currentTime);
@@ -60,7 +58,7 @@ public class UserService implements UserDetailsService {
         String userAffiliation = request.getParameter("userAffiliation");
 
         int userVisit = 0;
-        int userLastVisit = 0;
+        Timestamp userLastVisit = new Timestamp(0);
         int totalPoint = 0;
         int point = 0;
 

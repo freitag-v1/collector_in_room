@@ -4,6 +4,7 @@ import lombok.*;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
 import javax.persistence.Column;
+import java.sql.Timestamp;
 
 // Data Transfer Object: SQL를 사용(개발자가 직접 코딩)하여 DB에 접근한 후 적절한 CRUD API를 제공
 // DB에서 데이터를 얻어 Service나 Controller 등으터 보낼 때 사용하는 객체
@@ -33,7 +34,7 @@ public class UserDto {
     private String userEmail;
     private String userAffiliation;
     private int userVisit;
-    private int userLastVisit;
+    private Timestamp userLastVisit;
     private int totalPoint;
     private int point;
 
@@ -57,7 +58,7 @@ public class UserDto {
     @Builder
     public UserDto(/*Long id, */String userId, String userPassword, String userName,
                                 int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
-                                String userAffiliation, int userVisit, int userLastVisit, int totalPoint, int point) {
+                                String userAffiliation, int userVisit, Timestamp userLastVisit, int totalPoint, int point) {
         // this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
