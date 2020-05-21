@@ -59,6 +59,7 @@ public class MyPageService {
         }
     }
 
+    @Transactional
     public void exchange(String userId, int amount) {
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
