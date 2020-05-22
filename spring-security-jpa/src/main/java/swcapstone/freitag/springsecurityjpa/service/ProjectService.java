@@ -108,57 +108,61 @@ public class ProjectService {
             return false;
 
         // System.out.println("exampleContent: "+exampleContent);
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
 
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+        projectEntityWrapper.ifPresent(selectProject -> {
+            selectProject.setExampleContent(exampleContent);
 
-        if (projectEntity != null) {
-            projectEntity.setExampleContent(exampleContent);
+            projectRepository.save(selectProject);
             response.setHeader("example", "success");
-            return true;
-        }
+        });
 
-        response.setHeader("example", "fail");
-        return false;
+        return  true;
     }
 
     @Transactional
     public void setCost(String userId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
 
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
-
-        int totalData = projectEntity.getTotalData();
+        int totalData = projectEntityWrapper.get().getTotalData();
         int cost = calculateBasicCost(totalData);
 
         if( cost == -1) {
             return;
         }
 
-        projectEntity.setCost(cost);
-        response.setHeader("cost", String.valueOf(cost));
+        System.out.println("<cost>");
+        System.out.println(cost);
+
+        projectEntityWrapper.ifPresent(selectProject -> {
+           selectProject.setCost(cost);
+
+            projectRepository.save(selectProject);
+           response.setHeader("cost", String.valueOf(cost));
+        });
 
     }
 
     private boolean isCollection(String userId) {
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
 
-        if(projectEntity != null) {
-            if(projectEntity.getWorkType().equals("collection"))
-                return true;
-        }
+        if(projectEntityWrapper.isPresent() &
+            projectEntityWrapper.get().getWorkType().equals("collection"))
+            return true;
 
         return false;
     }
 
     @Transactional
     public void setStatus(String userId, HttpServletResponse response) {
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
 
-        if (projectEntity != null) {
-            projectEntity.setStatus("진행중");
-            String status = projectEntity.getStatus();
-            // status response 헤더에 넣기
-            response.setHeader("status", status);
-        }
+        projectEntityWrapper.ifPresent(selectProject -> {
+            selectProject.setStatus("진행중");
+
+            projectRepository.save(selectProject);
+            response.setHeader("status", "진행중");
+        });
     }
 
     public int calculateBasicCost(int totalData) {
@@ -167,42 +171,25 @@ public class ProjectService {
 
     // 결제 미완료된 프로젝트 비용 가져오기
     public int getCost(String userId) {
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
 
-        if(projectEntity != null) {
-            return projectEntity.getCost();
+        if(projectEntityWrapper.isPresent()) {
+            return projectEntityWrapper.get().getCost();
         }
 
         return -1;
     }
 
 
-    public String getBucketName(String userId) {
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
+    protected String getBucketName(String userId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
 
-        if(projectEntity != null) {
-            return projectEntity.getBucketName();
+        if(projectEntityWrapper.isPresent()) {
+            return projectEntityWrapper.get().getBucketName();
         }
 
         return null;
     }
-
-
-    // 결제 미완료된 프로젝트 찾기
-    protected ProjectEntity findNotYetPaidProject(String userId) {
-
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByStatus("없음");
-
-        if (projectEntityWrapper.isPresent()) {
-            ProjectEntity projectEntity = projectEntityWrapper.get();
-
-            if(projectEntity.getUserId().equals(userId))
-                return projectEntity;
-        }
-
-        return null;
-    }
-
 
     // 프로젝트 검색 결과 반환
     // workType, dataType, subject, difficulty
@@ -216,12 +203,11 @@ public class ProjectService {
         int difficulty = Integer.parseInt(strDifficulty);
 
         List<ProjectEntity> projectEntityList = projectRepositoryImpl.findDynamicQuery(workType, dataType, subject, difficulty);
-        // System.out.println("=================");
-        // System.out.println(projectEntityList.get(0).getUserId());
 
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
 
+            // 클래스 정보도 함께 주기 위해서 ProjectDto -> ProjectDtoWithClassDto 변환
             List<ProjectDtoWithClassDto> searchResultsWithClassNames = withClassDtos(searchResults);
 
             response.setHeader("search", "success");
@@ -243,24 +229,9 @@ public class ProjectService {
 
             int projectId = p.getProjectId();
 
-            System.out.println("===========================");
-            System.out.println(projectId);
-
             List<ClassEntity> classEntities = classRepository.findAllByProjectId(projectId);
-/*
-            if(classEntities.isEmpty()) {
-                System.out.println("classEntity 없음");
-                return null;
-            }
-
-            System.out.println("===========================");
-            System.out.println(classEntities.get(0).getClassName());
-*/
             List<ClassDto> classNameList = ObjectMapperUtils.mapAll(classEntities, ClassDto.class);
-/*
-            System.out.println("===========================");
-            System.out.println(classNameList.get(0).getClassName());
-*/
+
             ProjectDtoWithClassDto pc = new ProjectDtoWithClassDto(p, classNameList);
             results.add(pc);
         }

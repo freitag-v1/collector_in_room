@@ -12,7 +12,8 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, Long> {
 
     // 정적 쿼리
     List<ProjectEntity> findAllByUserId(String userId);
-    Optional<ProjectEntity> findByStatus(String status);
+    // Optional<ProjectEntity> findByStatus(String status);
+    Optional<ProjectEntity> findByUserIdAndStatus(String userId, String status);
 
 }
 
