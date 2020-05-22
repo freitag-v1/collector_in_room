@@ -12,6 +12,8 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 public class ProjectDto {
 
     @JsonProperty
+    private int projectId;
+    @JsonProperty
     private String userId;
     @JsonProperty
     private String projectName;
@@ -44,6 +46,7 @@ public class ProjectDto {
 
     public ProjectEntity toEntity() {
         return ProjectEntity.builder()
+                .projectId(projectId)
                 .userId(userId)
                 .projectName(projectName)
                 .bucketName(bucketName)
@@ -63,10 +66,11 @@ public class ProjectDto {
     }
 
     @Builder
-    public ProjectDto(String userId, String projectName, String bucketName, String status,
+    public ProjectDto(int projectId, String userId, String projectName, String bucketName, String status,
                       String workType, String dataType, String subject, int difficulty, String wayContent,
                       String conditionContent, String exampleContent, String description, int totalData, int progressData, int cost) {
 
+        this.projectId = projectId;
         this.userId = userId;
         this.projectName = projectName;
         this.bucketName = bucketName;

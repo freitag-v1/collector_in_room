@@ -15,6 +15,8 @@ import javax.persistence.*;
 public class ProjectEntity {
     @Id // Primary Key - JPA는 이 id를 통해 객체를 구분
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
     @Column(name = "project_id")
     private int projectId;
 

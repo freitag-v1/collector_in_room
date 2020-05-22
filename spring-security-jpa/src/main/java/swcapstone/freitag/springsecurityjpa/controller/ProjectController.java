@@ -6,6 +6,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -25,8 +26,6 @@ public class ProjectController {
     AuthorizationService authorizationService;
     @Autowired
     UserService userService;
-    @Autowired
-    ClassService classService;
 
 
     @RequestMapping(value = "/api/project/create", method = RequestMethod.POST)
@@ -51,8 +50,7 @@ public class ProjectController {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            String bucketName = projectService.getBucketName(userId);
-            classService.createClass(bucketName, request, response);
+            projectService.createClass(userId, request, response);
         }
 
     }
@@ -86,7 +84,7 @@ public class ProjectController {
     // 프로젝트 검색 결과 반환
     // workType, dataType, subject, difficulty
     @RequestMapping(value = "/api/project/list")
-    public List<ProjectDto> getCollectionSearchResults(HttpServletRequest request, HttpServletResponse response) {
+    public List<ProjectDtoWithClassDto> getCollectionSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
             return projectService.getSearchResults(request, response);

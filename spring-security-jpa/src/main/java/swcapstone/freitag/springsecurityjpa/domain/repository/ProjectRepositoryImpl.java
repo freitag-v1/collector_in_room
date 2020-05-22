@@ -59,6 +59,10 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
         if (StringUtils.isEmpty(difficulty)) {
             return null;
         }
+
+        if( difficulty == -1) {
+            return null;
+        }
         return projectEntity.difficulty.eq(difficulty);
     }
 }

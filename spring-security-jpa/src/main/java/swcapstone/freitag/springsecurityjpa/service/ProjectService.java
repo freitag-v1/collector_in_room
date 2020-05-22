@@ -5,8 +5,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepositoryImpl;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
@@ -14,6 +18,7 @@ import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,11 +28,14 @@ public class ProjectService {
     @Autowired
     ProjectRepository projectRepository;
     @Autowired
+    ClassRepository classRepository;
+    @Autowired
     ProjectRepositoryImpl projectRepositoryImpl;
     @Autowired
     ObjectStorageApiClient objectStorageApiClient;
 
     private static final int COST_PER_DATA = 50;
+    private int projectIdTurn;
 
     public int howManyProjects(String userId) {
         List<ProjectEntity> projectEntityList = projectRepository.findAllByUserId(userId);
@@ -38,6 +46,8 @@ public class ProjectService {
     public void createProject(HttpServletRequest request, String userId, String bucketName, HttpServletResponse response)
             throws NullPointerException {
 
+        ++projectIdTurn;
+        int projectId = this.projectIdTurn;
         String projectName = request.getParameter("projectName");
         // String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷 - userId+projectName 조합
         // String status;  // 없음, 진행중, 완료
@@ -54,14 +64,11 @@ public class ProjectService {
         // int progressData;
         // int cost;
 
-        ProjectDto projectDto = new ProjectDto(userId, projectName, bucketName, "없음", workType, dataType, subject,
+        ProjectDto projectDto = new ProjectDto(projectId, userId, projectName, bucketName, "없음", workType, dataType, subject,
                 0, wayContent, conditionContent, "없음", description, totalData, 0, 0);
 
         if(projectRepository.save(projectDto.toEntity()) != null) {
             response.setHeader("create", "success");
-
-            int projectId = getProjectId(userId);
-
             response.setHeader("projectId", String.valueOf(projectId));
             return;
         }
@@ -89,7 +96,8 @@ public class ProjectService {
                 setCost(userId, response);
 
             // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
-
+            else
+                response.setHeader("bucketName", bucketName);
         }
     }
 
@@ -139,16 +147,6 @@ public class ProjectService {
         }
 
         return false;
-    }
-
-    private int getProjectId(String userId) {
-        ProjectEntity projectEntity = findNotYetPaidProject(userId);
-
-        if(projectEntity != null) {
-            return projectEntity.getProjectId();
-        }
-
-        return -1;
     }
 
     @Transactional
@@ -208,7 +206,7 @@ public class ProjectService {
 
     // 프로젝트 검색 결과 반환
     // workType, dataType, subject, difficulty
-    public List<ProjectDto> getSearchResults(HttpServletRequest request, HttpServletResponse response) {
+    public List<ProjectDtoWithClassDto> getSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
         String workType = request.getParameter("workType"); // collection / labelling
         String dataType = request.getParameter("dataType"); // image, audio, text / boundingBox, classfication
@@ -224,14 +222,79 @@ public class ProjectService {
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
 
-            // System.out.println("=================");
-            // System.out.println(searchResults.get(0).getUserId());
+            List<ProjectDtoWithClassDto> searchResultsWithClassNames = withClassDtos(searchResults);
 
             response.setHeader("search", "success");
-            return searchResults;
+            return searchResultsWithClassNames;
         }
 
         response.setHeader("search", "fail");
         return null;
+    }
+
+    private List<ProjectDtoWithClassDto> withClassDtos(List<ProjectDto> projectDtos) {
+
+        if(projectDtos.isEmpty())
+            return null;
+
+        List<ProjectDtoWithClassDto> results = new ArrayList<>();
+
+        for(ProjectDto p : projectDtos) {
+
+            int projectId = p.getProjectId();
+
+            System.out.println("===========================");
+            System.out.println(projectId);
+
+            List<ClassEntity> classEntities = classRepository.findAllByProjectId(projectId);
+/*
+            if(classEntities.isEmpty()) {
+                System.out.println("classEntity 없음");
+                return null;
+            }
+
+            System.out.println("===========================");
+            System.out.println(classEntities.get(0).getClassName());
+*/
+            List<ClassDto> classNameList = ObjectMapperUtils.mapAll(classEntities, ClassDto.class);
+/*
+            System.out.println("===========================");
+            System.out.println(classNameList.get(0).getClassName());
+*/
+            ProjectDtoWithClassDto pc = new ProjectDtoWithClassDto(p, classNameList);
+            results.add(pc);
+        }
+
+        return results;
+    }
+
+
+    @Transactional
+    public void createClass(String userId, HttpServletRequest request, HttpServletResponse response) {
+
+        String[] classNameList = request.getParameterValues("className");
+        String strProjectId = request.getParameter("projectId");
+
+        if(classNameList == null) {
+            response.setHeader("class", "fail");
+            return;
+        }
+
+        int projectId = Integer.parseInt(strProjectId);
+
+        for(String className : classNameList) {
+            ClassDto classDto = new ClassDto(projectId, className);
+            if(classRepository.save(classDto.toEntity()) == null) {
+                response.setHeader("class", "fail");
+                return;
+            }
+        }
+
+        String bucketName = getBucketName(userId);
+
+        response.setHeader("bucketName", bucketName);
+        response.setHeader("class", "success");
+        return;
+
     }
 }
