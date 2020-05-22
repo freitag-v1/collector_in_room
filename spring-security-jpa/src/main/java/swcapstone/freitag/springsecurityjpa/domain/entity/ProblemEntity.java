@@ -11,6 +11,8 @@ import javax.persistence.*;
 public class ProblemEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
     @Column(name = "problem_id")
     private int problemId;
 
@@ -27,7 +29,7 @@ public class ProblemEntity {
     private String finalAnswer;
 
     @Column(name = "validation_status")
-    private String validationStatus;
+    private String validationStatus;    // 작업전, 작업후, 검증완료
 
     @Builder
     public ProblemEntity(int problemId, int projectId, int referenceId, String objectId, String finalAnswer, String validationStatus) {

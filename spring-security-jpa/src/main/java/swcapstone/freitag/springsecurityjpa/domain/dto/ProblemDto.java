@@ -9,6 +9,7 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 @NoArgsConstructor
 public class ProblemDto {
 
+    private int problemId;
     private int projectId;
     private int referenceId;
     private String objectId;
@@ -18,6 +19,7 @@ public class ProblemDto {
 
     public ProblemEntity toEntity() {
         return ProblemEntity.builder()
+                .problemId(problemId)
                 .projectId(projectId)
                 .referenceId(referenceId)
                 .objectId(objectId)
@@ -28,7 +30,8 @@ public class ProblemDto {
 
 
     @Builder
-    public ProblemDto(int projectId, int referenceId, String objectId, String finalAnswer, String validationStatus) {
+    public ProblemDto(int problemId, int projectId, int referenceId, String objectId, String finalAnswer, String validationStatus) {
+        this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
         this.objectId = objectId;

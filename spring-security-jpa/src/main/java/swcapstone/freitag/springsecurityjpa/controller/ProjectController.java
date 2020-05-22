@@ -75,7 +75,7 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
 
-            labellingProjectService.createLabellingProblem(userId, uploadRequest, request, response);
+            labellingProjectService.uploadLabellingData(userId, uploadRequest, request, response);
         }
 
     }
@@ -86,11 +86,8 @@ public class ProjectController {
     @RequestMapping(value = "/api/project/list")
     public List<ProjectDtoWithClassDto> getCollectionSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
-        if(authorizationService.isAuthorized(request)) {
-            return projectService.getSearchResults(request, response);
-        }
+        return projectService.getSearchResults(request, response);
 
-        return null;
     }
 
 
@@ -101,11 +98,16 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-            int cost = projectService.getCost(userId);
+            String strProjectId = request.getParameter("proejctId");
+            int projectId = Integer.parseInt(strProjectId);
+
+            int cost = projectService.getCost(projectId);
 
             if(userService.accountPayment(userId, cost, response)) {
-                projectService.setStatus(userId, response);
+                projectService.setStatus(projectId, response);
             }
+
+
 
         }
     }
@@ -117,10 +119,23 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-            int cost = projectService.getCost(userId);
+            String strProjectId = request.getParameter("projectId");
+            int projectId = Integer.parseInt(strProjectId);
+
+            int cost = projectService.getCost(projectId);
 
             if(userService.pointPayment(userId, cost, response)) {
-                projectService.setStatus(userId, response);
+
+                projectService.setStatus(projectId, response);
+
+                if(projectService.isCollection(projectId)) {
+                    projectService.createProblem(projectId, response);
+                } else {
+                    labellingProjectService.createProblem(projectId, response);
+                }
+
+            } else {
+                return;
             }
 
         }

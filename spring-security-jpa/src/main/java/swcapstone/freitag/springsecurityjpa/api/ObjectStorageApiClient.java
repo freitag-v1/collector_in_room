@@ -11,6 +11,7 @@ import com.amazonaws.services.s3.model.*;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -65,6 +66,24 @@ public class ObjectStorageApiClient {
         System.out.format("Bucket %s has been created.\n", bucketName);
         return true;
 
+    }
+
+
+    public List<String> listObjects(String bucketName) {
+
+        List<String> objectIdList = new ArrayList<>();
+
+        ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
+                .withBucketName(bucketName)
+                .withMaxKeys(300);
+        ObjectListing objectListing = s3.listObjects(listObjectsRequest);
+
+        for(S3ObjectSummary s : objectListing.getObjectSummaries()) {
+            String eTag = s.getETag();
+            objectIdList.add(eTag);
+        }
+
+        return objectIdList;
     }
 }
 

@@ -6,11 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
+import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepositoryImpl;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
@@ -33,20 +35,28 @@ public class ProjectService {
     ProjectRepositoryImpl projectRepositoryImpl;
     @Autowired
     ObjectStorageApiClient objectStorageApiClient;
+    @Autowired
+    ProblemRepository problemRepository;
 
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
+    protected int problemIdTurn;
 
     public int howManyProjects(String userId) {
         List<ProjectEntity> projectEntityList = projectRepository.findAllByUserId(userId);
         return projectEntityList.size();
     }
 
+    private int getProjectIdTurn() {
+        int count = (int) projectRepository.count();
+        return ++count;
+    }
+
     @Transactional
     public void createProject(HttpServletRequest request, String userId, String bucketName, HttpServletResponse response)
             throws NullPointerException {
 
-        ++projectIdTurn;
+        projectIdTurn = getProjectIdTurn();
         int projectId = this.projectIdTurn;
         String projectName = request.getParameter("projectName");
         // String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷 - userId+projectName 조합
@@ -67,14 +77,43 @@ public class ProjectService {
         ProjectDto projectDto = new ProjectDto(projectId, userId, projectName, bucketName, "없음", workType, dataType, subject,
                 0, wayContent, conditionContent, "없음", description, totalData, 0, 0);
 
-        if(projectRepository.save(projectDto.toEntity()) != null) {
-            response.setHeader("create", "success");
-            response.setHeader("projectId", String.valueOf(projectId));
+        if(projectRepository.save(projectDto.toEntity()) == null) {
+            response.setHeader("create", "fail");
             return;
         }
 
-        response.setHeader("create", "fail");
+        response.setHeader("create", "success");
+        response.setHeader("projectId", String.valueOf(projectId));
         return;
+    }
+
+    @Transactional
+    public void createClass(String userId, HttpServletRequest request, HttpServletResponse response) {
+
+        String[] classNameList = request.getParameterValues("className");
+        String strProjectId = request.getParameter("projectId");
+
+        if(classNameList == null) {
+            response.setHeader("class", "fail");
+            return;
+        }
+
+        int projectId = Integer.parseInt(strProjectId);
+
+        for(String className : classNameList) {
+            ClassDto classDto = new ClassDto(projectId, className);
+            if(classRepository.save(classDto.toEntity()) == null) {
+                response.setHeader("class", "fail");
+                return;
+            }
+        }
+
+        String bucketName = getBucketName(projectId);
+
+        response.setHeader("bucketName", bucketName);
+        response.setHeader("class", "success");
+        return;
+
     }
 
     @Transactional
@@ -90,10 +129,15 @@ public class ProjectService {
         String exampleContent = objectStorageApiClient.putObject(bucketName, destinationFile);
 
         // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
-        if(setExampleContent(userId, exampleContent, response)) {
+        int targetProjectId = setExampleContent(bucketName, exampleContent, response);
+        if(targetProjectId != -1) {
+
+            // 수집 프로젝트이던 라벨링 프로젝트이던 projetId 알려줌
+            response.setHeader("projectId", String.valueOf(targetProjectId));
+
             // 수집 프로젝트는 예시 데이터 업로드 성공하면 바로 결제할 수 있도록 cost 계산해서 헤더에 쓰기
-            if(isCollection(userId))
-                setCost(userId, response);
+            if(isCollection(targetProjectId))
+                setCost(targetProjectId, response);
 
             // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
             else
@@ -102,13 +146,17 @@ public class ProjectService {
     }
 
     @Transactional
-    public boolean setExampleContent(String userId, String exampleContent, HttpServletResponse response) {
+    protected int setExampleContent(String bucketName, String exampleContent, HttpServletResponse response) {
 
         if(exampleContent == null)
-            return false;
+            return -1;
 
         // System.out.println("exampleContent: "+exampleContent);
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByBucketName(bucketName);
+
+        // status 없음 아니라면 -1 리턴
+        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+            return -1;
 
         projectEntityWrapper.ifPresent(selectProject -> {
             selectProject.setExampleContent(exampleContent);
@@ -117,22 +165,24 @@ public class ProjectService {
             response.setHeader("example", "success");
         });
 
-        return  true;
+        return projectEntityWrapper.get().getProjectId();
     }
 
     @Transactional
-    public void setCost(String userId, HttpServletResponse response) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+    protected void setCost(int projectId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        // status 없음 아니라면 종료
+        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+            return;
 
         int totalData = projectEntityWrapper.get().getTotalData();
         int cost = calculateBasicCost(totalData);
 
+        // cost 계산이 잘못 되었으면 종료
         if( cost == -1) {
             return;
         }
-
-        System.out.println("<cost>");
-        System.out.println(cost);
 
         projectEntityWrapper.ifPresent(selectProject -> {
            selectProject.setCost(cost);
@@ -143,8 +193,8 @@ public class ProjectService {
 
     }
 
-    private boolean isCollection(String userId) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+    public boolean isCollection(int projectId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         if(projectEntityWrapper.isPresent() &
             projectEntityWrapper.get().getWorkType().equals("collection"))
@@ -153,9 +203,14 @@ public class ProjectService {
         return false;
     }
 
+    // 결제 후 프로젝트 상태 없음 -> 진행중 변경
     @Transactional
-    public void setStatus(String userId, HttpServletResponse response) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+    public void setStatus(int projectId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        // status 없음 아니라면 종료
+        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+            return;
 
         projectEntityWrapper.ifPresent(selectProject -> {
             selectProject.setStatus("진행중");
@@ -170,8 +225,12 @@ public class ProjectService {
     }
 
     // 결제 미완료된 프로젝트 비용 가져오기
-    public int getCost(String userId) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+    public int getCost(int projectId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        // status 없음 아니라면 종료
+        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+            return -1;
 
         if(projectEntityWrapper.isPresent()) {
             return projectEntityWrapper.get().getCost();
@@ -180,9 +239,13 @@ public class ProjectService {
         return -1;
     }
 
+    // 결제 미완료된 프로젝트 버킷 이름 가져오기
+    protected String getBucketName(int projectId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-    protected String getBucketName(String userId) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+        // status 없음 아니라면 종료
+        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+            return null;
 
         if(projectEntityWrapper.isPresent()) {
             return projectEntityWrapper.get().getBucketName();
@@ -240,32 +303,25 @@ public class ProjectService {
     }
 
 
+
+    // problem_table에 결제 완료된 project_id에 해당하는 문제가 만들어졌니?
     @Transactional
-    public void createClass(String userId, HttpServletRequest request, HttpServletResponse response) {
+    public void createProblem(int projectId, HttpServletResponse response) {
 
-        String[] classNameList = request.getParameterValues("className");
-        String strProjectId = request.getParameter("projectId");
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if(classNameList == null) {
-            response.setHeader("class", "fail");
-            return;
-        }
+        if (projectEntityWrapper.get().getStatus().equals("진행중")) {
+            int totalData = projectEntityWrapper.get().getTotalData();
 
-        int projectId = Integer.parseInt(strProjectId);
+            for(int i = 0; i < totalData; i++) {
+                int problemId = ++problemIdTurn;
 
-        for(String className : classNameList) {
-            ClassDto classDto = new ClassDto(projectId, className);
-            if(classRepository.save(classDto.toEntity()) == null) {
-                response.setHeader("class", "fail");
-                return;
+                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, "없음", "없음", "작업전");
+                if (problemRepository.save(problemDto.toEntity()) == null) {
+                    response.setHeader("createProblem"+problemDto.getProblemId(), "fail");
+                    break;
+                }
             }
         }
-
-        String bucketName = getBucketName(userId);
-
-        response.setHeader("bucketName", bucketName);
-        response.setHeader("class", "success");
-        return;
-
     }
 }
