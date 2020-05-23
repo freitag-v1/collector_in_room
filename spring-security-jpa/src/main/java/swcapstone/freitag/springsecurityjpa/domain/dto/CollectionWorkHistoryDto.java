@@ -24,3 +24,5 @@ public class CollectionWorkHistoryDto {
         this.userId = userId;
     }
 }
+
+

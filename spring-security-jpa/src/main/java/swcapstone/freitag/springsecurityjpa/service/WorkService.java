@@ -7,13 +7,17 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CollectionWorkHistoryDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.CollectionWorkHistoryRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
+import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,9 +76,8 @@ public class WorkService {
 
     public int getProjectId(HttpServletRequest request) {
         String strProjectId = request.getParameter("projectId");
-        int projectId = Integer.parseInt(strProjectId);
 
-        return projectId;
+        return Integer.parseInt(strProjectId);
     }
 
     @Transactional
@@ -101,6 +104,24 @@ public class WorkService {
         if(collectionWorkHistoryRepository.save(collectionWorkHistoryDto.toEntity()) == null) {
             response.setHeader("createHist", "fail");
         }
+    }
+
+    public List<ProblemDto> provideProblems(HttpServletRequest request, HttpServletResponse response) {
+
+        int projectId = getProjectId(request);
+
+        List<ProblemEntity> projectEntities = problemRepository.findAllByProjectIdAndValidationStatus(projectId, "작업전");
+
+        // 10개 (테스트 1개) = userValidation(검증완료)
+        // 20개 (테스트 2개) = crossValidation(작업후)
+        // 20개 (테스트 2개) = labellingProblem(작업전)
+
+        // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
+        Collections.shuffle(projectEntities);
+        List<ProblemEntity> selectLabellingProblems = projectEntities.subList(0, 4);
+
+        List<ProblemDto> problems = ObjectMapperUtils.mapAll(selectLabellingProblems, ProblemDto.class);
+        return problems;
     }
 
 }
