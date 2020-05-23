@@ -130,10 +130,14 @@ public class UserService implements UserDetailsService {
         System.out.println("결제 전 포인트: " + point);
 
         if(cost <= point) {
-            UserEntity userEntity = loadUserEntityByUserIdString(userId);
-            userEntity.setPoint(point - cost);
+            Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
-            System.out.println("결제 후 포인트: " + userEntity.getPoint());
+            userEntityWrapper.ifPresent(selectUser -> {
+                selectUser.setPoint(cost - point);
+
+                userRepository.save(selectUser);
+            });
+
             response.setHeader("payment", "success");
             return true;
         }
