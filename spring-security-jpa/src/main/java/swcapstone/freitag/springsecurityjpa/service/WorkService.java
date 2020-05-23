@@ -86,6 +86,7 @@ public class WorkService {
 
         problemEntityWrapper.ifPresent(selectProblem -> {
             selectProblem.setObjectId(objectId);
+            selectProblem.setValidationStatus("작업후");
 
             problemRepository.save(selectProblem);
         });
