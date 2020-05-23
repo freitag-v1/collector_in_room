@@ -16,7 +16,8 @@ import java.util.Optional;
 @Service
 public class LabellingProjectService extends ProjectService {
 
-    public void uploadLabellingData(String userId, MultipartHttpServletRequest uploadRequest, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    public void uploadLabellingData(String userId, MultipartHttpServletRequest uploadRequest,
+                                    HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
         int totalData = labellingDataList.size();
@@ -34,22 +35,22 @@ public class LabellingProjectService extends ProjectService {
 
             String objectId = objectStorageApiClient.putObject(bucketName, destinationFile);
 
-            if(objectId.isEmpty()) {
+            if(objectId == null) {
                 response.setHeader("upload"+fileName, "fail");
                 return;
             }
 
         }
 
-        setTotalData(userId, totalData);
+        setTotalData(projectId, totalData);
         setCost(projectId, response);
         response.setHeader("upload", "success");
         return;
     }
 
     @Transactional
-    protected void setTotalData(String userId, int totalData) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByUserIdAndStatus(userId, "없음");
+    protected void setTotalData(int projectId, int totalData) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         projectEntityWrapper.ifPresent(selectProject -> {
             selectProject.setTotalData(totalData);

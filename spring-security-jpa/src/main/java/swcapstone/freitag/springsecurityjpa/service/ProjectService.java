@@ -38,6 +38,7 @@ public class ProjectService {
     @Autowired
     ProblemRepository problemRepository;
 
+    private static final int PROGRESS_DATA = 5;     // 원래 50임
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
     protected int problemIdTurn;
@@ -240,7 +241,7 @@ public class ProjectService {
     }
 
     // 결제 미완료된 프로젝트 버킷 이름 가져오기
-    protected String getBucketName(int projectId) {
+    private String getBucketName(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
@@ -303,7 +304,6 @@ public class ProjectService {
     }
 
 
-
     // problem_table에 결제 완료된 project_id에 해당하는 문제가 만들어졌니?
     @Transactional
     public void createProblem(int projectId, HttpServletResponse response) {
@@ -323,5 +323,23 @@ public class ProjectService {
                 }
             }
         }
+    }
+
+
+    // work service only
+    @Transactional
+    public void setProgressData(int projectId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        if (projectEntityWrapper.isEmpty())
+            return;
+
+        projectEntityWrapper.ifPresent(selectProject -> {
+            int progressData = selectProject.getProgressData();
+            progressData += PROGRESS_DATA;
+            selectProject.setProgressData(progressData);
+
+            projectRepository.save(selectProject);
+        });
     }
 }
