@@ -3,6 +3,7 @@ package swcapstone.freitag.springsecurityjpa.service;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
@@ -55,6 +56,19 @@ public class MyPageService {
             int point = userEntity.getPoint();
             response.setHeader("point", String.valueOf(point));
         }
+    }
+
+    @Transactional
+    public void exchange(String userId, int amount) {
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        userEntityWrapper.ifPresent(selectUser -> {
+            if(amount <= selectUser.getPoint()) {
+                if(OpenBanking.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "포인트 환전", amount)) {
+                    selectUser.setPoint(selectUser.getPoint() - amount);
+                }
+            }
+        });
     }
 
 }

@@ -20,10 +20,8 @@ import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.sql.Timestamp;
+import java.util.*;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -34,7 +32,17 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public void updateVisit(String userId) {
-        // 로그인할 때 방문일 업데이트 (하루에 한 번!)
+        int oneDay = 24 * 3600 * 1000;
+        Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+        UserEntity loginedUser = loadUserEntityByUserIdString(userId);
+        if(oneDay < currentTime.getTime() - loginedUser.getUserLastVisit().getTime()) {
+            if(loginedUser.getUserVisit() < 30) {
+                loginedUser.setUserVisit(loginedUser.getUserVisit() + 1);
+                loginedUser.setUserLastVisit(currentTime);
+                loginedUser.setTotalPoint(loginedUser.getTotalPoint() + 100);
+                loginedUser.setPoint(loginedUser.getPoint() + 100);
+            }
+        }
     }
 
     @Transactional
@@ -50,12 +58,13 @@ public class UserService implements UserDetailsService {
         String userAffiliation = request.getParameter("userAffiliation");
 
         int userVisit = 0;
+        Timestamp userLastVisit = new Timestamp(0);
         int totalPoint = 0;
         int point = 0;
 
         UserDto userDto = new UserDto
                 (userId, userPassword, userName, userOpenBankingNum, userOpenBankingAccessToken, userPhone, userEmail, userAffiliation
-                        , userVisit, totalPoint, point);
+                        , userVisit, userLastVisit, totalPoint, point);
 
         System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
