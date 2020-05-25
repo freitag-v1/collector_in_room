@@ -6,9 +6,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
+import swcapstone.freitag.springsecurityjpa.domain.dto.AnswerDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CollectionWorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.AnswerRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.CollectionWorkHistoryRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
@@ -16,9 +18,9 @@ import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -30,6 +32,8 @@ public class WorkService {
     ProblemRepository problemRepository;
     @Autowired
     CollectionWorkHistoryRepository collectionWorkHistoryRepository;
+    @Autowired
+    AnswerRepository answerRepository;
 
     public boolean collectionWork(String userId, MultipartHttpServletRequest uploadRequest,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -118,10 +122,54 @@ public class WorkService {
 
         // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
         Collections.shuffle(projectEntities);
-        List<ProblemEntity> selectLabellingProblems = projectEntities.subList(0, 4);
+        List<ProblemEntity> selectLabellingProblems = projectEntities.subList(0, 5);    // 5개만
 
         List<ProblemDto> problems = ObjectMapperUtils.mapAll(selectLabellingProblems, ProblemDto.class);
+
+        if(problems.isEmpty()) {
+            response.setHeader("problems", "fail");
+            return null;
+        }
+
+        response.setHeader("problems", "success");
         return problems;
+    }
+
+    @Transactional
+    public boolean labellingWork(String userId, HttpServletRequest request, HttpServletResponse response) {
+
+        Map<String, String[]> problemIdAnswerMap = request.getParameterMap(); // <problemId, answer들>
+        int isFifty = problemIdAnswerMap.size();
+
+        if (isFifty == 5) {
+
+            for(Map.Entry<String, String[]> entry : problemIdAnswerMap.entrySet()) {
+                String key = entry.getKey();
+                int problemId = Integer.parseInt(key);
+                String[] answers = entry.getValue();
+
+                if(!saveAnswers(problemId, userId, answers)) {
+                    response.setHeader("answer", "fail");
+                    return false;
+                }
+            }
+
+        }
+
+        response.setHeader("answer", "success");
+        return true;
+    }
+
+    @Transactional
+    protected boolean saveAnswers(int problemId, String userId, String[] answers) {
+
+        for(String answer : answers) {
+            AnswerDto answerDto = new AnswerDto(problemId, userId, answer);
+
+            if (answerRepository.save(answerDto.toEntity()) == null)
+                return false;
+        }
+        return true;
     }
 
 }

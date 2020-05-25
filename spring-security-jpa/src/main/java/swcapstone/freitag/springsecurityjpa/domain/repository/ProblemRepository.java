@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface ProblemRepository extends JpaRepository<ProblemEntity, Long> {
 
+    long count();
     Optional<ProblemEntity> findFirstByProjectIdAndObjectId(int projectId, String objectId);
     List<ProblemEntity> findAllByProjectIdAndValidationStatus(int projectId, String validationStatus);
 }

@@ -13,6 +13,7 @@ import swcapstone.freitag.springsecurityjpa.service.WorkService;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 public class WorkController {
@@ -48,5 +49,19 @@ public class WorkController {
         }
 
         return null;
+    }
+
+    // 라벨링 작업
+    @RequestMapping(value = "/api/work/labelling", method = RequestMethod.POST)
+    public void labellingWork(HttpServletRequest request, HttpServletResponse response) {
+
+        if (authorizationService.isAuthorized(request)) {
+            String userId = authorizationService.getUserId(request);
+
+            if(workService.labellingWork(userId, request, response)) {
+                int projectId = workService.getProjectId(request);
+                projectService.setProgressData(projectId);
+            }
+        }
     }
 }

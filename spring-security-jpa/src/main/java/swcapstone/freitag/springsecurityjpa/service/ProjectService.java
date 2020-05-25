@@ -53,6 +53,11 @@ public class ProjectService {
         return ++count;
     }
 
+    protected int getProblemIdTurn() {
+        int count = (int) problemRepository.count();
+        return ++count;
+    }
+
     @Transactional
     public void createProject(HttpServletRequest request, String userId, String bucketName, HttpServletResponse response)
             throws NullPointerException {
@@ -314,7 +319,9 @@ public class ProjectService {
             int totalData = projectEntityWrapper.get().getTotalData();
 
             for(int i = 0; i < totalData; i++) {
-                int problemId = ++problemIdTurn;
+
+                problemIdTurn = getProblemIdTurn();
+                int problemId = this.problemIdTurn;
 
                 ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, "없음", "없음", "작업전");
                 if (problemRepository.save(problemDto.toEntity()) == null) {

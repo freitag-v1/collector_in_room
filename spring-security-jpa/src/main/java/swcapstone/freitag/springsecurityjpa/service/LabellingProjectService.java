@@ -78,7 +78,8 @@ public class LabellingProjectService extends ProjectService {
                 if (s.equals(exampleContent))
                     continue;
 
-                int problemId = ++problemIdTurn;
+                problemIdTurn = getProblemIdTurn();
+                int problemId = this.problemIdTurn;
 
                 ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, s, "없음", "작업전");
 
