@@ -100,27 +100,14 @@ public class UserService implements UserDetailsService {
         return null;
     }
 
-    // ***** 아주 중요한 메소드 *****
-    private UserEntity loadUserEntityByUserIdString(String userId) {
-        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
-
-        if(userEntityWrapper.isPresent()) {
-            UserEntity userEntity = userEntityWrapper.get();
-            return userEntity;
-        }
-
-        return null;
-    }
-
     public int getPoint(String userId) {
 
-        UserEntity userEntity = loadUserEntityByUserIdString(userId);
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
-        if(userEntity != null) {
-            return userEntity.getPoint();
-        }
+        if(userEntityWrapper.isEmpty())
+            return -1;
 
-        return -1;
+        return userEntityWrapper.get().getPoint();
     }
 
     @Transactional
@@ -133,7 +120,7 @@ public class UserService implements UserDetailsService {
             Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
             userEntityWrapper.ifPresent(selectUser -> {
-                selectUser.setPoint(cost - point);
+                selectUser.setPoint(point - cost);
 
                 userRepository.save(selectUser);
             });
@@ -146,12 +133,13 @@ public class UserService implements UserDetailsService {
         return false;
     }
 
-    @Transactional
+
     public boolean accountPayment(String userId, int cost, HttpServletResponse response) {
 
-        UserEntity userEntity = loadUserEntityByUserIdString(userId);
-        String openbankingAccessToken = userEntity.getUserOpenBankingAccessToken();
-        int openbankingNum = userEntity.getUserOpenBankingNum();
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        String openbankingAccessToken = userEntityWrapper.get().getUserOpenBankingAccessToken();
+        int openbankingNum = userEntityWrapper.get().getUserOpenBankingNum();
         if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum,"프로젝트 생성", cost)) {
             response.setHeader("payment", "success");
             return true;
