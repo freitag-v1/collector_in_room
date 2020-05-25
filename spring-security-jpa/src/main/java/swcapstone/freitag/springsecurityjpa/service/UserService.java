@@ -133,7 +133,7 @@ public class UserService implements UserDetailsService {
             Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
             userEntityWrapper.ifPresent(selectUser -> {
-                selectUser.setPoint(cost - point);
+                selectUser.setPoint(point - cost);
 
                 userRepository.save(selectUser);
             });
