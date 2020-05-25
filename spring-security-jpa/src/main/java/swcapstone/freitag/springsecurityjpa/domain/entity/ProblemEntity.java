@@ -22,8 +22,8 @@ public class ProblemEntity {
     @Column(name = "reference_id")
     private int referenceId;
 
-    @Column(name = "object_id")
-    private String objectId;
+    @Column(name = "object_name")
+    private String objectName;
 
     @Column(name = "final_answer")
     private String finalAnswer;
@@ -32,11 +32,11 @@ public class ProblemEntity {
     private String validationStatus;    // 작업전, 작업후, 검증완료
 
     @Builder
-    public ProblemEntity(int problemId, int projectId, int referenceId, String objectId, String finalAnswer, String validationStatus) {
+    public ProblemEntity(int problemId, int projectId, int referenceId, String objectName, String finalAnswer, String validationStatus) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
-        this.objectId = objectId;
+        this.objectName = objectName;
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
     }

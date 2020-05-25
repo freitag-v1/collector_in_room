@@ -35,9 +35,9 @@ public class LabellingProjectService extends ProjectService {
             File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + userId+fileName);
             f.transferTo(destinationFile);
 
-            String objectId = objectStorageApiClient.putObject(bucketName, destinationFile);
+            String objectName = objectStorageApiClient.putObject(bucketName, destinationFile);
 
-            if(objectId == null) {
+            if(objectName == null) {
                 response.setHeader("upload"+fileName, "fail");
                 return;
             }
@@ -73,9 +73,9 @@ public class LabellingProjectService extends ProjectService {
             String bucketName = projectEntityWrapper.get().getBucketName();
             String exampleContent = projectEntityWrapper.get().getExampleContent();
 
-            List<String> objectIdList = objectStorageApiClient.listObjects(bucketName);
+            List<String> objectNameList = objectStorageApiClient.listObjects(bucketName);
 
-            for(String s : objectIdList) {
+            for(String s : objectNameList) {
 
                 if (s.equals(exampleContent))
                     continue;

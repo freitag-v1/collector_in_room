@@ -59,10 +59,8 @@ public class ProjectController {
                                   HttpServletResponse response) throws Exception {
 
         if(authorizationService.isAuthorized(request)) {
-            String userId = authorizationService.getUserId(request);
 
-            // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
-            projectService.uploadExampleContent(userId, request, file, response);
+            projectService.uploadExampleContent(request, file, response);
         }
     }
 

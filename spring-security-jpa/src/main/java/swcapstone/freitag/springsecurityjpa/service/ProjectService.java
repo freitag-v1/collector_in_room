@@ -75,7 +75,7 @@ public class ProjectService {
         String conditionContent = request.getParameter("conditionContent");    // 작업 조건
         // String exampleContent;
         String description = request.getParameter("description"); // 프로젝트 설명
-        String total = request.getParameter("totalData");
+        String total = request.getParameter("totalData");   // 라벨링은 -1로 설정
         int totalData = Integer.parseInt(total);    // 의뢰자가 원하는 수집 데이터 개수
         // int progressData;
         // int cost;
@@ -123,27 +123,26 @@ public class ProjectService {
     }
 
     @Transactional
-    public void uploadExampleContent(String userId, HttpServletRequest request, MultipartFile file, HttpServletResponse response) throws Exception {
+    public void uploadExampleContent(HttpServletRequest request, MultipartFile file, HttpServletResponse response) throws Exception {
 
         String fileName = file.getOriginalFilename();
         String bucketName = request.getHeader("bucketName");
 
-        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + "exampleContent" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
         file.transferTo(destinationFile);
 
         String exampleContent = objectStorageApiClient.putObject(bucketName, destinationFile);
 
-        // 예시 데이터 object의 Etag를 exampleContent로 지정하고 cost 설정하고 헤더에 붙이기
-        int targetProjectId = setExampleContent(bucketName, exampleContent, response);
-        if(targetProjectId != -1) {
+        int projectId = setExampleContent(bucketName, exampleContent, response);
+        if(projectId != -1) {
 
             // 수집 프로젝트이던 라벨링 프로젝트이던 projetId 알려줌
-            response.setHeader("projectId", String.valueOf(targetProjectId));
+            response.setHeader("projectId", String.valueOf(projectId));
 
             // 수집 프로젝트는 예시 데이터 업로드 성공하면 바로 결제할 수 있도록 cost 계산해서 헤더에 쓰기
-            if(isCollection(targetProjectId))
-                setCost(targetProjectId, response);
+            if(isCollection(projectId))
+                setCost(projectId, response);
 
             // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
             else

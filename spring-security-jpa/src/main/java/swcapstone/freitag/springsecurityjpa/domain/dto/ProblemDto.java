@@ -12,7 +12,7 @@ public class ProblemDto {
     private int problemId;
     private int projectId;
     private int referenceId;
-    private String objectId;
+    private String objectName;
     private String finalAnswer;
     private String validationStatus;
 
@@ -22,7 +22,7 @@ public class ProblemDto {
                 .problemId(problemId)
                 .projectId(projectId)
                 .referenceId(referenceId)
-                .objectId(objectId)
+                .objectName(objectName)
                 .finalAnswer(finalAnswer)
                 .validationStatus(validationStatus)
                 .build();
@@ -30,11 +30,11 @@ public class ProblemDto {
 
 
     @Builder
-    public ProblemDto(int problemId, int projectId, int referenceId, String objectId, String finalAnswer, String validationStatus) {
+    public ProblemDto(int problemId, int projectId, int referenceId, String objectName, String finalAnswer, String validationStatus) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
-        this.objectId = objectId;
+        this.objectName = objectName;
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
     }

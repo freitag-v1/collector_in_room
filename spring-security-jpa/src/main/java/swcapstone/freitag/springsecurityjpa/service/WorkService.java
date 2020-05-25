@@ -63,7 +63,7 @@ public class WorkService {
                     return false;
                 }
 
-                int problemId = saveObjectId(projectId, objectId);
+                int problemId = saveObjectName(projectId, objectId);
                 if(problemId != -1) {
                     saveCollectionWorkHistory(userId, problemId, response);
                     continue;
@@ -90,14 +90,14 @@ public class WorkService {
     }
 
     @Transactional
-    protected int saveObjectId(int projectId, String objectId) {
-        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findFirstByProjectIdAndObjectId(projectId, "없음");
+    protected int saveObjectName(int projectId, String objectName) {
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findFirstByProjectIdAndObjectName(projectId, "없음");
         if(problemEntityWrapper.isEmpty()) {
             return -1;
         }
 
         problemEntityWrapper.ifPresent(selectProblem -> {
-            selectProblem.setObjectId(objectId);
+            selectProblem.setObjectName(objectName);
             selectProblem.setValidationStatus("작업후");
 
             problemRepository.save(selectProblem);

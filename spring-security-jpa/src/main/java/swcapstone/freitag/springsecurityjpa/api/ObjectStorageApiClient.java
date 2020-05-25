@@ -10,7 +10,8 @@ import com.amazonaws.services.s3.model.*;
 
 import org.springframework.stereotype.Service;
 
-import java.io.File;
+import javax.imageio.stream.FileImageOutputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,9 +42,7 @@ public class ObjectStorageApiClient {
             PutObjectResult putObjectResult = s3.putObject(bucketName, objectName, uploadFile);
             System.out.format("Object %s has been created.\n", objectName);
 
-            String eTag = putObjectResult.getETag();
-            // System.out.println("eTag: "+eTag);
-            return eTag;
+            return objectName;
 
         } catch (AmazonS3Exception e) {
             e.printStackTrace();
@@ -71,7 +70,7 @@ public class ObjectStorageApiClient {
 
     public List<String> listObjects(String bucketName) {
 
-        List<String> objectIdList = new ArrayList<>();
+        List<String> objectNameList = new ArrayList<>();
 
         ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
                 .withBucketName(bucketName)
@@ -79,11 +78,41 @@ public class ObjectStorageApiClient {
         ObjectListing objectListing = s3.listObjects(listObjectsRequest);
 
         for(S3ObjectSummary s : objectListing.getObjectSummaries()) {
-            String eTag = s.getETag();
-            objectIdList.add(eTag);
+            String objectName = s.getKey();
+            objectNameList.add(objectName);
         }
 
-        return objectIdList;
+        return objectNameList;
+    }
+
+    public boolean objectExists(String bucketName, String objectName) {
+
+        List<String> objectNameList = listObjects(bucketName);
+
+        if (objectNameList.contains(objectName))
+            return true;
+
+        System.out.println(bucketName + " 에 " + objectName + " 없음! ");
+        return false;
+    }
+
+    public OutputStream getObject(String bucketName, String objectName) throws IOException {
+
+        String downloadPath = "/Users/woneyhoney/Desktop/downloadPury";
+        S3Object s3Object = s3.getObject(bucketName, objectName);
+        S3ObjectInputStream s3ObjectInputStream = s3Object.getObjectContent();
+
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(downloadPath));
+        byte[] bytesArray = new byte[4096];
+        int bytesRead = -1;
+        while ((bytesRead = s3ObjectInputStream.read(bytesArray)) != -1) {
+            outputStream.write(bytesArray, 0, bytesRead);
+        }
+        outputStream.close();
+        s3ObjectInputStream.close();
+        System.out.format("Object %s has been downloaded.\n", objectName);
+
+        return outputStream;
     }
 }
 
