@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
@@ -38,7 +39,6 @@ public class ProjectService {
     @Autowired
     ProblemRepository problemRepository;
 
-    private static final int PROGRESS_DATA = 5;     // 원래 50임
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
     protected int problemIdTurn;
@@ -335,18 +335,30 @@ public class ProjectService {
 
     // work service only
     @Transactional
-    public void setProgressData(int projectId) {
+    public void setProgressData(int projectId, MultipartHttpServletRequest uploadRequest) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         if (projectEntityWrapper.isEmpty())
             return;
 
+        int numberOfData = uploadRequest.getFiles("files").size();
+
         projectEntityWrapper.ifPresent(selectProject -> {
             int progressData = selectProject.getProgressData();
-            progressData += PROGRESS_DATA;
+
+            progressData += numberOfData;
             selectProject.setProgressData(progressData);
 
             projectRepository.save(selectProject);
         });
+    }
+
+
+    // work service only
+    public int getLimit(int projectId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        int limit = projectEntityWrapper.get().getTotalData() - projectEntityWrapper.get().getProgressData();
+        return limit;
     }
 }

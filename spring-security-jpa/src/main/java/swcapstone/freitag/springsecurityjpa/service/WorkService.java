@@ -35,13 +35,18 @@ public class WorkService {
     @Autowired
     AnswerRepository answerRepository;
 
-    public boolean collectionWork(String userId, MultipartHttpServletRequest uploadRequest,
+    public boolean collectionWork(String userId, int limit, MultipartHttpServletRequest uploadRequest,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
-        int isFifty = labellingDataList.size();
+        int numberOfData = labellingDataList.size();
 
-        if (isFifty == 5/* 실제는 50이어야 하는데 테스트는 5개로 진행*/) {
+        if (limit < 1) {
+            response.setHeader("upload", "fail - 필요한 데이터 수집 완료");
+            return false;
+        }
+
+        if (0 < numberOfData && numberOfData <= limit) {
             int projectId = getProjectId(request);
 
             String bucketName = request.getHeader("bucketName");

@@ -7,13 +7,13 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
+import swcapstone.freitag.springsecurityjpa.service.LabellingProjectService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 public class WorkController {
@@ -22,6 +22,8 @@ public class WorkController {
     AuthorizationService authorizationService;
     @Autowired
     ProjectService projectService;
+    @Autowired
+    LabellingProjectService labellingProjectService;
     @Autowired
     WorkService workService;
 
@@ -32,10 +34,13 @@ public class WorkController {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
+            int projectId = workService.getProjectId(request);
 
-            if(workService.collectionWork(userId, uploadRequest, request, response)) {
-                int projectId = workService.getProjectId(request);
-                projectService.setProgressData(projectId);
+            int limit = projectService.getLimit(projectId);
+
+            if(workService.collectionWork(userId, limit, uploadRequest, request, response)) {
+
+                projectService.setProgressData(projectId, uploadRequest);
             }
         }
     }
@@ -60,7 +65,8 @@ public class WorkController {
 
             if(workService.labellingWork(userId, request, response)) {
                 int projectId = workService.getProjectId(request);
-                projectService.setProgressData(projectId);
+
+                labellingProjectService.setProgressData(projectId);
             }
         }
     }
