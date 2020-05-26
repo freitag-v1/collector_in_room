@@ -176,24 +176,22 @@ public class WorkService {
 
     public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap, HttpServletResponse response) {
 
-        Object objects[] = parameterMap.values().toArray();
-        String answers[] = new String[objects.length];
-        for(int i = 0; i < answers.length; i++) {
-            answers[i] = objects[i].toString();
-            System.out.println("================");
-            System.out.println(answers[i]);
+        LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
+        for(String problemId : parameterMap.keySet()) {
+
+            problemIdAnswerMap.put(problemId, parameterMap.get(problemId).toString());
         }
 
-        LinkedHashMap<String, String[]> problemIdAnswerMap = new LinkedHashMap<>();
-        for(String key : parameterMap.keySet()) {
-            problemIdAnswerMap.put(key, answers);
-        }
-/*
-        for(Map.Entry<String, String[]> entry : problemIdAnswerMap.entrySet()) {
+        for(Map.Entry<String, String> entry : problemIdAnswerMap.entrySet()) {
 
-            String key = entry.getKey();
-            int problemId = Integer.parseInt(key);
-            String answers[] = entry.getValue();
+            String strProblemId = entry.getKey();
+            int problemId = Integer.parseInt(strProblemId);
+
+            String answers = entry.getValue();
+
+            System.out.println("======================");
+            System.out.println("problemId : " + problemId);
+            System.out.println("answers : " + answers);
 
             if(!saveAnswers(problemId, userId, answers)) {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
@@ -204,7 +202,7 @@ public class WorkService {
             // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 작업전->작업후 변경
             updateValidationStatus(problemId);
         }
-*/
+
         response.setHeader("answer", "success");
         return true;
     }
@@ -214,22 +212,31 @@ public class WorkService {
     protected void updateValidationStatus(int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntityWrapper.isPresent()) {
-            if (problemEntityWrapper.get().getValidationStatus().equals("작업전")) {
-                problemEntityWrapper.get().setValidationStatus("작업후");
-            }
-        }
+        problemEntityWrapper.ifPresent(selectProblem -> {
+            selectProblem.setValidationStatus("작업후");
+            problemRepository.save(selectProblem);
+        });
     }
 
 
     @Transactional
-    protected boolean saveAnswers(int problemId, String userId, String answers[]) {
+    protected boolean saveAnswers(int problemId, String userId, String answer) {
 
-        for(String s : answers) {
-            AnswerDto answerDto = new AnswerDto(problemId, userId, s);
-            if (answerRepository.save(answerDto.toEntity()) == null)
-                return false;
+        if (answer.contains("&")) {
+            String[] answers = answer.split("&");
+
+            for(int i = 0; i < answers.length; i++) {
+                AnswerDto answerDto = new AnswerDto(problemId, userId, answers[i]);
+                if (answerRepository.save(answerDto.toEntity()) == null)
+                    return false;
+            }
+
+            return true;
         }
+
+        AnswerDto answerDto = new AnswerDto(problemId, userId, answer);
+        if (answerRepository.save(answerDto.toEntity()) == null)
+            return false;
 
         return true;
     }
