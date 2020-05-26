@@ -60,34 +60,7 @@ public class ObjectStorageApiClient {
         }
 
         s3.createBucket(bucketName);
-
-        // Create two CORS rules.
-        List<CORSRule.AllowedMethods> rule1AM = new ArrayList<CORSRule.AllowedMethods>();
-        rule1AM.add(CORSRule.AllowedMethods.PUT);
-        // rule1AM.add(CORSRule.AllowedMethods.POST);
-        rule1AM.add(CORSRule.AllowedMethods.DELETE);
-        CORSRule rule1 = new CORSRule().withId("CORSRule1").withAllowedMethods(rule1AM)
-                .withAllowedOrigins(Arrays.asList("http://*.example.com"));
-
-        List<CORSRule.AllowedMethods> rule2AM = new ArrayList<CORSRule.AllowedMethods>();
-        rule2AM.add(CORSRule.AllowedMethods.GET);
-        rule2AM.add(CORSRule.AllowedMethods.POST);
-        CORSRule rule2 = new CORSRule().withId("CORSRule2").withAllowedMethods(rule2AM)
-                .withAllowedOrigins(Arrays.asList("*")).withMaxAgeSeconds(3000)
-                .withExposedHeaders(Arrays.asList("x-amz-server-side-encryption"));
-
-        List<CORSRule> rules = new ArrayList<CORSRule>();
-        rules.add(rule1);
-        rules.add(rule2);
-
-        // Add the rules to a new CORS configuration.
-        BucketCrossOriginConfiguration configuration = new BucketCrossOriginConfiguration();
-        configuration.setRules(rules);
-
-        // Add the configuration to the bucket.
-        s3.setBucketCrossOriginConfiguration(bucketName, configuration);
-
-        // end
+        setBucketCORS(bucketName);
 
         System.out.format("Bucket %s has been created.\n", bucketName);
         return true;
@@ -139,6 +112,26 @@ public class ObjectStorageApiClient {
         System.out.format("Object %s has been downloaded.\n", objectName);
 
         return outputStream;
+    }
+
+    public void setBucketCORS(String bucketName) {
+        // Create two CORS rules.
+        List<CORSRule.AllowedMethods> ruleAM = new ArrayList<CORSRule.AllowedMethods>();
+        ruleAM.add(CORSRule.AllowedMethods.GET);
+        CORSRule rule = new CORSRule().withId("CORSRule").withAllowedMethods(ruleAM)
+                .withAllowedOrigins(Arrays.asList("*"));
+
+        List<CORSRule> rules = new ArrayList<CORSRule>();
+        rules.add(rule);
+
+        // Add the rules to a new CORS configuration.
+        BucketCrossOriginConfiguration configuration = new BucketCrossOriginConfiguration();
+        configuration.setRules(rules);
+
+        // Add the configuration to the bucket.
+        s3.setBucketCrossOriginConfiguration(bucketName, configuration);
+
+        // end
     }
 }
 
