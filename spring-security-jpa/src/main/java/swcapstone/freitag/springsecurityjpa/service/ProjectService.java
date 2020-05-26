@@ -128,7 +128,7 @@ public class ProjectService {
         String fileName = file.getOriginalFilename();
         String bucketName = request.getHeader("bucketName");
 
-        File destinationFile = new File("/tmp/" + "exampleContent" + fileName);
+        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + "exampleContent" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
         file.transferTo(destinationFile);
 
