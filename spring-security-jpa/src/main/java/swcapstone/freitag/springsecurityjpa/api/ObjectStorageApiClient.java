@@ -59,34 +59,6 @@ public class ObjectStorageApiClient {
             return false;
         }
 
-        // Create two CORS rules.
-        List<CORSRule.AllowedMethods> rule1AM = new ArrayList<CORSRule.AllowedMethods>();
-        rule1AM.add(CORSRule.AllowedMethods.PUT);
-        // rule1AM.add(CORSRule.AllowedMethods.POST);
-        rule1AM.add(CORSRule.AllowedMethods.DELETE);
-        CORSRule rule1 = new CORSRule().withId("CORSRule1").withAllowedMethods(rule1AM)
-                .withAllowedOrigins(Arrays.asList("http://*.example.com"));
-
-        List<CORSRule.AllowedMethods> rule2AM = new ArrayList<CORSRule.AllowedMethods>();
-        rule2AM.add(CORSRule.AllowedMethods.GET);
-        rule2AM.add(CORSRule.AllowedMethods.POST);
-        CORSRule rule2 = new CORSRule().withId("CORSRule2").withAllowedMethods(rule2AM)
-                .withAllowedOrigins(Arrays.asList("*")).withMaxAgeSeconds(3000)
-                .withExposedHeaders(Arrays.asList("x-amz-server-side-encryption"));
-
-        List<CORSRule> rules = new ArrayList<CORSRule>();
-        rules.add(rule1);
-        rules.add(rule2);
-
-        // Add the rules to a new CORS configuration.
-        BucketCrossOriginConfiguration configuration = new BucketCrossOriginConfiguration();
-        configuration.setRules(rules);
-
-        // Add the configuration to the bucket.
-        s3.setBucketCrossOriginConfiguration(bucketName, configuration);
-
-        // end
-
         s3.createBucket(bucketName);
 
         System.out.format("Bucket %s has been created.\n", bucketName);
