@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface ProblemRepository extends JpaRepository<ProblemEntity, Long> {
 
     long count();
+    Optional<ProblemEntity> findByProblemId(int problemId);
     Optional<ProblemEntity> findFirstByProjectIdAndObjectName(int projectId, String objectName);
     List<ProblemEntity> findAllByProjectIdAndValidationStatus(int projectId, String validationStatus);
 }
