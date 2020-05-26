@@ -59,6 +59,8 @@ public class ObjectStorageApiClient {
             return false;
         }
 
+        s3.createBucket(bucketName);
+
         // Create two CORS rules.
         List<CORSRule.AllowedMethods> rule1AM = new ArrayList<CORSRule.AllowedMethods>();
         rule1AM.add(CORSRule.AllowedMethods.PUT);
@@ -86,8 +88,6 @@ public class ObjectStorageApiClient {
         s3.setBucketCrossOriginConfiguration(bucketName, configuration);
 
         // end
-
-        s3.createBucket(bucketName);
 
         System.out.format("Bucket %s has been created.\n", bucketName);
         return true;
