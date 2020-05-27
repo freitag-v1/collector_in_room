@@ -11,7 +11,6 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.CollectionWorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.LabellingWorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
-import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.AnswerRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.CollectionWorkHistoryRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.LabellingWorkHistoryRepository;
@@ -136,6 +135,21 @@ public class WorkService {
         int projectId = getProjectId(request);
         String dataType = getDataType(request);
 
+        List<ProblemDto> problems = combineProblems(projectId);
+
+        if(problems.isEmpty()) {
+            response.setHeader("problems", "fail");
+            return null;
+        }
+
+        int historyId = saveLabellingWorkHistory(userId, dataType, problems);
+        response.setHeader("workHistory", String.valueOf(historyId));
+        response.setHeader("problems", "success");
+        return problems;
+    }
+
+
+    private List<ProblemDto> combineProblems(int projectId) {
         List<ProblemEntity> selectLabellingProblems = new ArrayList<>();
 
         // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
@@ -161,20 +175,15 @@ public class WorkService {
         List<ProblemEntity> selectedLabellingProblems = labellingProblems.subList(0, 2);
         selectLabellingProblems.addAll(selectedLabellingProblems);
 
-        List<ProblemDto> problems = ObjectMapperUtils.mapAll(selectLabellingProblems, ProblemDto.class);
-
-        if(problems.isEmpty()) {
-            response.setHeader("problems", "fail");
-            return null;
-        }
-
-        saveLabellingWorkHistory(userId, dataType, selectedUserValidation, selectedCrossValidation, selectLabellingProblems);
-        response.setHeader("problems", "success");
-        return problems;
+        return ObjectMapperUtils.mapAll(selectLabellingProblems, ProblemDto.class);
     }
 
 
-    public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap, HttpServletResponse response) {
+    public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
+                                 HttpServletRequest request, HttpServletResponse response) {
+
+        String strHistoryId = request.getHeader("historyId");
+        int historyId = Integer.parseInt(strHistoryId);
 
         LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
         for(String problemId : parameterMap.keySet()) {
@@ -189,12 +198,10 @@ public class WorkService {
 
             String answers = entry.getValue();
 
-            System.out.println("======================");
-            System.out.println("problemId : " + problemId);
-            System.out.println("answers : " + answers);
-
             if(!saveAnswers(problemId, userId, answers)) {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
+                labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+
                 response.setHeader("answer", "fail");
                 return false;
             }
@@ -244,32 +251,38 @@ public class WorkService {
 
 
     @Transactional
-    protected void saveLabellingWorkHistory(String userId, String dataType, List<ProblemEntity> userValidation,
-                                            List<ProblemEntity> crossValidation, List<ProblemEntity> labellingProblems) {
+    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDto> problems) {
 
         labellingWorkHistoryIdTurn = getLabellingWorkHistoryIdTurn();
         int historyId = this.labellingWorkHistoryIdTurn;
 
+        int i = 0;
+
         int[] userValidationList = new int[10];
-        for(int i = 0; i < 10; i++) {
-            if (i < 1)
-                userValidationList[i] = userValidation.get(i).getProblemId();
+        while (i < 10) {
+            if (i == 0)
+                userValidationList[i] = problems.get(i).getProblemId();
             else
                 userValidationList[i] = -1;
+
+            i++;
         }
 
         int[] crossValidationList = new int[20];
-        for(int i = 0; i < 20; i++) {
-            if (i < 2)
-                crossValidationList[i] = crossValidation.get(i).getProblemId();
+        while (i < 30) {
+            if (i == 10)
+                crossValidationList[i] = problems.get(i).getProblemId();
             else
                 crossValidationList[i] = -1;
+
+            i++;
         }
 
         int[] labellingProblemList = new int[20];
-        for(int i = 0; i < 20; i++) {
-            if (i < 2)
-                labellingProblemList[i] = labellingProblems.get(i).getProblemId();
+
+        while (i < 50) {
+            if (i == 30)
+                labellingProblemList[i] = problems.get(i).getProblemId();
             else
                 labellingProblemList[i] = -1;
         }
@@ -287,7 +300,10 @@ public class WorkService {
                 , labellingProblemList[15], labellingProblemList[16], labellingProblemList[17], labellingProblemList[18], labellingProblemList[19]);
 
 
-        labellingWorkHistoryRepository.save(labellingWorkHistoryDto.toEntity());
+        if(labellingWorkHistoryRepository.save(labellingWorkHistoryDto.toEntity()) == null)
+            return -1;
+
+        return historyId;
     }
 
 }

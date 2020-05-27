@@ -13,14 +13,12 @@ import swcapstone.freitag.springsecurityjpa.service.LabellingProjectService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
 
-import javax.imageio.stream.FileImageOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 public class WorkController {
@@ -74,7 +72,7 @@ public class WorkController {
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
 
-            if(workService.labellingWork(userId, problemIdAnswerMap, response)) {
+            if(workService.labellingWork(userId, problemIdAnswerMap, request, response)) {
                 int projectId = workService.getProjectId(request);
 
                 labellingProjectService.setProgressData(projectId);

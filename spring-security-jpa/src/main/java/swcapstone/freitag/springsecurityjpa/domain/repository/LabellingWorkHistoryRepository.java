@@ -5,4 +5,5 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEn
 
 public interface LabellingWorkHistoryRepository extends JpaRepository<LabellingWorkHistoryEntity, Long> {
     long count();
+    void deleteByHistoryId(int historyId);
 }

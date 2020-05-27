@@ -96,7 +96,7 @@ public class ObjectStorageApiClient {
 
     public OutputStream getObject(String bucketName, String objectName) throws IOException {
 
-        String downloadPath = "/Users/woneyhoney/Desktop/downloadPury";
+        String downloadPath = "/Users/woneyhoney/Desktop/";
         S3Object s3Object = s3.getObject(bucketName, objectName);
         S3ObjectInputStream s3ObjectInputStream = s3Object.getObjectContent();
 
