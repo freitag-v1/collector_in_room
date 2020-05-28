@@ -6,15 +6,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
-import swcapstone.freitag.springsecurityjpa.domain.dto.AnswerDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CollectionWorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.LabellingWorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
-import swcapstone.freitag.springsecurityjpa.domain.repository.AnswerRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.CollectionWorkHistoryRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.LabellingWorkHistoryRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.*;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -28,11 +26,15 @@ public class WorkService {
     @Autowired
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
+    ProjectService projectService;
+    @Autowired
     ProblemRepository problemRepository;
     @Autowired
     CollectionWorkHistoryRepository collectionWorkHistoryRepository;
     @Autowired
     LabellingWorkHistoryRepository labellingWorkHistoryRepository;
+    @Autowired
+    ProjectRepository projectRepository;
     @Autowired
     AnswerRepository answerRepository;
 
@@ -43,8 +45,49 @@ public class WorkService {
         return ++count;
     }
 
+    @Transactional
+    protected void createCrossValidationProblem(int projectId, int problemId) {
+
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+
+        // 검증 대상 문제의 파일을 담은 bucketName
+        String bucketName = problemEntityWrapper.get().getBucketName();
+        // 검증 대상 문제의 파일 objectName
+        String objectName = problemEntityWrapper.get().getObjectName();
+        // 검증 대상 문제의 className
+        String finalAnswer = problemEntityWrapper.get().getFinalAnswer();
+
+        // 수집 프로젝트 -> objectName과 className 매칭이 제대로 되는가?
+        if (projectService.isCollection(projectId)) {
+
+            // 한 문제에 대한 교차검증 문제 2개만 만든다고 가정
+            for(int i = 0; i < 2; i++) {
+                int cvProblemId = projectService.getProblemIdTurn();
+                // problemId, projectId, referenceId, bucketName, objectName, finalAnswer, validationStatus, userId
+                ProblemDto problemDto = new ProblemDto(cvProblemId, projectId, problemId,
+                        bucketName, objectName, finalAnswer, "교차검증전", null);
+                problemRepository.save(problemDto.toEntity());
+            }
+
+            return;
+        }
+
+        // 한 문제에 대한 교차검증 문제 2개만 만든다고 가정
+        for(int i = 0; i < 2; i++) {
+            int cvProblemId = projectService.getProblemIdTurn();
+            // problemId, projectId, referenceId, bucketName, objectName, finalAnswer, validationStatus, userId
+            ProblemDto problemDto = new ProblemDto(cvProblemId, projectId, problemId,
+                    bucketName, objectName, finalAnswer, "교차검증전", null);
+            problemRepository.save(problemDto.toEntity());
+        }
+
+        return;
+    }
+
     public boolean collectionWork(String userId, int limit, MultipartHttpServletRequest uploadRequest,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
+
+        String className = getClassName(request);
 
         List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
         int numberOfData = labellingDataList.size();
@@ -54,35 +97,37 @@ public class WorkService {
             return false;
         }
 
-        if (0 < numberOfData && numberOfData <= limit) {
-            int projectId = getProjectId(request);
+        int projectId = getProjectId(request);
+        String bucketName = getBucketName(request);
 
-            String bucketName = request.getHeader("bucketName");
+        if (0 < numberOfData && numberOfData <= limit) {
 
             for(MultipartFile f : labellingDataList) {
+
                 String fileName = f.getOriginalFilename();
                 File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + userId+fileName);
                 f.transferTo(destinationFile);
 
-                String objectId = objectStorageApiClient.putObject(bucketName, destinationFile);
+                String objectName = objectStorageApiClient.putObject(bucketName, destinationFile);
 
-                if(objectId == null) {
+                if(objectName == null) {
                     response.setHeader("upload"+fileName, "fail");
                     return false;
                 }
 
-                int problemId = saveObjectName(projectId, objectId);
+                int problemId = saveObjectName(projectId, objectName);
                 if(problemId != -1) {
-                    saveCollectionWorkHistory(userId, problemId, response);
+                    saveFinalAnswer(problemId, className);
+                    saveUserId(problemId, userId);
+                    saveCollectionWorkHistory(userId, problemId);
+                    // 교차검증 문제 만들기
+                    createCrossValidationProblem(projectId, problemId);
                     continue;
                 } else {
                     response.setHeader("upload", "fail - problem_table 저장 공간 없음");
                     return false;
                 }
             }
-
-            // project의 progress_data 업데이트
-
             response.setHeader("upload", "success");
             return true;
         }
@@ -92,20 +137,37 @@ public class WorkService {
     }
 
     public int getProjectId(HttpServletRequest request) {
-        String strProjectId = request.getParameter("projectId");
+        String strProjectId = request.getHeader("projectId");
 
         return Integer.parseInt(strProjectId);
     }
 
+    protected String getClassName(HttpServletRequest request) {
+        String className = request.getParameter("className");
+        return className;
+    }
+
+    protected String getBucketName(HttpServletRequest request) {
+        String bucketName = request.getHeader("bucketName");
+
+        return bucketName;
+    }
+
     @Transactional
     protected int saveObjectName(int projectId, String objectName) {
-        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findFirstByProjectIdAndObjectName(projectId, "없음");
-        if(!problemEntityWrapper.isPresent()) {
+        // 해당 수집 작업의 프로젝트 아이디로 파일 업로드 되지 않은 문제(작업전)를 찾음
+        Optional<ProblemEntity> problemEntityWrapper =
+                problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
+
+        if(problemEntityWrapper.isEmpty()) {
             return -1;
         }
 
+        // 수집 작업
         problemEntityWrapper.ifPresent(selectProblem -> {
+            // 작업자가 업로드한 파일의 objectName 저장
             selectProblem.setObjectName(objectName);
+            // 수집 작업전 -> 작업후
             selectProblem.setValidationStatus("작업후");
 
             problemRepository.save(selectProblem);
@@ -115,27 +177,58 @@ public class WorkService {
     }
 
     @Transactional
-    protected void saveCollectionWorkHistory(String userId, int problemId, HttpServletResponse response) {
-        CollectionWorkHistoryDto collectionWorkHistoryDto = new CollectionWorkHistoryDto(problemId, userId);
+    protected void saveFinalAnswer(int problemId, String className) {
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if(collectionWorkHistoryRepository.save(collectionWorkHistoryDto.toEntity()) == null) {
-            response.setHeader("createHist", "fail");
+        if(problemEntityWrapper.isEmpty()) {
+            return;
         }
+
+        // 수집 작업
+        problemEntityWrapper.ifPresent(selectProblem -> {
+
+            // 작업자가 선택한 className을 finalAnswer에 저장
+            selectProblem.setFinalAnswer(className);
+
+            problemRepository.save(selectProblem);
+        });
+    }
+
+    @Transactional
+    protected void saveUserId(int problemId, String userId) {
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+
+        if(problemEntityWrapper.isEmpty()) {
+            return;
+        }
+
+        problemEntityWrapper.ifPresent(selectProblem -> {
+
+            selectProblem.setFinalAnswer(userId);
+
+            problemRepository.save(selectProblem);
+        });
+    }
+
+    @Transactional
+    protected void saveCollectionWorkHistory(String userId, int problemId) {
+
+        CollectionWorkHistoryDto collectionWorkHistoryDto = new CollectionWorkHistoryDto(problemId, userId);
+        collectionWorkHistoryRepository.save(collectionWorkHistoryDto.toEntity());
     }
 
 
     // 여기부터 라벨링 작업 관련
-    private String getDataType(HttpServletRequest request) {
+    protected String getDataType(HttpServletRequest request) {
         String dataType = request.getHeader("dataType");    // boundingBox or classification
         return dataType;
     }
 
-    public List<ProblemDto> provideProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
+    public List<ProblemDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
 
-        int projectId = getProjectId(request);
         String dataType = getDataType(request);
 
-        List<ProblemDto> problems = combineProblems(projectId);
+        List<ProblemDto> problems = combineProblems(dataType);
 
         if(problems.isEmpty()) {
             response.setHeader("problems", "fail");
@@ -148,37 +241,94 @@ public class WorkService {
         return problems;
     }
 
+    @Transactional
+    protected int createUserValidationProblem(int projectId, int problemId) {
 
-    private List<ProblemDto> combineProblems(int projectId) {
-        List<ProblemEntity> selectLabellingProblems = new ArrayList<>();
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
+        String bucketName = problemEntityWrapper.get().getBucketName();
+        String objectName = problemEntityWrapper.get().getObjectName();
+        String finalAnswer = problemEntityWrapper.get().getFinalAnswer();
 
-        // 10개 (테스트 1개) = userValidation(검증완료)
-        List<ProblemEntity> userValidation = problemRepository
-                .findAllByProjectIdAndValidationStatus(projectId, "검증완료");
-        Collections.shuffle(userValidation);
-        List<ProblemEntity> selectedUserValidation = userValidation.subList(0, 1);
-        selectLabellingProblems.addAll(selectedUserValidation);
+        int uvProblemId = projectService.getProblemIdTurn();
+        // problemId, projectId, referenceId, bucketName, objectName, finalAnswer, validationStatus, userId
+        ProblemDto problemDto = new ProblemDto(uvProblemId, projectId, problemId,
+                bucketName, objectName, finalAnswer, "사용자검증전", null);
+        problemRepository.save(problemDto.toEntity());
 
-        // 20개 (테스트 2개) = crossValidation(작업후)
-        List<ProblemEntity> crossValidation = problemRepository
-                .findAllByProjectIdAndValidationStatus(projectId, "작업후");
-        Collections.shuffle(crossValidation);
-        List<ProblemEntity> selectedCrossValidation = crossValidation.subList(0, 2);
-        selectLabellingProblems.addAll(selectedCrossValidation);
-
-        // 20개 (테스트 2개) = labellingProblems(작업전)
-        List<ProblemEntity> labellingProblems = problemRepository
-                .findAllByProjectIdAndValidationStatus(projectId, "작업전");
-        Collections.shuffle(labellingProblems);
-        List<ProblemEntity> selectedLabellingProblems = labellingProblems.subList(0, 2);
-        selectLabellingProblems.addAll(selectedLabellingProblems);
-
-        return ObjectMapperUtils.mapAll(selectLabellingProblems, ProblemDto.class);
+        return uvProblemId;
     }
 
+    private void userValidationProblems(List<ProblemEntity> selectedProblems) {
+        // 10개 (테스트 1개) = userValidation(검증완료)
+        List<ProblemEntity> userValidation = problemRepository
+                .findAllByValidationStatus("검증완료");
+        // 랜덤으로 섞어
+        Collections.shuffle(userValidation);
+        // 그 중 1개만 선택 (원래는 10개)
+        List<ProblemEntity> selectedUserValidation = userValidation.subList(0, 1);
+        // 새롭게 만들어지는 userValidation 문제들을 담을 리스트
+        List<ProblemEntity> userValidationProblems = new ArrayList<>();
+        // userValidation 문제 만들자 ..
+        for(ProblemEntity p : selectedUserValidation) {
+            int projectId = p.getProjectId();
+            int problemId = p.getProblemId();
+            // 검증완료된 문제로 또다시 userValidation 문제를 만들어
+            int uvProblemId = createUserValidationProblem(projectId, problemId);
+            // 만들어진 userValidation 문제의 problemId로 찾아
+            Optional<ProblemEntity> userValidationProblem = problemRepository.findByProblemId(uvProblemId);
+            // 리스트에 담자..
+            userValidationProblems.add(userValidationProblem.get());
+        }
+        selectedProblems.addAll(userValidationProblems);
+    }
 
+    private void crossValidationProblems(List<ProblemEntity> selectedProblems) {
+        // 20개 (테스트 2개) = crossValidation
+        List<ProblemEntity> crossValidation = problemRepository.findAllByValidationStatus("교차검증전");
+        // 랜덤으로 섞어
+        Collections.shuffle(crossValidation);
+        // 그 중 2개만 선택 (원래는 20개)
+        List<ProblemEntity> selectedCrossValidation = crossValidation.subList(0, 2);
+        // 새롭게 만들어지는 crossValidation 문제들을 담을 리스트
+        List<ProblemEntity> crossValidationProblems = new ArrayList<>();
+        // crossValidation 문제 가져오자 ...
+        for(ProblemEntity p : selectedCrossValidation) {
+            // 리스트에 담자..
+            crossValidationProblems.add(p);
+        }
+        selectedProblems.addAll(crossValidationProblems);
+    }
+
+    private void labellingProblems(String dataType, List<ProblemEntity> selectedProblems) {
+        // 20개 (테스트 2개) = labellingProblems(작업전)
+        List<ProjectEntity> classificationProjects = projectRepository.findAllByDataType(dataType);
+        Collections.shuffle(classificationProjects);
+        List<ProjectEntity> selectedClassficationProjects = classificationProjects.subList(0, 2);
+
+        for(ProjectEntity p : selectedClassficationProjects) {
+            int projectId = p.getProjectId();
+
+            Optional<ProblemEntity> labellingProblem = problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
+            selectedProblems.add(labellingProblem.get());
+        }
+    }
+
+    private List<ProblemDto> combineProblems(String dataType) {
+        List<ProblemEntity> selectedProblems = new ArrayList<>();
+
+        // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
+        // 10개 (테스트 1개) = userValidation(검증완료)
+        userValidationProblems(selectedProblems);
+        // 20개 (테스트 2개) = crossValidation(작업후)
+        crossValidationProblems(selectedProblems);
+        // 20개 (테스트 2개) = labellingProblems(작업전)
+        labellingProblems(dataType, selectedProblems);
+
+        return ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
+    }
+
+    
     public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
@@ -187,27 +337,28 @@ public class WorkService {
 
         LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
         for(String problemId : parameterMap.keySet()) {
-
             problemIdAnswerMap.put(problemId, parameterMap.get(problemId).toString());
         }
 
+        // 문제 하나씩
         for(Map.Entry<String, String> entry : problemIdAnswerMap.entrySet()) {
 
             String strProblemId = entry.getKey();
             int problemId = Integer.parseInt(strProblemId);
 
-            String answers = entry.getValue();
+            String answer = entry.getValue();
 
-            if(!saveAnswers(problemId, userId, answers)) {
+            if(!saveAnswer(problemId, answer, userId)) {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
                 labellingWorkHistoryRepository.deleteByHistoryId(historyId);
 
-                response.setHeader("answer", "fail");
+                response.setHeader("answer", "fail - 작업 다시 시작");
                 return false;
             }
 
-            // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 작업전->작업후 변경
-            updateValidationStatus(problemId);
+            // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
+            updateValidationStatus(historyId, problemId);
+
         }
 
         response.setHeader("answer", "success");
@@ -216,38 +367,99 @@ public class WorkService {
 
 
     @Transactional
-    protected void updateValidationStatus(int problemId) {
+    protected void updateValidationStatus(int historyId, int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        problemEntityWrapper.ifPresent(selectProblem -> {
-            selectProblem.setValidationStatus("작업후");
-            problemRepository.save(selectProblem);
-        });
+        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper
+                = labellingWorkHistoryRepository.findByHistoryId(historyId);
+
+        // problemId를 통해 이 문제가 userValidation인지 crossValidation인지 labellingProblem인지 알아내야 함
+        // userValidation
+        if(isUserValidation(historyId, problemId)) {
+            problemEntityWrapper.ifPresent(selectProblem -> {
+                selectProblem.setValidationStatus("사용자검증후");   // 사용자검증전 -> 사용자검증후
+                problemRepository.save(selectProblem);
+            });
+        }
+
+        // crossValidation
+        else if(isCrossValidation(historyId, problemId)) {
+            problemEntityWrapper.ifPresent(selectProblem -> {
+                selectProblem.setValidationStatus("교차검증후");   // 교차검증전 -> 교차검증후
+                problemRepository.save(selectProblem);
+            });
+        }
+
+        // labellingProblem
+        else {
+            // 교차검증 문제 생성
+            int projectId = problemEntityWrapper.get().getProjectId();
+            createCrossValidationProblem(projectId, problemId);
+
+            problemEntityWrapper.ifPresent(selectProblem -> {
+                selectProblem.setValidationStatus("작업후");   // 작업전 -> 작업후
+                problemRepository.save(selectProblem);
+            });
+        }
     }
 
 
-    @Transactional
-    protected boolean saveAnswers(int problemId, String userId, String answer) {
+    // 야매
+    private boolean isUserValidation(int historyId, int problemId) {
+        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper
+                = labellingWorkHistoryRepository.findByHistoryId(historyId);
 
-        if (answer.contains("&")) {
-            String[] answers = answer.split("&");
-
-            for(int i = 0; i < answers.length; i++) {
-                AnswerDto answerDto = new AnswerDto(problemId, userId, answers[i]);
-                if (answerRepository.save(answerDto.toEntity()) == null)
-                    return false;
-            }
-
+        if (labellingWorkHistoryEntityWrapper.get().getUv1() == problemId) {
             return true;
         }
 
-        AnswerDto answerDto = new AnswerDto(problemId, userId, answer);
-        if (answerRepository.save(answerDto.toEntity()) == null)
+        return false;
+    }
+
+    // 야매
+    private boolean isCrossValidation(int historyId, int problemId) {
+        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper
+                = labellingWorkHistoryRepository.findByHistoryId(historyId);
+
+        if (labellingWorkHistoryEntityWrapper.get().getCv1() == problemId) {
+            return true;
+        } else if(labellingWorkHistoryEntityWrapper.get().getCv2() == problemId) {
+            return true;
+        }
+
+        return false;
+    }
+
+
+    // 야매
+    private boolean isLabellingProblem(int historyId, int problemId) {
+        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper
+                = labellingWorkHistoryRepository.findByHistoryId(historyId);
+
+        if (labellingWorkHistoryEntityWrapper.get().getLp1() == problemId) {
+            return true;
+        } else if(labellingWorkHistoryEntityWrapper.get().getLp2() == problemId) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Transactional
+    protected boolean saveAnswer(int problemId, String answer, String userId) {
+
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+
+        if (problemEntityWrapper.get() == null)
             return false;
+
+        problemEntityWrapper.ifPresent(selectProblem -> {
+            selectProblem.setFinalAnswer(answer);
+            selectProblem.setUserId(userId);
+        });
 
         return true;
     }
-
 
 
     @Transactional

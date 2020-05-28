@@ -94,7 +94,7 @@ public class ProjectService {
     }
 
     @Transactional
-    public void createClass(String userId, HttpServletRequest request, HttpServletResponse response) {
+    public void createClass(HttpServletRequest request, HttpServletResponse response) {
 
         String[] classNameList = request.getParameterValues("className");
         String strProjectId = request.getParameter("projectId");
@@ -126,7 +126,7 @@ public class ProjectService {
     public void uploadExampleContent(HttpServletRequest request, MultipartFile file, HttpServletResponse response) throws Exception {
 
         String fileName = file.getOriginalFilename();
-        String bucketName = request.getHeader("bucketName");
+        String bucketName = getBucketName(request);
 
         File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + "exampleContent" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
@@ -148,6 +148,11 @@ public class ProjectService {
             else
                 response.setHeader("bucketName", bucketName);
         }
+    }
+
+    protected String getBucketName(HttpServletRequest request) {
+        String bucketName = request.getHeader("bucketName");
+        return bucketName;
     }
 
     @Transactional
@@ -313,6 +318,7 @@ public class ProjectService {
     public void createProblem(int projectId, HttpServletResponse response) {
 
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+        String bucketName = projectEntityWrapper.get().getBucketName();
 
         if (projectEntityWrapper.get().getStatus().equals("진행중")) {
             int totalData = projectEntityWrapper.get().getTotalData();
@@ -322,7 +328,7 @@ public class ProjectService {
                 problemIdTurn = getProblemIdTurn();
                 int problemId = this.problemIdTurn;
 
-                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, "없음", "없음", "작업전");
+                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, bucketName, null, null, "작업전", null);
                 if (problemRepository.save(problemDto.toEntity()) == null) {
                     response.setHeader("createProblem"+problemDto.getProblemId(), "fail");
                     break;

@@ -121,17 +121,28 @@ public class UserService implements UserDetailsService {
         return userEntityWrapper.get().getPoint();
     }
 
+    private int getTotalPoint(String userId) {
+
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        if(userEntityWrapper.isEmpty())
+            return -1;
+
+        return userEntityWrapper.get().getTotalPoint();
+    }
+
     @Transactional
     public boolean pointPayment(String userId, int cost, HttpServletResponse response) {
 
         int point = getPoint(userId);
-        System.out.println("결제 전 포인트: " + point);
+        int totalPoint = getTotalPoint(userId);
 
         if(cost <= point) {
             Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
             userEntityWrapper.ifPresent(selectUser -> {
                 selectUser.setPoint(point - cost);
+                selectUser.setTotalPoint(totalPoint + cost);
 
                 userRepository.save(selectUser);
             });
