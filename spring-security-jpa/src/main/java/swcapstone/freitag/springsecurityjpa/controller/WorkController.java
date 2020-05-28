@@ -52,11 +52,11 @@ public class WorkController {
 
     // 라벨링 작업할 프로젝트의 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
     @RequestMapping(value = "/api/work/start")
-    public List<ProblemDto> provideProblems(HttpServletRequest request, HttpServletResponse response) {
+    public List<ProblemDto> provideClassificationProblems(HttpServletRequest request, HttpServletResponse response) {
 
         if (authorizationService.isAuthorized((request))) {
             String userId = authorizationService.getUserId(request);
-            return workService.provideProblems(userId, request, response);
+            return workService.provideClassificationProblems(userId, request, response);
         }
 
         return null;
