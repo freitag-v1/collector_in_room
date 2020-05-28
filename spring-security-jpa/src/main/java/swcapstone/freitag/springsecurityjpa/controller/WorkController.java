@@ -9,7 +9,6 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
-import swcapstone.freitag.springsecurityjpa.service.LabellingProjectService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
 
@@ -25,8 +24,6 @@ public class WorkController {
     AuthorizationService authorizationService;
     @Autowired
     ProjectService projectService;
-    @Autowired
-    LabellingProjectService labellingProjectService;
     @Autowired
     WorkService workService;
     @Autowired
@@ -69,12 +66,7 @@ public class WorkController {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-
-            if(workService.labellingWork(userId, problemIdAnswerMap, request, response)) {
-                int projectId = workService.getProjectId(request);
-
-                labellingProjectService.setProgressData(projectId);
-            }
+            workService.labellingWork(userId, problemIdAnswerMap, request, response);
         }
     }
 

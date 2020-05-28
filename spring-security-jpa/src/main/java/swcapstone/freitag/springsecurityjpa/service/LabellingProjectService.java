@@ -16,8 +16,6 @@ import java.util.Optional;
 @Service
 public class LabellingProjectService extends ProjectService {
 
-    private static final int PROGRESS_DATA = 20;
-
     // 의뢰자
     public void uploadLabellingData(String userId, MultipartHttpServletRequest uploadRequest,
                                     HttpServletRequest request, HttpServletResponse response) throws Exception {
@@ -98,21 +96,5 @@ public class LabellingProjectService extends ProjectService {
             }
         }
 
-    }
-
-    // work service only
-    public void setProgressData(int projectId) {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
-
-        if (!projectEntityWrapper.isPresent())
-            return;
-
-        projectEntityWrapper.ifPresent(selectProject -> {
-            int progressData = selectProject.getProgressData();
-            progressData += PROGRESS_DATA;
-            selectProject.setProgressData(progressData);
-
-            projectRepository.save(selectProject);
-        });
     }
 }

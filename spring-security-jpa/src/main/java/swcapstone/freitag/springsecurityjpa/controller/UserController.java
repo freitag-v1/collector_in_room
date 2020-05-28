@@ -51,11 +51,11 @@ public class UserController {
     public void signUp(HttpServletRequest request, HttpServletResponse response) {
 
         if(userService.signUp(request, response)) {
-            response.setHeader("update", "success");
+            response.setHeader("signup", "success");
             return;
         }
 
-        response.setHeader("update", "fail");
+        response.setHeader("signup", "fail");
 
     }
 

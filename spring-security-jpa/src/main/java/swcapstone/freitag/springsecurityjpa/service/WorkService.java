@@ -138,7 +138,6 @@ public class WorkService {
 
     public int getProjectId(HttpServletRequest request) {
         String strProjectId = request.getHeader("projectId");
-
         return Integer.parseInt(strProjectId);
     }
 
@@ -149,8 +148,12 @@ public class WorkService {
 
     protected String getBucketName(HttpServletRequest request) {
         String bucketName = request.getHeader("bucketName");
-
         return bucketName;
+    }
+
+    protected int getHistoryId(HttpServletRequest request) {
+        String strHistoryId = request.getHeader("historyId");
+        return Integer.parseInt(strHistoryId);
     }
 
     @Transactional
@@ -329,7 +332,7 @@ public class WorkService {
     }
 
 
-    public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
+    public void labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
         String strHistoryId = request.getHeader("historyId");
@@ -353,7 +356,7 @@ public class WorkService {
                 labellingWorkHistoryRepository.deleteByHistoryId(historyId);
 
                 response.setHeader("answer", "fail - 작업 다시 시작");
-                return false;
+                return;
             }
 
             // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
@@ -362,7 +365,7 @@ public class WorkService {
         }
 
         response.setHeader("answer", "success");
-        return true;
+        return;
     }
 
 
@@ -430,21 +433,6 @@ public class WorkService {
         return false;
     }
 
-
-    // 야매
-    private boolean isLabellingProblem(int historyId, int problemId) {
-        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper
-                = labellingWorkHistoryRepository.findByHistoryId(historyId);
-
-        if (labellingWorkHistoryEntityWrapper.get().getLp1() == problemId) {
-            return true;
-        } else if(labellingWorkHistoryEntityWrapper.get().getLp2() == problemId) {
-            return true;
-        }
-
-        return false;
-    }
-
     @Transactional
     protected boolean saveAnswer(int problemId, String answer, String userId) {
 
@@ -455,7 +443,9 @@ public class WorkService {
 
         problemEntityWrapper.ifPresent(selectProblem -> {
             selectProblem.setFinalAnswer(answer);
-            selectProblem.setUserId(userId);
+            selectProblem.setUserId(userId);    // userId 왜 저장 안되지?
+
+            problemRepository.save(selectProblem);
         });
 
         return true;
@@ -463,41 +453,51 @@ public class WorkService {
 
 
     @Transactional
-    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDto> problems) {
+    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDto> problems) { // 5개만
 
         labellingWorkHistoryIdTurn = getLabellingWorkHistoryIdTurn();
         int historyId = this.labellingWorkHistoryIdTurn;
+
+        int[] userValidationList = new int[1];      // new int[10];
+        int[] crossValidationList = new int[2];     // new int[20];
+        int[] labellingProblemList = new int[2];   // new int[20];
+
+        for (int i = 0; i < 5; i++) {
+            if (i < 1) {
+                userValidationList[i] = problems.get(i).getProblemId();
+                continue;
+            } else if (i < 3) {
+                crossValidationList[i - 1] = problems.get(i).getProblemId();
+            } else {
+                labellingProblemList[i - 3] = problems.get(i).getProblemId();
+            }
+        }
+
+/*
+        // 50개 기준
 
         int i = 0;
 
         int[] userValidationList = new int[10];
         while (i < 10) {
-            if (i == 0)
-                userValidationList[i] = problems.get(i).getProblemId();
-            else
-                userValidationList[i] = -1;
-
+            userValidationList[i] = problems.get(i).getProblemId();
             i++;
         }
 
         int[] crossValidationList = new int[20];
         while (i < 30) {
-            if (i == 10)
-                crossValidationList[i] = problems.get(i).getProblemId();
-            else
-                crossValidationList[i] = -1;
-
+            crossValidationList[i - 10] = problems.get(i).getProblemId();
             i++;
         }
 
         int[] labellingProblemList = new int[20];
 
         while (i < 50) {
-            if (i == 30)
-                labellingProblemList[i] = problems.get(i).getProblemId();
-            else
-                labellingProblemList[i] = -1;
+            labellingProblemList[i - 30] = problems.get(i).getProblemId();
+            i++;
         }
+
+
 
         LabellingWorkHistoryDto labellingWorkHistoryDto = new LabellingWorkHistoryDto(historyId, userId, dataType
                 , userValidationList[0], userValidationList[1], userValidationList[2], userValidationList[3], userValidationList[4]
@@ -510,7 +510,19 @@ public class WorkService {
                 , labellingProblemList[5], labellingProblemList[6], labellingProblemList[7], labellingProblemList[8], labellingProblemList[9]
                 , labellingProblemList[10], labellingProblemList[11], labellingProblemList[12], labellingProblemList[13], labellingProblemList[14]
                 , labellingProblemList[15], labellingProblemList[16], labellingProblemList[17], labellingProblemList[18], labellingProblemList[19]);
+*/
 
+        LabellingWorkHistoryDto labellingWorkHistoryDto = new LabellingWorkHistoryDto(historyId, userId, dataType
+                , userValidationList[0], -1, -1, -1, -1
+                , -1, -1, -1, -1, -1
+                , crossValidationList[0], crossValidationList[1], -1, -1, -1
+                , -1, -1, -1, -1, -1
+                , -1, -1, -1, -1, -1
+                , -1, -1, -1, -1, -1
+                , labellingProblemList[0], labellingProblemList[1], -1, -1, -1
+                , -1, -1, -1, -1, -1
+                , -1, -1, -1, -1, -1
+                , -1, -1, -1, -1, -1);
 
         if(labellingWorkHistoryRepository.save(labellingWorkHistoryDto.toEntity()) == null)
             return -1;

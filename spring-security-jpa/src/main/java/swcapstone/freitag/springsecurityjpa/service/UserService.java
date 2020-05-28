@@ -35,7 +35,10 @@ public class UserService implements UserDetailsService {
         int oneDay = 24 * 3600 * 1000;
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         Optional<UserEntity> loginedUser = userRepository.findByUserId(userId);
+
+
         loginedUser.ifPresent(selectedUser -> {
+
             if(oneDay < currentTime.getTime() - selectedUser.getUserLastVisit().getTime()) {
                 if(selectedUser.getUserVisit() < 30) {
                     selectedUser.setUserVisit(selectedUser.getUserVisit() + 1);
@@ -68,18 +71,18 @@ public class UserService implements UserDetailsService {
                 (userId, userPassword, userName, userOpenBankingNum, userOpenBankingAccessToken, userPhone, userEmail, userAffiliation
                         , userVisit, userLastVisit, totalPoint, point);
 
-        System.out.println("암호화 전 비번: "+userDto.getUserPassword());
+        // System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
         userDto.setUserPassword(passwordEncoder.encode(userDto.getUserPassword()));
-        System.out.println("암호화 후 비번: "+userDto.getUserPassword());
+        // System.out.println("암호화 후 비번: "+userDto.getUserPassword());
 
         // 이미 해당 userId가 있으면 회원가입 실패
         if(loadUserByUsername(userDto.getUserId()) != null) {
-            System.out.println("아이디 중복");
+            // System.out.println("아이디 중복");
             return false;
         }
         userRepository.save(userDto.toEntity());
-        System.out.println("회원가입 성공! - DB 저장 성공");
+        // System.out.println("회원가입 성공! - DB 저장 성공");
 
         // 유저가 오픈뱅킹 등록시 사용할 고유한 state를 헤더로 전달
         response.addHeader("state", userOpenBankingAccessToken);

@@ -124,6 +124,7 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
+            // 수정하기
             String strProjectId = request.getParameter("projectId");
             int projectId = Integer.parseInt(strProjectId);
 
