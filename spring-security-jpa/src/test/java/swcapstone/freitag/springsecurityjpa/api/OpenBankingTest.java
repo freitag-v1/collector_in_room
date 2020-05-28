@@ -1,9 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.api;
 
-import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
 
 import static org.junit.jupiter.api.Assertions.*;
 
