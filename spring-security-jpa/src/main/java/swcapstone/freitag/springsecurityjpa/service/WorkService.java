@@ -328,7 +328,7 @@ public class WorkService {
         return ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
     }
 
-    
+
     public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
