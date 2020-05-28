@@ -50,6 +50,7 @@ public class UserDto {
                 .userEmail(userEmail)
                 .userAffiliation(userAffiliation)
                 .userVisit(userVisit)
+                .userLastVisit(userLastVisit)
                 .totalPoint(totalPoint)
                 .point(point)
                 .build();
