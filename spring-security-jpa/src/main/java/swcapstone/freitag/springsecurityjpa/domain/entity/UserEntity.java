@@ -3,6 +3,7 @@ package swcapstone.freitag.springsecurityjpa.domain.entity;
 import lombok.*;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 
 // Entity Class: 실제 DB의 테이블과 매칭될 클래스
 // Domain Logic만 가지고 있어야 하고 Presentation Logic을 가지고 있어서는 안됨
@@ -44,6 +45,9 @@ public class UserEntity {
     @Column(name = "user_visit")
     private int userVisit;
 
+    @Column(name = "user_last_visit")
+    private Timestamp userLastVisit;
+
     @Column(name = "user_total_point")
     private int totalPoint;
 
@@ -53,7 +57,7 @@ public class UserEntity {
     @Builder
     public UserEntity(Long id, String userId, String userPassword, String userName,
                       int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
-                      String userAffiliation, int userVisit, int totalPoint, int point) {
+                      String userAffiliation, int userVisit, Timestamp userLastVisit, int totalPoint, int point) {
         this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
@@ -64,6 +68,7 @@ public class UserEntity {
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
         this.userVisit = userVisit;
+        this.userLastVisit = userLastVisit;
         this.totalPoint = totalPoint;
         this.point = point;
     }

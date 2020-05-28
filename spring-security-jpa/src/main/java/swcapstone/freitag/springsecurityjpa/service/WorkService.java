@@ -159,7 +159,7 @@ public class WorkService {
         Optional<ProblemEntity> problemEntityWrapper =
                 problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
 
-        if(problemEntityWrapper.isEmpty()) {
+        if(!problemEntityWrapper.isPresent()) {
             return -1;
         }
 
@@ -180,7 +180,7 @@ public class WorkService {
     protected void saveFinalAnswer(int problemId, String className) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if(problemEntityWrapper.isEmpty()) {
+        if(!problemEntityWrapper.isPresent()) {
             return;
         }
 
@@ -198,7 +198,7 @@ public class WorkService {
     protected void saveUserId(int problemId, String userId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if(problemEntityWrapper.isEmpty()) {
+        if(!problemEntityWrapper.isPresent()) {
             return;
         }
 
