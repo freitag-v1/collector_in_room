@@ -95,27 +95,8 @@ public class ObjectStorageApiClient {
         return false;
     }
 
-    public OutputStream getObject(String bucketName, String objectName) throws IOException {
+    private void setBucketCORS(String bucketName) {
 
-        String downloadPath = "/Users/woneyhoney/Desktop/";
-        S3Object s3Object = s3.getObject(bucketName, objectName);
-        S3ObjectInputStream s3ObjectInputStream = s3Object.getObjectContent();
-
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(downloadPath));
-        byte[] bytesArray = new byte[4096];
-        int bytesRead = -1;
-        while ((bytesRead = s3ObjectInputStream.read(bytesArray)) != -1) {
-            outputStream.write(bytesArray, 0, bytesRead);
-        }
-        outputStream.close();
-        s3ObjectInputStream.close();
-        System.out.format("Object %s has been downloaded.\n", objectName);
-
-        return outputStream;
-    }
-
-    public void setBucketCORS(String bucketName) {
-        // Create two CORS rules.
         List<CORSRule.AllowedMethods> ruleAM = new ArrayList<CORSRule.AllowedMethods>();
         ruleAM.add(CORSRule.AllowedMethods.GET);
         CORSRule rule = new CORSRule().withId("CORSRule").withAllowedMethods(ruleAM)

@@ -22,6 +22,9 @@ public class ProblemEntity {
     @Column(name = "reference_id")
     private int referenceId;
 
+    @Column(name = "bucket_name")
+    private String bucketName;
+
     @Column(name = "object_name")
     private String objectName;
 
@@ -31,13 +34,19 @@ public class ProblemEntity {
     @Column(name = "validation_status")
     private String validationStatus;    // 작업전, 작업후, 검증완료
 
+    @Column(name = "user_id")
+    private String userId;
+
     @Builder
-    public ProblemEntity(int problemId, int projectId, int referenceId, String objectName, String finalAnswer, String validationStatus) {
+    public ProblemEntity(int problemId, int projectId, int referenceId, String bucketName,
+                         String objectName, String finalAnswer, String validationStatus, String userId) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
+        this.bucketName = bucketName;
         this.objectName = objectName;
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
+        this.userId = userId;
     }
 }

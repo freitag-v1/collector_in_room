@@ -49,7 +49,7 @@ public class ProjectController {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            projectService.createClass(userId, request, response);
+            projectService.createClass(request, response);
         }
 
     }

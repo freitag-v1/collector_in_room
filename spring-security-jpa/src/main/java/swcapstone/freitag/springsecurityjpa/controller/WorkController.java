@@ -15,8 +15,6 @@ import swcapstone.freitag.springsecurityjpa.service.WorkService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -80,19 +78,26 @@ public class WorkController {
         }
     }
 
+    // 수집 + 라벨링 작업
+    @RequestMapping(value = "/api/work", method = RequestMethod.POST)
+    public void collectionAndLabellingWork(MultipartHttpServletRequest uploadRequest,
+                                           HttpServletRequest request, HttpServletResponse response) throws Exception {
 
-    // 다운로드?
-    @RequestMapping(value = "/api/download")
-    public OutputStream download(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (authorizationService.isAuthorized(request)) {
+            String userId = authorizationService.getUserId(request);
+            int projectId = workService.getProjectId(request);
 
-        String bucketName = request.getParameter("bucketName");
-        String objectName = request.getParameter("objectName");
+            int limit = projectService.getLimit(projectId);
 
-        if(objectStorageApiClient.objectExists(bucketName, objectName)) {
-            OutputStream outputStream = objectStorageApiClient.getObject(bucketName, objectName);
-            return outputStream;
+            if(workService.collectionWork(userId, limit, uploadRequest, request, response)) {
+
+                projectService.setProgressData(projectId, uploadRequest);
+
+                int updatedLimit = projectService.getLimit(projectId);
+                response.setHeader("limit", String.valueOf(updatedLimit));
+            }
         }
 
-        return null;
     }
+
 }

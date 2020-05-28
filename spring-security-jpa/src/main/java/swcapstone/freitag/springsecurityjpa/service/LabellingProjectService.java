@@ -18,17 +18,15 @@ public class LabellingProjectService extends ProjectService {
 
     private static final int PROGRESS_DATA = 20;
 
+    // 의뢰자
     public void uploadLabellingData(String userId, MultipartHttpServletRequest uploadRequest,
                                     HttpServletRequest request, HttpServletResponse response) throws Exception {
 
-        List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
+        List<MultipartFile> labellingDataList = getLabellingDataList(uploadRequest);
         int totalData = labellingDataList.size();
 
-        String strProjectId = request.getParameter("projectId");
-        int projectId = Integer.parseInt(strProjectId);
-        String bucketName = request.getHeader("bucketName");
-
-        response.setHeader("projectId", strProjectId);
+        String bucketName = getBucketName(request);
+        int projectId = getProjectId(bucketName);
 
         for(MultipartFile f : labellingDataList) {
             String fileName = f.getOriginalFilename();
@@ -50,6 +48,16 @@ public class LabellingProjectService extends ProjectService {
         return;
     }
 
+    private List<MultipartFile> getLabellingDataList(MultipartHttpServletRequest uploadRequest) {
+        List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
+        return labellingDataList;
+    }
+
+    private int getProjectId(String bucketName) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByBucketName(bucketName);
+        return projectEntityWrapper.get().getProjectId();
+    }
+
     @Transactional
     protected void setTotalData(int projectId, int totalData) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
@@ -59,9 +67,6 @@ public class LabellingProjectService extends ProjectService {
 
             projectRepository.save(selectProject);
         });
-
-        // System.out.println("<totalData>");
-        // System.out.println(projectEntityWrapper.get().getTotalData());
 
     }
 
@@ -77,13 +82,14 @@ public class LabellingProjectService extends ProjectService {
 
             for(String s : objectNameList) {
 
+                // 예시 데이터 제외하고 문제 만들어야 되므로
                 if (s.equals(exampleContent))
                     continue;
 
                 problemIdTurn = getProblemIdTurn();
                 int problemId = this.problemIdTurn;
 
-                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, s, "없음", "작업전");
+                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, bucketName, s, null, "작업전", null);
 
                 if (problemRepository.save(problemDto.toEntity()) == null) {
                     response.setHeader("createProblem"+problemDto.getProblemId(), "fail");
