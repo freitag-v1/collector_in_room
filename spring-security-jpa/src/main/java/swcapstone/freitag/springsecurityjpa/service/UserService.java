@@ -125,7 +125,7 @@ public class UserService implements UserDetailsService {
 
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
-        if(userEntityWrapper.isEmpty())
+        if(!userEntityWrapper.isPresent())
             return -1;
 
         return userEntityWrapper.get().getTotalPoint();
