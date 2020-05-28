@@ -337,7 +337,7 @@ public class ProjectService {
     public void setProgressData(int projectId, MultipartHttpServletRequest uploadRequest) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if (projectEntityWrapper.isEmpty())
+        if (!projectEntityWrapper.isPresent())
             return;
 
         int numberOfData = uploadRequest.getFiles("files").size();

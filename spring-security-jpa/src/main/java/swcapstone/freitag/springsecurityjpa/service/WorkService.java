@@ -100,7 +100,7 @@ public class WorkService {
     @Transactional
     protected int saveObjectName(int projectId, String objectName) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findFirstByProjectIdAndObjectName(projectId, "없음");
-        if(problemEntityWrapper.isEmpty()) {
+        if(!problemEntityWrapper.isPresent()) {
             return -1;
         }
 

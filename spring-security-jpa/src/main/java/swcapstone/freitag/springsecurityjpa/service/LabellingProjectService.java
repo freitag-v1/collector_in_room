@@ -98,7 +98,7 @@ public class LabellingProjectService extends ProjectService {
     public void setProgressData(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if (projectEntityWrapper.isEmpty())
+        if (!projectEntityWrapper.isPresent())
             return;
 
         projectEntityWrapper.ifPresent(selectProject -> {
