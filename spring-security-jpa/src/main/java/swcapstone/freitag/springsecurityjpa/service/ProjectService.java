@@ -96,6 +96,7 @@ public class ProjectService {
     @Transactional
     public void createClass(HttpServletRequest request, HttpServletResponse response) {
 
+        // 수정
         String[] classNameList = request.getParameterValues("className");
         String strProjectId = request.getParameter("projectId");
 

@@ -192,7 +192,6 @@ public class WorkService {
 
             // 작업자가 선택한 className을 finalAnswer에 저장
             selectProblem.setFinalAnswer(className);
-
             problemRepository.save(selectProblem);
         });
     }
@@ -207,8 +206,7 @@ public class WorkService {
 
         problemEntityWrapper.ifPresent(selectProblem -> {
 
-            selectProblem.setFinalAnswer(userId);
-
+            selectProblem.setUserId(userId);
             problemRepository.save(selectProblem);
         });
     }
@@ -443,7 +441,7 @@ public class WorkService {
 
         problemEntityWrapper.ifPresent(selectProblem -> {
             selectProblem.setFinalAnswer(answer);
-            selectProblem.setUserId(userId);    // userId 왜 저장 안되지?
+            selectProblem.setUserId(userId);
 
             problemRepository.save(selectProblem);
         });
