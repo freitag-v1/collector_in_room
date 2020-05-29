@@ -1,9 +1,8 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
-import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
+import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
@@ -103,7 +102,7 @@ public class UserController {
             Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
             userEntityWrapper.ifPresent(selectUser -> {
                 if(amount <= selectUser.getPoint()) {
-                    if(OpenBanking.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "테스트", amount)) {
+                    if(OpenBankingClient.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "테스트", amount)) {
                         selectUser.setPoint(selectUser.getPoint() - amount);
                     }
                 }

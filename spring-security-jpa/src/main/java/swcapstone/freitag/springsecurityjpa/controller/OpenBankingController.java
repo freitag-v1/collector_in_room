@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
-import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
+import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -27,7 +27,7 @@ public class OpenBankingController {
             String state = request.getParameter("state");
 
             try {
-                Map<String, String> result = OpenBanking.getInstance().getAccessToken(authorizeToken);
+                Map<String, String> result = OpenBankingClient.getInstance().getAccessToken(authorizeToken);
 
                 // DB에서 state가 동일한 user를 찾아서 access_token과 user_seq_no 저장
                 Optional<UserEntity> userEntityWrapper = userRepository.findByUserOpenBankingAccessToken(state);
