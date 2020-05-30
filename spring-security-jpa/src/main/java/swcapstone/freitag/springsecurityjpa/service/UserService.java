@@ -35,7 +35,7 @@ public class UserService implements UserDetailsService {
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Transactional
-    public void updateVisit(String userId) {
+    public void updateVisit(String userId, HttpServletResponse response) {
         int oneDay = 24 * 3600 * 1000;
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         Optional<UserEntity> loginedUser = userRepository.findByUserId(userId);
@@ -49,6 +49,7 @@ public class UserService implements UserDetailsService {
                     selectedUser.setUserLastVisit(currentTime);
                     selectedUser.setTotalPoint(selectedUser.getTotalPoint() + 100);
                     selectedUser.setPoint(selectedUser.getPoint() + 100);
+                    response.setHeader("reward", "true");
                 }
             }
         });
