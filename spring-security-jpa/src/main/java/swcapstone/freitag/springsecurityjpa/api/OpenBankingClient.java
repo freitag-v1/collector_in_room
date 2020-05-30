@@ -9,8 +9,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-public class OpenBanking {
-    private static OpenBanking instance = null;
+public class OpenBankingClient {
+    private static OpenBankingClient instance = null;
     private static final String clientID = "XXyvh2Ij7l9rss0HAVObS880qY3penX57JXkib9q";
     private static final String clientSecret = "p947iEbMvXjslhyTw4d4p2HK8U0DkOHR7o83Mtdx";
     private static final String baseURL = "https://testapi.openbanking.or.kr";
@@ -19,7 +19,7 @@ public class OpenBanking {
     private final String oobAccessToken;
     private final String clientCode;
 
-    private OpenBanking() throws Exception {
+    private OpenBankingClient() throws Exception {
         APICaller getAccessToken = new APICaller("POST", baseURL + "/oauth/2.0/token");
         getAccessToken.setQueryParameter("client_id", clientID);
         getAccessToken.setQueryParameter("client_secret", clientSecret);
@@ -32,10 +32,10 @@ public class OpenBanking {
         this.clientCode = jResponse.get("client_use_code").toString();
     }
 
-    public static OpenBanking getInstance() {
+    public static OpenBankingClient getInstance() {
         if(instance == null) {
             try {
-                instance = new OpenBanking();
+                instance = new OpenBankingClient();
             } catch (Exception e) {
                 e.printStackTrace();
                 instance = null;

@@ -11,7 +11,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swcapstone.freitag.springsecurityjpa.api.OpenBanking;
+import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
+import swcapstone.freitag.springsecurityjpa.api.SMSClient;
 import swcapstone.freitag.springsecurityjpa.domain.*;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
 import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
@@ -20,6 +21,7 @@ import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -28,6 +30,8 @@ public class UserService implements UserDetailsService {
     // UserDetailsService 는 데이터베이스의 유저정보를 불러오는 역할
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private SMSClient smsClient;
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     @Transactional
@@ -165,8 +169,16 @@ public class UserService implements UserDetailsService {
 
         String openbankingAccessToken = userEntityWrapper.get().getUserOpenBankingAccessToken();
         int openbankingNum = userEntityWrapper.get().getUserOpenBankingNum();
-        if(OpenBanking.getInstance().withdraw(openbankingAccessToken, openbankingNum,"프로젝트 생성", cost)) {
+        if(OpenBankingClient.getInstance().withdraw(openbankingAccessToken, openbankingNum,"프로젝트 생성", cost)) {
             response.setHeader("payment", "success");
+
+            String phoneNumber = userEntityWrapper.get().getUserPhone();
+            String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
+            try {
+                smsClient.sendSMS(phoneNumber, msg);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             return true;
         }
 
