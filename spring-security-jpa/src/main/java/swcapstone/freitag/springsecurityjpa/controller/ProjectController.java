@@ -32,10 +32,12 @@ public class ProjectController {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            int howManyProjects = projectService.howManyProjects(userId) + 1;
+            // int howManyProjects = projectService.howManyProjects(userId) + 1;
+
+            int num = (int) (Math.random() * 100) + 1;  // 1 ~ 100
 
             // 버킷 생성
-            String bucketName = userId+howManyProjects;
+            String bucketName = userId + num;
             if(objectStorageApiClient.putBucket(bucketName)) {
                 // 버킷 생성되면 수집 프로젝트 생성에 필요한 사용자 입력 필드와 함께 디비 저장
                 projectService.createProject(request, userId, bucketName, response);

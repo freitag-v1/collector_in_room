@@ -42,12 +42,12 @@ public class ProjectService {
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
     protected int problemIdTurn;
-
+/*
     public int howManyProjects(String userId) {
         List<ProjectEntity> projectEntityList = projectRepository.findAllByUserId(userId);
         return projectEntityList.size();
     }
-
+*/
     private int getProjectIdTurn() {
         int count = (int) projectRepository.count();
         return ++count;

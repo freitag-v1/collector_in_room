@@ -74,9 +74,13 @@ public class ObjectStorageApiClient {
         AccessControlList acl = s3.getBucketAcl(bucketName);
 
         Grantee grantee = GroupGrantee.AllUsers;
+        // EmailAddressGrantee grantee1 = new EmailAddressGrantee("nahyun858@gmail.com");   // 웹
+        // EmailAddressGrantee grantee2 = new EmailAddressGrantee("tndus130@ajou.ac.kr");   // 앱
 
         Permission permission = Permission.Read;
         acl.grantPermission(grantee, permission);
+        // acl.grantPermission(grantee1, permission);
+        // acl.grantPermission(grantee2, permission);
         s3.setBucketAcl(bucketName, acl);
 
         setBucketCORS(bucketName);
