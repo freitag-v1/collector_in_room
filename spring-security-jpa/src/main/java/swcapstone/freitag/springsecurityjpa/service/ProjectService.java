@@ -49,8 +49,12 @@ public class ProjectService {
     }
 */
     private int getProjectIdTurn() {
-        int count = (int) projectRepository.count();
-        return ++count;
+        // int count = (int) projectRepository.count();
+
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findTopByOrderByIdDesc();
+        return projectEntityWrapper.get().getProjectId() + 1;
+
+        // return ++count;
     }
 
     protected int getProblemIdTurn() {

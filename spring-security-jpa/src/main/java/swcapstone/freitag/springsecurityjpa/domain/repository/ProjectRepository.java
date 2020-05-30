@@ -16,5 +16,6 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, Long> {
     List<ProjectEntity> findAllByDataType(String dataType);
     Optional<ProjectEntity> findByProjectId(int projectId);
     Optional<ProjectEntity> findByBucketName(String bucketName);
+    Optional<ProjectEntity> findTopByOrderByIdDesc();
 }
 
