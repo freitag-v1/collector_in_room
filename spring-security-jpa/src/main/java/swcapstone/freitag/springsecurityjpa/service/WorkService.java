@@ -6,9 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
-import swcapstone.freitag.springsecurityjpa.domain.dto.CollectionWorkHistoryDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.LabellingWorkHistoryDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.*;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
@@ -36,7 +35,7 @@ public class WorkService {
     @Autowired
     ProjectRepository projectRepository;
     @Autowired
-    AnswerRepository answerRepository;
+    ClassRepository classRepository;
 
     private int labellingWorkHistoryIdTurn;
 
@@ -225,21 +224,21 @@ public class WorkService {
         return dataType;
     }
 
-    public List<ProblemDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
+    public List<ProblemDtoWithClassDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
 
         String dataType = getDataType(request);
 
-        List<ProblemDto> problems = combineProblems(dataType);
+        List<ProblemDtoWithClassDto> problemSet = combineProblems(dataType);
 
-        if(problems.isEmpty()) {
+        if(problemSet.isEmpty()) {
             response.setHeader("problems", "fail");
             return null;
         }
 
-        int historyId = saveLabellingWorkHistory(userId, dataType, problems);
+        int historyId = saveLabellingWorkHistory(userId, dataType, problemSet);
         response.setHeader("workHistory", String.valueOf(historyId));
         response.setHeader("problems", "success");
-        return problems;
+        return problemSet;
     }
 
     @Transactional
@@ -315,7 +314,7 @@ public class WorkService {
         }
     }
 
-    private List<ProblemDto> combineProblems(String dataType) {
+    private List<ProblemDtoWithClassDto> combineProblems(String dataType) {
         List<ProblemEntity> selectedProblems = new ArrayList<>();
 
         // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
@@ -326,15 +325,39 @@ public class WorkService {
         // 20개 (테스트 2개) = labellingProblems(작업전)
         labellingProblems(dataType, selectedProblems);
 
-        return ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
+        List<ProblemDto> problemSet = ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
+
+        // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
+        List<ProblemDtoWithClassDto> problemSetWithClassNames = withClassDtos(problemSet);
+        return problemSetWithClassNames;
+    }
+
+    private List<ProblemDtoWithClassDto> withClassDtos(List<ProblemDto> problemDtos) {
+
+        if(problemDtos.isEmpty())
+            return null;
+
+        List<ProblemDtoWithClassDto> results = new ArrayList<>();
+
+        for(ProblemDto p : problemDtos) {
+
+            int projectId = p.getProjectId();
+
+            List<ClassEntity> classEntities = classRepository.findAllByProjectId(projectId);
+            List<ClassDto> classNameList = ObjectMapperUtils.mapAll(classEntities, ClassDto.class);
+
+            ProblemDtoWithClassDto pc = new ProblemDtoWithClassDto(p, classNameList);
+            results.add(pc);
+        }
+
+        return results;
     }
 
 
     public void labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
-        String strHistoryId = request.getHeader("historyId");
-        int historyId = Integer.parseInt(strHistoryId);
+        int historyId = getHistoryId(request);
 
         LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
         for(String problemId : parameterMap.keySet()) {
@@ -451,7 +474,7 @@ public class WorkService {
 
 
     @Transactional
-    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDto> problems) { // 5개만
+    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDtoWithClassDto> problems) { // 5개만
 
         labellingWorkHistoryIdTurn = getLabellingWorkHistoryIdTurn();
         int historyId = this.labellingWorkHistoryIdTurn;
@@ -462,12 +485,12 @@ public class WorkService {
 
         for (int i = 0; i < 5; i++) {
             if (i < 1) {
-                userValidationList[i] = problems.get(i).getProblemId();
+                userValidationList[i] = problems.get(i).getProblemDto().getProblemId();
                 continue;
             } else if (i < 3) {
-                crossValidationList[i - 1] = problems.get(i).getProblemId();
+                crossValidationList[i - 1] = problems.get(i).getProblemDto().getProblemId();
             } else {
-                labellingProblemList[i - 3] = problems.get(i).getProblemId();
+                labellingProblemList[i - 3] = problems.get(i).getProblemDto().getProblemId();
             }
         }
 

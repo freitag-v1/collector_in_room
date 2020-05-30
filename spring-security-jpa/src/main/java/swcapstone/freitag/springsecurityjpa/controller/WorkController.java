@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
@@ -49,7 +49,7 @@ public class WorkController {
 
     // 라벨링 작업할 프로젝트의 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
     @RequestMapping(value = "/api/work/start")
-    public List<ProblemDto> provideClassificationProblems(HttpServletRequest request, HttpServletResponse response) {
+    public List<ProblemDtoWithClassDto> provideClassificationProblems(HttpServletRequest request, HttpServletResponse response) {
 
         if (authorizationService.isAuthorized((request))) {
             String userId = authorizationService.getUserId(request);

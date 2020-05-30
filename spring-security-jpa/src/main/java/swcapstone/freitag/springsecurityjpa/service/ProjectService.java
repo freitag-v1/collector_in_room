@@ -58,25 +58,57 @@ public class ProjectService {
         return ++count;
     }
 
+    private String getProjectName(HttpServletRequest request) {
+        return request.getParameter("projectName");
+    }
+
+    private String getWorkType(HttpServletRequest request) {
+        return request.getParameter("workType");
+    }
+
+    private String getDataType(HttpServletRequest request) {
+        return request.getParameter("dataType");
+    }
+
+    private String getSubject(HttpServletRequest request) {
+        return request.getParameter("subject");
+    }
+
+    private String getWayContent(HttpServletRequest request) {
+        return request.getParameter("wayContent");
+    }
+
+    private String getConditionContent(HttpServletRequest request) {
+        return request.getParameter("conditionContent");
+    }
+
+    private String getDescription(HttpServletRequest request) {
+        return request.getParameter("description");
+    }
+
+    private int getTotalData(HttpServletRequest request) {
+        String strTotalData = request.getParameter("totalData");   // 라벨링은 -1로 설정
+        return Integer.parseInt(strTotalData);
+    }
+
     @Transactional
     public void createProject(HttpServletRequest request, String userId, String bucketName, HttpServletResponse response)
             throws NullPointerException {
 
         projectIdTurn = getProjectIdTurn();
         int projectId = this.projectIdTurn;
-        String projectName = request.getParameter("projectName");
+        String projectName = getProjectName(request);
         // String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷 - userId+projectName 조합
         // String status;  // 없음, 진행중, 완료
-        String workType = request.getParameter("workType"); // collection / labelling
-        String dataType = request.getParameter("dataType"); // image, audio, text / boundingBox, classfication
-        String subject = request.getParameter("subject");
+        String workType = getWorkType(request);
+        String dataType = getDataType(request); // image, audio, text / boundingBox, classfication
+        String subject = getSubject(request);
         // int difficulty;
-        String wayContent = request.getParameter("wayContent");  // 작업 방법
-        String conditionContent = request.getParameter("conditionContent");    // 작업 조건
+        String wayContent = getWayContent(request);  // 작업 방법
+        String conditionContent = getConditionContent(request);    // 작업 조건
         // String exampleContent;
-        String description = request.getParameter("description"); // 프로젝트 설명
-        String total = request.getParameter("totalData");   // 라벨링은 -1로 설정
-        int totalData = Integer.parseInt(total);    // 의뢰자가 원하는 수집 데이터 개수
+        String description = getDescription(request); // 프로젝트 설명
+        int totalData = getTotalData(request);    // 의뢰자가 원하는 수집 데이터 개수
         // int progressData;
         // int cost;
 
@@ -93,19 +125,26 @@ public class ProjectService {
         return;
     }
 
+    private String[] getClassNameList(HttpServletRequest request) {
+        return request.getParameterValues("className");
+    }
+
+    private int getProjectId(HttpServletRequest request) {
+        String strProjectId = request.getParameter("projectId");
+        return Integer.parseInt(strProjectId);
+    }
+
     @Transactional
     public void createClass(HttpServletRequest request, HttpServletResponse response) {
 
-        // 수정
-        String[] classNameList = request.getParameterValues("className");
-        String strProjectId = request.getParameter("projectId");
+        String[] classNameList = getClassNameList(request);
 
         if(classNameList == null) {
             response.setHeader("class", "fail");
             return;
         }
 
-        int projectId = Integer.parseInt(strProjectId);
+        int projectId = getProjectId(request);
 
         for(String className : classNameList) {
             ClassDto classDto = new ClassDto(projectId, className);
@@ -265,16 +304,19 @@ public class ProjectService {
         return null;
     }
 
+    private int getDifficulty(HttpServletRequest request) {
+        String strDifficulty = request.getParameter("difficulty");
+        return Integer.parseInt(strDifficulty);
+    }
+
     // 프로젝트 검색 결과 반환
     // workType, dataType, subject, difficulty
     public List<ProjectDtoWithClassDto> getSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
-        String workType = request.getParameter("workType"); // collection / labelling
-        String dataType = request.getParameter("dataType"); // image, audio, text / boundingBox, classfication
-        String subject = request.getParameter("subject");
-
-        String strDifficulty = request.getParameter("difficulty");
-        int difficulty = Integer.parseInt(strDifficulty);
+        String workType = getWorkType(request);
+        String dataType = getDataType(request); // image, audio, text / boundingBox, classfication
+        String subject = getSubject(request);
+        int difficulty = getDifficulty(request);
 
         List<ProjectEntity> projectEntityList = projectRepositoryImpl.findDynamicQuery(workType, dataType, subject, difficulty);
 
