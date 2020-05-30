@@ -40,6 +40,15 @@ public class ObjectStorageApiClient {
             /*PutObjectResult putObjectResult = */s3.putObject(bucketName, objectName, uploadFile);
             System.out.format("Object %s has been created.\n", objectName);
 
+            // get the current ACL
+            AccessControlList acl = s3.getObjectAcl(bucketName, objectName);
+
+            Grantee grantee = GroupGrantee.AllUsers;
+
+            Permission permission = Permission.Read;
+            acl.grantPermission(grantee, permission);
+            s3.setObjectAcl(bucketName, objectName, acl);
+
             return objectName;
 
         } catch (AmazonS3Exception e) {
@@ -60,6 +69,16 @@ public class ObjectStorageApiClient {
         }
 
         s3.createBucket(bucketName);
+
+        // get the current ACL
+        AccessControlList acl = s3.getBucketAcl(bucketName);
+
+        Grantee grantee = GroupGrantee.AllUsers;
+
+        Permission permission = Permission.Read;
+        acl.grantPermission(grantee, permission);
+        s3.setBucketAcl(bucketName, acl);
+
         setBucketCORS(bucketName);
 
         System.out.format("Bucket %s has been created.\n", bucketName);
