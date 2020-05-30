@@ -129,7 +129,7 @@ public class ProjectService {
         return request.getParameterValues("className");
     }
 
-    private int getProjectId(HttpServletRequest request) {
+    public int getProjectId(HttpServletRequest request) {
         String strProjectId = request.getParameter("projectId");
         return Integer.parseInt(strProjectId);
     }
@@ -380,6 +380,20 @@ public class ProjectService {
         }
     }
 
+    // 본인이 의뢰한 작업 목록 확인
+    public List<ProjectDtoWithClassDto> getProjectList(String userId, HttpServletResponse response) {
+
+        List<ProjectEntity> projectEntityList = projectRepository.findAllByUserId(userId);
+
+        if (projectEntityList.isEmpty()) {
+            response.setHeader("list", "none");
+            return null;
+        }
+
+        List<ProjectDto> projectDtoList = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
+        return withClassDtos(projectDtoList);
+    }
+
 
     // work service only
     @Transactional
@@ -409,4 +423,5 @@ public class ProjectService {
         int limit = projectEntityWrapper.get().getTotalData() - projectEntityWrapper.get().getProgressData();
         return limit;
     }
+
 }

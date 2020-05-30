@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
@@ -70,6 +71,21 @@ public class WorkController {
         }
     }
 
+    // 본인이 작업한 프로젝트 목록 확인
+    @RequestMapping(value = "/api/project/all")
+    public List<ProjectDtoWithClassDto> getProjectList(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+
+            return projectService.getProjectList(userId, response);
+        }
+
+        response.setHeader("login", "fail");
+        return null;
+    }
+
+/*
     // 수집 + 라벨링 작업
     @RequestMapping(value = "/api/work", method = RequestMethod.POST)
     public void collectionAndLabellingWork(MultipartHttpServletRequest uploadRequest,
@@ -91,5 +107,5 @@ public class WorkController {
         }
 
     }
-
+*/
 }

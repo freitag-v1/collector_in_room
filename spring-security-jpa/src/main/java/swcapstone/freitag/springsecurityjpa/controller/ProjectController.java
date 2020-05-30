@@ -124,10 +124,8 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-            // 수정하기
-            String strProjectId = request.getParameter("projectId");
-            int projectId = Integer.parseInt(strProjectId);
 
+            int projectId = projectService.getProjectId(request);
             int cost = projectService.getCost(projectId);
 
             if(userService.pointPayment(userId, cost, response)) {
@@ -145,5 +143,19 @@ public class ProjectController {
             }
 
         }
+    }
+
+    // 본인이 의뢰한 프로젝트 목록 확인
+    @RequestMapping(value = "/api/project/all")
+    public List<ProjectDtoWithClassDto> getProjectList(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+
+            return projectService.getProjectList(userId, response);
+        }
+
+        response.setHeader("login", "fail");
+        return null;
     }
 }
