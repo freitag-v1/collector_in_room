@@ -14,5 +14,4 @@ public interface ProblemRepository extends JpaRepository<ProblemEntity, Long> {
     Optional<ProblemEntity> findByProblemId(int problemId);
     Optional<ProblemEntity> findFirstByProjectIdAndValidationStatus(int projectId, String validationStatus);
     List<ProblemEntity> findAllByValidationStatus(String validationStatus);
-    List<ProblemEntity> findAllByProjectIdAndValidationStatus(int projectId, String validationStatus);
 }

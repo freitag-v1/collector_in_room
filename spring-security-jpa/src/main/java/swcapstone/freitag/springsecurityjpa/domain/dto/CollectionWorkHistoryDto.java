@@ -8,6 +8,7 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.CollectionWorkHistoryE
 @Getter
 @NoArgsConstructor
 public class CollectionWorkHistoryDto {
+
     private int problemId;
     private String userId;
 

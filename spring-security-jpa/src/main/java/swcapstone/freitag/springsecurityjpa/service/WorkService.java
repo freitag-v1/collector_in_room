@@ -7,10 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.*;
-import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
-import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
-import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
-import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.domain.entity.*;
 import swcapstone.freitag.springsecurityjpa.domain.repository.*;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
@@ -551,4 +548,94 @@ public class WorkService {
         return historyId;
     }
 
+
+    // 본인이 작업한 목록 확인
+    public List<WorkHistoryDto> getWorkList(String userId, HttpServletResponse response) {
+
+        List<WorkHistoryDto> workList = new ArrayList<>();
+        getCollectionWorkList(userId, workList);
+        getLabellingWorkList(userId, workList);
+
+        if(workList == null) {
+            response.setHeader("workList", "fail");
+            return null;
+        }
+
+        response.setHeader("workList", "success");
+        return workList;
+    }
+
+    // 수집 작업 목록 확인
+    private void getCollectionWorkList(String userId, List<WorkHistoryDto> workList) {
+        List<CollectionWorkHistoryEntity> collectionWorkHistoryEntities
+                = collectionWorkHistoryRepository.findAllByUserId(userId);
+
+        if(collectionWorkHistoryEntities == null)
+            return;
+
+        for(CollectionWorkHistoryEntity c : collectionWorkHistoryEntities) {
+            int problemId = c.getProblemId();
+            WorkHistoryDto w = createWorkHistoryDto(problemId);
+            if(w == null)
+                continue;
+            workList.add(w);
+        }
+
+    }
+
+    // 라벨링 작업 목록 확인
+    private void getLabellingWorkList(String userId, List<WorkHistoryDto> workList) {
+        List<LabellingWorkHistoryEntity> labellingWorkHistoryEntities
+                = labellingWorkHistoryRepository.findAllByUserId(userId);
+
+        if(labellingWorkHistoryEntities == null)
+            return;
+
+        for(LabellingWorkHistoryEntity l : labellingWorkHistoryEntities) {
+            // 사용자 검증 문제 1개는 필요없음 - 포인트 미지급 대상
+
+            int problems[] = new int[4];
+
+            // 교차검증 문제 2개
+            problems[0] = l.getCv1();
+            problems[1] = l.getCv2();
+
+            // 라벨링 문제 2개
+            problems[2] = l.getLp1();
+            problems[3] = l.getLp2();
+
+            for(int i = 0; i < problems.length; i++) {
+                int problemId = problems[i];
+                WorkHistoryDto w = createWorkHistoryDto(problemId);
+                workList.add(w);
+            }
+
+        }
+    }
+
+    // problemId -> workHistoryDto 생성
+    private WorkHistoryDto createWorkHistoryDto(int problemId) {
+        Optional<ProblemEntity> problemEntity = problemRepository.findByProblemId(problemId);
+
+        if (problemEntity.get() == null)
+            return null;
+
+        int projectId = problemEntity.get().getProjectId();
+        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
+
+        if (projectEntity.isPresent()) {
+            String projectRequester = projectEntity.get().getUserId();
+            String projectName = projectEntity.get().getProjectName();
+            String projectWorkType = projectEntity.get().getWorkType();
+            String projectDataType = projectEntity.get().getDataType();
+            String projectStatus = projectEntity.get().getStatus();
+
+            WorkHistoryDto workHistoryDto = new WorkHistoryDto(projectRequester, projectName, projectWorkType,
+                    projectDataType, projectStatus, problemId);
+
+            return workHistoryDto;
+        }
+
+        return null;
+    }
 }

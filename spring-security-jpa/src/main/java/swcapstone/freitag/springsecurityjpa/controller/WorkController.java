@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.WorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
@@ -71,27 +72,16 @@ public class WorkController {
         }
     }
 
-/*
-    // 수집 + 라벨링 작업
-    @RequestMapping(value = "/api/work", method = RequestMethod.POST)
-    public void collectionAndLabellingWork(MultipartHttpServletRequest uploadRequest,
-                                           HttpServletRequest request, HttpServletResponse response) throws Exception {
-
+    // 본인이 작업한 목록 확인
+    @RequestMapping(value = "/api/work/all")
+    public List<WorkHistoryDto> getWorkList(HttpServletRequest request, HttpServletResponse response) {
         if (authorizationService.isAuthorized(request)) {
+
             String userId = authorizationService.getUserId(request);
-            int projectId = workService.getProjectId(request);
-
-            int limit = projectService.getLimit(projectId);
-
-            if(workService.collectionWork(userId, limit, uploadRequest, request, response)) {
-
-                projectService.setProgressData(projectId, uploadRequest);
-
-                int updatedLimit = projectService.getLimit(projectId);
-                response.setHeader("limit", String.valueOf(updatedLimit));
-            }
+            return workService.getWorkList(userId, response);
         }
 
+        response.setHeader("login", "fail");
+        return null;
     }
-*/
 }
