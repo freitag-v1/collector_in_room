@@ -3,6 +3,7 @@ package swcapstone.freitag.springsecurityjpa.domain.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
+import java.util.List;
 import java.util.Optional;
 
 // Data Access Object: 실제로 DB에 접근하는 객체
@@ -17,4 +18,5 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {   // J
     // SQL의 where절을 메서드 이름을 통해 전달한다고 생각하면 됨
     Optional<UserEntity> findByUserId(String userId);
     Optional<UserEntity> findByUserOpenBankingAccessToken(String userOpenBankingAccessToken);
+    List<UserEntity> findTop3ByOrderByTotalPointDesc();
 }

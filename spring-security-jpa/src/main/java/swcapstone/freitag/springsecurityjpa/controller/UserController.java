@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.dto.RankUserDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
@@ -15,6 +17,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 import java.util.Optional;
 
 // 현재 사용자의 정보를 가지고 있는 Principal을 가져오려면?
@@ -108,5 +111,11 @@ public class UserController {
                 }
             });
         }
+    }
+
+    // 누적 포인트별 랭킹 갱신 기능
+    @RequestMapping(value = "/api/ranking/point")
+    public List<RankUserDto> top10User(HttpServletResponse response) {
+        return userService.rankingUpdateByTotalPoint(response);
     }
 }

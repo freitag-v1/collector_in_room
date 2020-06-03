@@ -15,9 +15,11 @@ import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
 import swcapstone.freitag.springsecurityjpa.api.SMSClient;
 import swcapstone.freitag.springsecurityjpa.domain.*;
 import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
+import swcapstone.freitag.springsecurityjpa.domain.dto.RankUserDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
+import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -139,6 +141,7 @@ public class UserService implements UserDetailsService {
         return userEntityWrapper.get().getTotalPoint();
     }
 
+    // 포인트 결제
     @Transactional
     public boolean pointPayment(String userId, int cost, HttpServletResponse response) {
 
@@ -163,6 +166,7 @@ public class UserService implements UserDetailsService {
         return false;
     }
 
+    // 계좌이체 결제
     @Transactional
     public boolean accountPayment(String userId, int cost, HttpServletResponse response) {
 
@@ -186,5 +190,27 @@ public class UserService implements UserDetailsService {
         response.setHeader("payment", "fail");
         return false;
 
+    }
+
+
+    // 누적 포인트별 랭킹 갱신 기능
+    public List<RankUserDto> rankingUpdateByTotalPoint(HttpServletResponse response) {
+        List<UserEntity> top10Users = userRepository.findTop3ByOrderByTotalPointDesc();   // 임시로 3명만
+
+        if(top10Users == null) {
+            response.setHeader("ranking", "fail");
+            return null;
+        }
+
+        List<RankUserDto> top10 = new ArrayList<>();
+        for(UserEntity u : top10Users) {
+            RankUserDto rankUserDto = new RankUserDto(u.getUserId(), u.getTotalPoint());
+            System.out.println("=======================================");
+            System.out.println(rankUserDto.getUserId() + "님의 누적 포인트는 " + rankUserDto.getTotalPoint());
+            top10.add(rankUserDto);
+        }
+
+        response.setHeader("ranking", "success");
+        return top10;
     }
 }
