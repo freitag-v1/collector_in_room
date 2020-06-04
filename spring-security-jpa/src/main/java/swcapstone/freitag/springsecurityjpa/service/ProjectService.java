@@ -11,6 +11,7 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
@@ -42,12 +43,7 @@ public class ProjectService {
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
     protected int problemIdTurn;
-/*
-    public int howManyProjects(String userId) {
-        List<ProjectEntity> projectEntityList = projectRepository.findAllByUserId(userId);
-        return projectEntityList.size();
-    }
-*/
+
     private int getProjectIdTurn() {
         // int count = (int) projectRepository.count();
 
@@ -58,8 +54,8 @@ public class ProjectService {
     }
 
     protected int getProblemIdTurn() {
-        int count = (int) problemRepository.count();
-        return ++count;
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findTopByOrderByIdDesc();
+        return problemEntityWrapper.get().getProblemId() + 1;
     }
 
     private String getProjectName(HttpServletRequest request) {
@@ -105,7 +101,7 @@ public class ProjectService {
         // String bucketName;  // 의뢰자가 업로드하는 라벨링 데이터를 담을 버킷 - userId+projectName 조합
         // String status;  // 없음, 진행중, 완료
         String workType = getWorkType(request);
-        String dataType = getDataType(request); // image, audio, text / boundingBox, classfication
+        String dataType = getDataType(request);
         String subject = getSubject(request);
         // int difficulty;
         String wayContent = getWayContent(request);  // 작업 방법
@@ -251,7 +247,7 @@ public class ProjectService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         if(projectEntityWrapper.isPresent() &
-            projectEntityWrapper.get().getWorkType().equals("collection"))
+            projectEntityWrapper.get().getWorkType().equals("수집"))
             return true;
 
         return false;

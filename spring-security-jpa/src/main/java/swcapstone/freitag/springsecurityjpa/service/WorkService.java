@@ -107,7 +107,7 @@ public class WorkService {
                 String objectName = objectStorageApiClient.putObject(bucketName, destinationFile);
 
                 if(objectName == null) {
-                    response.setHeader("upload"+fileName, "fail");
+                    response.setHeader("upload" + fileName, "fail");
                     return false;
                 }
 

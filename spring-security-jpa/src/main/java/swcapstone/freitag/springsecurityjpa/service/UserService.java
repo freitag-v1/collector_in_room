@@ -205,8 +205,8 @@ public class UserService implements UserDetailsService {
         List<RankUserDto> top10 = new ArrayList<>();
         for(UserEntity u : top10Users) {
             RankUserDto rankUserDto = new RankUserDto(u.getUserId(), u.getTotalPoint());
-            System.out.println("=======================================");
-            System.out.println(rankUserDto.getUserId() + "님의 누적 포인트는 " + rankUserDto.getTotalPoint());
+            // System.out.println("=======================================");
+            // System.out.println(rankUserDto.getUserId() + "님의 누적 포인트는 " + rankUserDto.getTotalPoint());
             top10.add(rankUserDto);
         }
 
