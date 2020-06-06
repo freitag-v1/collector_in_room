@@ -28,6 +28,9 @@ public class ProblemEntity {
     @Column(name = "object_name")
     private String objectName;
 
+    @Column(name = "answer")
+    private String answer;
+
     @Column(name = "final_answer")
     private String finalAnswer;
 
@@ -38,13 +41,14 @@ public class ProblemEntity {
     private String userId;
 
     @Builder
-    public ProblemEntity(int problemId, int projectId, int referenceId, String bucketName,
-                         String objectName, String finalAnswer, String validationStatus, String userId) {
+    public ProblemEntity(int problemId, int projectId, int referenceId, String bucketName, String objectName,
+                         String answer, String finalAnswer, String validationStatus, String userId) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
         this.bucketName = bucketName;
         this.objectName = objectName;
+        this.answer = answer;
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
         this.userId = userId;

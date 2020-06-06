@@ -24,13 +24,19 @@ public class WorkService {
     @Autowired
     ProjectService projectService;
     @Autowired
+    RequestService requestService;
+    @Autowired
     ProblemRepository problemRepository;
+    @Autowired
+    ProblemRepositoryImpl problemRepositoryImpl;
     @Autowired
     CollectionWorkHistoryRepository collectionWorkHistoryRepository;
     @Autowired
     LabellingWorkHistoryRepository labellingWorkHistoryRepository;
     @Autowired
     ProjectRepository projectRepository;
+    @Autowired
+    ProjectRepositoryImpl projectRepositoryImpl;
     @Autowired
     ClassRepository classRepository;
 
@@ -41,128 +47,60 @@ public class WorkService {
         return ++count;
     }
 
+    // 교차검증 문제 생성 (작업자가 한 문제 풀 때마다 2개씩 생성)
     @Transactional
     protected void createCrossValidationProblem(int projectId, int problemId) {
 
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
+        if (problemEntityWrapper.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("해당 문제의 교차검증 문제를 만들 수 없습니다.");
+            return;
+        }
+
         // 검증 대상 문제의 파일을 담은 bucketName
         String bucketName = problemEntityWrapper.get().getBucketName();
         // 검증 대상 문제의 파일 objectName
         String objectName = problemEntityWrapper.get().getObjectName();
-        // 검증 대상 문제의 className
-        String finalAnswer = problemEntityWrapper.get().getFinalAnswer();
-
-        // 수집 프로젝트 -> objectName과 className 매칭이 제대로 되는가?
-        if (projectService.isCollection(projectId)) {
-
-            // 한 문제에 대한 교차검증 문제 2개만 만든다고 가정
-            for(int i = 0; i < 2; i++) {
-                int cvProblemId = projectService.getProblemIdTurn();
-                // problemId, projectId, referenceId, bucketName, objectName, finalAnswer, validationStatus, userId
-                ProblemDto problemDto = new ProblemDto(cvProblemId, projectId, problemId,
-                        bucketName, objectName, finalAnswer, "교차검증전", null);
-                problemRepository.save(problemDto.toEntity());
-            }
-
-            return;
-        }
+        // 검증 대상 문제의 answer
+        String answer = problemEntityWrapper.get().getAnswer();
 
         // 한 문제에 대한 교차검증 문제 2개만 만든다고 가정
         for(int i = 0; i < 2; i++) {
             int cvProblemId = projectService.getProblemIdTurn();
-            // problemId, projectId, referenceId, bucketName, objectName, finalAnswer, validationStatus, userId
+            // problemId, projectId, referenceId, bucketName, objectName, answer, finalAnswer, validationStatus, userId
             ProblemDto problemDto = new ProblemDto(cvProblemId, projectId, problemId,
-                    bucketName, objectName, finalAnswer, "교차검증전", null);
+                    bucketName, objectName, answer, "없음", "교차검증전", null);
             problemRepository.save(problemDto.toEntity());
         }
 
         return;
     }
 
-    public boolean collectionWork(String userId, int limit, MultipartHttpServletRequest uploadRequest,
-                               HttpServletRequest request, HttpServletResponse response) throws Exception {
+    // 작업자가 수집한 데이터를 Object Storage에 업로드!
+    private String uploadData(MultipartFile file, String bucketName) throws Exception {
+        String fileName = file.getOriginalFilename();
+        // 수정 포인트
+        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+        file.transferTo(destinationFile);
 
-        String className = getClassName(request);
-
-        List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
-        int numberOfData = labellingDataList.size();
-
-        if (limit < 1) {
-            response.setHeader("upload", "fail - 필요한 데이터 수집 완료");
-            return false;
-        }
-
-        int projectId = getProjectId(request);
-        String bucketName = getBucketName(request);
-
-        if (0 < numberOfData && numberOfData <= limit) {
-
-            for(MultipartFile f : labellingDataList) {
-
-                String fileName = f.getOriginalFilename();
-                File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + userId+fileName);
-                f.transferTo(destinationFile);
-
-                String objectName = objectStorageApiClient.putObject(bucketName, destinationFile);
-
-                if(objectName == null) {
-                    response.setHeader("upload" + fileName, "fail");
-                    return false;
-                }
-
-                int problemId = saveObjectName(projectId, objectName);
-                if(problemId != -1) {
-                    saveFinalAnswer(problemId, className);
-                    saveUserId(problemId, userId);
-                    saveCollectionWorkHistory(userId, problemId);
-                    // 교차검증 문제 만들기
-                    createCrossValidationProblem(projectId, problemId);
-                    continue;
-                } else {
-                    response.setHeader("upload", "fail - problem_table 저장 공간 없음");
-                    return false;
-                }
-            }
-            response.setHeader("upload", "success");
-            return true;
-        }
-
-        response.setHeader("upload", "fail - 업로드 개수 불일치");
-        return false;
+        return objectStorageApiClient.putObject(bucketName, destinationFile);
     }
 
-    public int getProjectId(HttpServletRequest request) {
-        String strProjectId = request.getHeader("projectId");
-        return Integer.parseInt(strProjectId);
-    }
-
-    protected String getClassName(HttpServletRequest request) {
-        String className = request.getParameter("className");
-        return className;
-    }
-
-    protected String getBucketName(HttpServletRequest request) {
-        String bucketName = request.getHeader("bucketName");
-        return bucketName;
-    }
-
-    protected int getHistoryId(HttpServletRequest request) {
-        String strHistoryId = request.getHeader("historyId");
-        return Integer.parseInt(strHistoryId);
-    }
-
+    // Object Storage에 수집한 데이터를 업로드 성공하면, 작업전 인 문제를 하나 찾아서 objectName을 저장하고 작업후로 상태 변경
     @Transactional
     protected int saveObjectName(int projectId, String objectName) {
         // 해당 수집 작업의 프로젝트 아이디로 파일 업로드 되지 않은 문제(작업전)를 찾음
         Optional<ProblemEntity> problemEntityWrapper =
                 problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
 
-        if(!problemEntityWrapper.isPresent()) {
+        if(problemEntityWrapper.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("프로젝트 아이디로 작업전 문제를 찾을 수 없음");
             return -1;
         }
 
-        // 수집 작업
         problemEntityWrapper.ifPresent(selectProblem -> {
             // 작업자가 업로드한 파일의 objectName 저장
             selectProblem.setObjectName(objectName);
@@ -175,55 +113,77 @@ public class WorkService {
         return problemEntityWrapper.get().getProblemId();
     }
 
-    @Transactional
-    protected void saveFinalAnswer(int problemId, String className) {
-        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if(!problemEntityWrapper.isPresent()) {
-            return;
-        }
-
-        // 수집 작업
-        problemEntityWrapper.ifPresent(selectProblem -> {
-
-            // 작업자가 선택한 className을 finalAnswer에 저장
-            selectProblem.setFinalAnswer(className);
-            problemRepository.save(selectProblem);
-        });
-    }
-
-    @Transactional
-    protected void saveUserId(int problemId, String userId) {
-        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
-
-        if(!problemEntityWrapper.isPresent()) {
-            return;
-        }
-
-        problemEntityWrapper.ifPresent(selectProblem -> {
-
-            selectProblem.setUserId(userId);
-            problemRepository.save(selectProblem);
-        });
-    }
-
+    // 작업자의 수집 작업 기록
     @Transactional
     protected void saveCollectionWorkHistory(String userId, int problemId) {
 
         CollectionWorkHistoryDto collectionWorkHistoryDto = new CollectionWorkHistoryDto(problemId, userId);
         collectionWorkHistoryRepository.save(collectionWorkHistoryDto.toEntity());
+
     }
 
 
-    // 여기부터 라벨링 작업 관련
-    protected String getDataType(HttpServletRequest request) {
-        String dataType = request.getHeader("dataType");    // boundingBox or classification
-        return dataType;
+    public boolean collectionWork(String userId, int limit, MultipartHttpServletRequest uploadRequest,
+                               HttpServletRequest request, HttpServletResponse response) throws Exception {
+
+        String className = requestService.getClassName(request);
+
+        List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
+        int numberOfData = labellingDataList.size();
+
+        if (limit < 1) {
+            System.out.println("========================");
+            System.out.println("이미 필요한 데이터를 모두 수집");
+            response.setHeader("upload", "fail - 이미 필요한 데이터를 모두 수집");
+            return false;
+        }
+
+        int projectId = requestService.getProjectId(request);
+        String bucketName = requestService.getBucketName(request);
+
+        if (0 < numberOfData && numberOfData <= limit) {
+
+            for(MultipartFile f : labellingDataList) {
+
+                String objectName = uploadData(f, bucketName);
+
+                if(objectName == null) {
+                    System.out.println("========================");
+                    System.out.println("Object Storage에 데이터 업로드 실패");
+                    response.setHeader("upload", "fail - Object Storage에 데이터 업로드 실패");
+                    return false;
+                }
+
+                // 해당 수집 작업의 프로젝트 아이디로 파일 업로드 되지 않은 문제(작업전)를 찾음
+                // 작업자가 업로드한 파일의 objectName 저장
+                // 수집 작업전 -> 작업후
+                int problemId = saveObjectName(projectId, objectName);
+
+                if(problemId != -1) {
+                    if (saveAnswer(problemId, className, userId)) {
+                        saveCollectionWorkHistory(userId, problemId);
+                        // 교차검증 문제 만들기
+                        createCrossValidationProblem(projectId, problemId);
+                        continue;
+                    }
+                } else {
+                    response.setHeader("upload", "fail - 프로젝트 아이디로 작업전 문제를 찾을 수 없음");
+                    return false;
+                }
+            }
+            response.setHeader("upload", "success");
+            return true;
+        }
+
+        return false;
     }
 
+
+    // 분류 작업을 시작하면 문제 한 세트(5개) 제공
     public List<ProblemDtoWithClassDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
 
-        String dataType = getDataType(request);
+        String dataType = requestService.getDataType(request);
 
         List<ProblemDtoWithClassDto> problemSet = combineProblems(dataType);
 
@@ -238,6 +198,7 @@ public class WorkService {
         return problemSet;
     }
 
+    // 사용자검증 문제 (1개) 생성하기 - DB
     @Transactional
     protected int createUserValidationProblem(int projectId, int problemId) {
 
@@ -248,62 +209,60 @@ public class WorkService {
         String finalAnswer = problemEntityWrapper.get().getFinalAnswer();
 
         int uvProblemId = projectService.getProblemIdTurn();
-        // problemId, projectId, referenceId, bucketName, objectName, finalAnswer, validationStatus, userId
         ProblemDto problemDto = new ProblemDto(uvProblemId, projectId, problemId,
-                bucketName, objectName, finalAnswer, "사용자검증전", null);
+                bucketName, objectName, "없음", finalAnswer, "사용자검증전", null);
         problemRepository.save(problemDto.toEntity());
 
         return uvProblemId;
     }
 
+    // 사용자검증 문제 (1개) 생성하기
     private void userValidationProblems(List<ProblemEntity> selectedProblems) {
-        // 10개 (테스트 1개) = userValidation(검증완료)
-        List<ProblemEntity> userValidation = problemRepository
-                .findAllByValidationStatus("검증완료");
-        // 랜덤으로 섞어
-        Collections.shuffle(userValidation);
-        // 그 중 1개만 선택 (원래는 10개)
-        List<ProblemEntity> selectedUserValidation = userValidation.subList(0, 1);
-        // 새롭게 만들어지는 userValidation 문제들을 담을 리스트
-        List<ProblemEntity> userValidationProblems = new ArrayList<>();
-        // userValidation 문제 만들자 ..
-        for(ProblemEntity p : selectedUserValidation) {
-            int projectId = p.getProjectId();
-            int problemId = p.getProblemId();
-            // 검증완료된 문제로 또다시 userValidation 문제를 만들어
-            int uvProblemId = createUserValidationProblem(projectId, problemId);
-            // 만들어진 userValidation 문제의 problemId로 찾아
-            Optional<ProblemEntity> userValidationProblem = problemRepository.findByProblemId(uvProblemId);
-            // 리스트에 담자..
-            userValidationProblems.add(userValidationProblem.get());
+
+        Optional<ProblemEntity> userValidation = problemRepository
+                .findByValidationStatus("검증완료");
+
+        if(userValidation.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("검증완료 문제를 찾을 수 없음");
+            return;
         }
-        selectedProblems.addAll(userValidationProblems);
+
+        int projectId = userValidation.get().getProjectId();
+        int problemId = userValidation.get().getProblemId();
+        // 검증완료된 문제로 또다시 사용자검증 문제를 만들어
+        int uvProblemId = createUserValidationProblem(projectId, problemId);
+
+        // 만들어진 사용자검증 문제의 problemId로 찾아
+        Optional<ProblemEntity> userValidationProblem = problemRepository.findByProblemId(uvProblemId);
+
+        if(userValidationProblem.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("생성한 사용자검증 문제를 찾을 수 없음");
+            return;
+        }
+
+        selectedProblems.add(userValidationProblem.get());
+
     }
 
+
+    // 교차검증 문제(2개) 생성하기
     private void crossValidationProblems(List<ProblemEntity> selectedProblems) {
-        // 20개 (테스트 2개) = crossValidation
-        List<ProblemEntity> crossValidation = problemRepository.findAllByValidationStatus("교차검증전");
-        // 랜덤으로 섞어
-        Collections.shuffle(crossValidation);
-        // 그 중 2개만 선택 (원래는 20개)
-        List<ProblemEntity> selectedCrossValidation = crossValidation.subList(0, 2);
-        // 새롭게 만들어지는 crossValidation 문제들을 담을 리스트
-        List<ProblemEntity> crossValidationProblems = new ArrayList<>();
-        // crossValidation 문제 가져오자 ...
-        for(ProblemEntity p : selectedCrossValidation) {
-            // 리스트에 담자..
-            crossValidationProblems.add(p);
-        }
+
+        List<ProblemEntity> crossValidationProblems =
+                problemRepositoryImpl.crossValidation("작업후");
         selectedProblems.addAll(crossValidationProblems);
+
     }
 
+    // 라벨링 문제(2개) 가져오기
     private void labellingProblems(String dataType, List<ProblemEntity> selectedProblems) {
-        // 20개 (테스트 2개) = labellingProblems(작업전)
-        List<ProjectEntity> classificationProjects = projectRepository.findAllByDataType(dataType);
-        Collections.shuffle(classificationProjects);
-        List<ProjectEntity> selectedClassficationProjects = classificationProjects.subList(0, 2);
 
-        for(ProjectEntity p : selectedClassficationProjects) {
+        List<ProjectEntity> labellingProjects =
+                projectRepositoryImpl.labellingProjectSearch("labelling", dataType);
+
+        for(ProjectEntity p : labellingProjects) {
             int projectId = p.getProjectId();
 
             Optional<ProblemEntity> labellingProblem = problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
@@ -354,7 +313,7 @@ public class WorkService {
     public void labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
-        int historyId = getHistoryId(request);
+        int historyId = requestService.getHistoryId(request);
 
         LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
         for(String problemId : parameterMap.keySet()) {
@@ -372,14 +331,14 @@ public class WorkService {
             if(!saveAnswer(problemId, answer, userId)) {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
                 labellingWorkHistoryRepository.deleteByHistoryId(historyId);
-
+                System.out.println("========================");
+                System.out.println("문제의 답을 저장할 수가 없음. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
                 response.setHeader("answer", "fail - 작업 다시 시작");
                 return;
             }
 
             // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
             updateValidationStatus(historyId, problemId);
-
         }
 
         response.setHeader("answer", "success");
@@ -453,14 +412,20 @@ public class WorkService {
 
     @Transactional
     protected boolean saveAnswer(int problemId, String answer, String userId) {
-
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntityWrapper.get() == null)
+        if(problemEntityWrapper.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("problemEntityWrapper.isEmpty()");
             return false;
+        }
 
         problemEntityWrapper.ifPresent(selectProblem -> {
-            selectProblem.setFinalAnswer(answer);
+
+            // 수집/분류 작업은 작업자가 선택한 className을 answer에 저장
+            // 바운딩박스 작업은 ..
+            selectProblem.setAnswer(answer);
+            // 작업자의 userID를 저장
             selectProblem.setUserId(userId);
 
             problemRepository.save(selectProblem);
@@ -469,78 +434,18 @@ public class WorkService {
         return true;
     }
 
-
     @Transactional
     protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDtoWithClassDto> problems) { // 5개만
 
         labellingWorkHistoryIdTurn = getLabellingWorkHistoryIdTurn();
         int historyId = this.labellingWorkHistoryIdTurn;
 
-        int[] userValidationList = new int[1];      // new int[10];
-        int[] crossValidationList = new int[2];     // new int[20];
-        int[] labellingProblemList = new int[2];   // new int[20];
-
-        for (int i = 0; i < 5; i++) {
-            if (i < 1) {
-                userValidationList[i] = problems.get(i).getProblemDto().getProblemId();
-                continue;
-            } else if (i < 3) {
-                crossValidationList[i - 1] = problems.get(i).getProblemDto().getProblemId();
-            } else {
-                labellingProblemList[i - 3] = problems.get(i).getProblemDto().getProblemId();
-            }
-        }
-
-/*
-        // 50개 기준
-
-        int i = 0;
-
-        int[] userValidationList = new int[10];
-        while (i < 10) {
-            userValidationList[i] = problems.get(i).getProblemId();
-            i++;
-        }
-
-        int[] crossValidationList = new int[20];
-        while (i < 30) {
-            crossValidationList[i - 10] = problems.get(i).getProblemId();
-            i++;
-        }
-
-        int[] labellingProblemList = new int[20];
-
-        while (i < 50) {
-            labellingProblemList[i - 30] = problems.get(i).getProblemId();
-            i++;
-        }
-
-
-
         LabellingWorkHistoryDto labellingWorkHistoryDto = new LabellingWorkHistoryDto(historyId, userId, dataType
-                , userValidationList[0], userValidationList[1], userValidationList[2], userValidationList[3], userValidationList[4]
-                , userValidationList[5], userValidationList[6], userValidationList[7], userValidationList[8], userValidationList[9]
-                , crossValidationList[0], crossValidationList[1], crossValidationList[2], crossValidationList[3], crossValidationList[4]
-                , crossValidationList[5], crossValidationList[6], crossValidationList[7], crossValidationList[8], crossValidationList[9]
-                , crossValidationList[10], crossValidationList[11], crossValidationList[12], crossValidationList[13], crossValidationList[14]
-                , crossValidationList[15], crossValidationList[16], crossValidationList[17], crossValidationList[18], crossValidationList[19]
-                , labellingProblemList[0], labellingProblemList[1], labellingProblemList[2], labellingProblemList[3], labellingProblemList[4]
-                , labellingProblemList[5], labellingProblemList[6], labellingProblemList[7], labellingProblemList[8], labellingProblemList[9]
-                , labellingProblemList[10], labellingProblemList[11], labellingProblemList[12], labellingProblemList[13], labellingProblemList[14]
-                , labellingProblemList[15], labellingProblemList[16], labellingProblemList[17], labellingProblemList[18], labellingProblemList[19]);
-*/
-
-        LabellingWorkHistoryDto labellingWorkHistoryDto = new LabellingWorkHistoryDto(historyId, userId, dataType
-                , userValidationList[0], -1, -1, -1, -1
-                , -1, -1, -1, -1, -1
-                , crossValidationList[0], crossValidationList[1], -1, -1, -1
-                , -1, -1, -1, -1, -1
-                , -1, -1, -1, -1, -1
-                , -1, -1, -1, -1, -1
-                , labellingProblemList[0], labellingProblemList[1], -1, -1, -1
-                , -1, -1, -1, -1, -1
-                , -1, -1, -1, -1, -1
-                , -1, -1, -1, -1, -1);
+                , problems.get(0).getProblemDto().getProblemId()
+                , problems.get(1).getProblemDto().getProblemId()
+                , problems.get(2).getProblemDto().getProblemId()
+                , problems.get(3).getProblemDto().getProblemId()
+                , problems.get(4).getProblemDto().getProblemId());
 
         if(labellingWorkHistoryRepository.save(labellingWorkHistoryDto.toEntity()) == null)
             return -1;

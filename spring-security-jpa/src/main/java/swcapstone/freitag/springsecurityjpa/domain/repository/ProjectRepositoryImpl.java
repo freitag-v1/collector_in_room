@@ -2,6 +2,7 @@ package swcapstone.freitag.springsecurityjpa.domain.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -19,7 +20,7 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<ProjectEntity> findDynamicQuery(String workType, String dataType, String subject, int difficulty) {
+    public List<ProjectEntity> projectSearch(String workType, String dataType, String subject, int difficulty) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -32,6 +33,20 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
                         eqDifficulty(difficulty))
                 .fetch();
 
+    }
+
+    @Override
+    public List<ProjectEntity> labellingProjectSearch(String workType, String dataType) {
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        return jpaQueryFactory
+                .selectFrom(projectEntity)
+                .where(eqWorkType(workType),
+                        eqDataType(dataType))
+                .orderBy(NumberExpression.random().asc())
+                .limit(2)
+                .fetch();
     }
 
     private BooleanExpression eqWorkType(String workType) {

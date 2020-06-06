@@ -12,6 +12,7 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.WorkHistoryDto;
 import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
 import swcapstone.freitag.springsecurityjpa.service.ProjectService;
+import swcapstone.freitag.springsecurityjpa.service.RequestService;
 import swcapstone.freitag.springsecurityjpa.service.WorkService;
 
 import javax.servlet.http.HttpServletRequest;
@@ -29,6 +30,8 @@ public class WorkController {
     @Autowired
     WorkService workService;
     @Autowired
+    RequestService requestService;
+    @Autowired
     ObjectStorageApiClient objectStorageApiClient;
 
     // 수집 작업
@@ -38,7 +41,7 @@ public class WorkController {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            int projectId = workService.getProjectId(request);
+            int projectId = requestService.getProjectId(request);
 
             int limit = projectService.getLimit(projectId);
 

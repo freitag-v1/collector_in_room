@@ -168,7 +168,7 @@ public class ProjectService {
         String fileName = file.getOriginalFilename();
         String bucketName = getBucketName(request);
 
-        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + "exampleContent" + fileName);
+        File destinationFile = new File("/Users/woneyhoney/Desktop/files" + "exampleContent" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
         file.transferTo(destinationFile);
 
@@ -247,7 +247,7 @@ public class ProjectService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         if(projectEntityWrapper.isPresent() &
-            projectEntityWrapper.get().getWorkType().equals("수집"))
+            projectEntityWrapper.get().getWorkType().equals("collection"))
             return true;
 
         return false;
@@ -318,7 +318,7 @@ public class ProjectService {
         String subject = getSubject(request);
         int difficulty = getDifficulty(request);
 
-        List<ProjectEntity> projectEntityList = projectRepositoryImpl.findDynamicQuery(workType, dataType, subject, difficulty);
+        List<ProjectEntity> projectEntityList = projectRepositoryImpl.projectSearch(workType, dataType, subject, difficulty);
 
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
@@ -371,7 +371,9 @@ public class ProjectService {
                 problemIdTurn = getProblemIdTurn();
                 int problemId = this.problemIdTurn;
 
-                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1, bucketName, null, null, "작업전", null);
+                ProblemDto problemDto = new ProblemDto(problemId, projectId, -1
+                        , bucketName, null, null, null, "작업전", null);
+
                 if (problemRepository.save(problemDto.toEntity()) == null) {
                     response.setHeader("createProblem"+problemDto.getProblemId(), "fail");
                     break;

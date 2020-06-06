@@ -5,7 +5,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 
-
 @Getter
 @NoArgsConstructor
 public class ProblemDto {
@@ -15,6 +14,7 @@ public class ProblemDto {
     private int referenceId;
     private String bucketName;
     private String objectName;
+    private String answer;
     private String finalAnswer;
     private String validationStatus;
     private String userId;
@@ -27,6 +27,7 @@ public class ProblemDto {
                 .referenceId(referenceId)
                 .bucketName(bucketName)
                 .objectName(objectName)
+                .answer(answer)
                 .finalAnswer(finalAnswer)
                 .validationStatus(validationStatus)
                 .userId(userId)
@@ -35,13 +36,14 @@ public class ProblemDto {
 
 
     @Builder
-    public ProblemDto(int problemId, int projectId, int referenceId, String bucketName,
-                      String objectName, String finalAnswer, String validationStatus, String userId) {
+    public ProblemDto(int problemId, int projectId, int referenceId, String bucketName, String objectName,
+                      String answer, String finalAnswer, String validationStatus, String userId) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
         this.bucketName = bucketName;
         this.objectName = objectName;
+        this.answer = answer;
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
         this.userId = userId;
