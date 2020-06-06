@@ -16,6 +16,8 @@ import java.util.List;
 public class ProjectController {
 
     @Autowired
+    RequestService requestService;
+    @Autowired
     ProjectService projectService;
     @Autowired
     LabellingProjectService labellingProjectService;
@@ -32,7 +34,6 @@ public class ProjectController {
 
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            // int howManyProjects = projectService.howManyProjects(userId) + 1;
 
             int num = (int) (Math.random() * 100) + 1;  // 1 ~ 100
 
@@ -50,7 +51,6 @@ public class ProjectController {
     public void createClass(HttpServletRequest request, HttpServletResponse response) {
 
         if(authorizationService.isAuthorized(request)) {
-            String userId = authorizationService.getUserId(request);
             projectService.createClass(request, response);
         }
 
@@ -127,7 +127,7 @@ public class ProjectController {
 
             String userId = authorizationService.getUserId(request);
 
-            int projectId = projectService.getProjectId(request);
+            int projectId = requestService.getProjectIdP(request);
             int cost = projectService.getCost(projectId);
 
             if(userService.pointPayment(userId, cost, response)) {
@@ -141,6 +141,7 @@ public class ProjectController {
                 }
 
             } else {
+                // 포인트 없어서 결제 실패
                 return;
             }
 

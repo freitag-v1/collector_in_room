@@ -41,7 +41,7 @@ public class WorkController {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            int projectId = requestService.getProjectId(request);
+            int projectId = requestService.getProjectIdH(request);
 
             int limit = projectService.getLimit(projectId);
 

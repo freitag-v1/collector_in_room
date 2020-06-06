@@ -146,14 +146,12 @@ public class UserService implements UserDetailsService {
     public boolean pointPayment(String userId, int cost, HttpServletResponse response) {
 
         int point = getPoint(userId);
-        int totalPoint = getTotalPoint(userId);
 
         if(cost <= point) {
             Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
             userEntityWrapper.ifPresent(selectUser -> {
                 selectUser.setPoint(point - cost);
-                selectUser.setTotalPoint(totalPoint + cost);
 
                 userRepository.save(selectUser);
             });

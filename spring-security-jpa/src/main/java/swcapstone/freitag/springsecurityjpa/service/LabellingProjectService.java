@@ -23,7 +23,7 @@ public class LabellingProjectService extends ProjectService {
         List<MultipartFile> labellingDataList = getLabellingDataList(uploadRequest);
         int totalData = labellingDataList.size();
 
-        String bucketName = getBucketName(request);
+        String bucketName = requestService.getBucketNameH(request);
         int projectId = getProjectId(bucketName);
 
         for(MultipartFile f : labellingDataList) {

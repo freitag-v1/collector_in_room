@@ -2,6 +2,7 @@ package swcapstone.freitag.springsecurityjpa.domain.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.util.StringUtils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static swcapstone.freitag.springsecurityjpa.domain.entity.QProjectEntity.*;
 
@@ -44,9 +46,9 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
                 .selectFrom(projectEntity)
                 .where(eqWorkType(workType),
                         eqDataType(dataType))
-                .orderBy(NumberExpression.random().asc())
-                .limit(2)
-                .fetch();
+                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .fetch()
+                .stream().limit(2).collect(Collectors.toList());
     }
 
     private BooleanExpression eqWorkType(String workType) {

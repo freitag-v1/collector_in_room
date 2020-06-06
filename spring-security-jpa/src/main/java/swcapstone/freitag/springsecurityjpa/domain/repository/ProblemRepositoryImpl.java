@@ -2,7 +2,7 @@ package swcapstone.freitag.springsecurityjpa.domain.repository;
 
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
-import com.querydsl.core.types.dsl.NumberExpression;
+import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -10,8 +10,10 @@ import org.springframework.util.StringUtils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static swcapstone.freitag.springsecurityjpa.domain.entity.QProblemEntity.problemEntity;
+import static swcapstone.freitag.springsecurityjpa.domain.entity.QProjectEntity.projectEntity;
 
 @Repository
 @RequiredArgsConstructor
@@ -27,9 +29,22 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
         return jpaQueryFactory
                 .selectFrom(problemEntity)
                 .where(eqValidationStatus(validationStatus))
-                .orderBy(NumberExpression.random().asc())
-                .limit(2)
-                .fetch();
+                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .fetch()
+                .stream().limit(2).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProblemEntity> labellingProblem(int projectId) {
+
+        BooleanBuilder builder = new BooleanBuilder();
+
+        return jpaQueryFactory
+                .selectFrom(problemEntity)
+                .where(eqProjectId(projectId))
+                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .fetch()
+                .stream().limit(2).collect(Collectors.toList());
     }
 
     private BooleanExpression eqValidationStatus(String validationStatus) {
@@ -37,5 +52,12 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
             return null;
         }
         return problemEntity.validationStatus.eq(validationStatus);
+    }
+
+    private BooleanExpression eqProjectId(int projectId) {
+        if (StringUtils.isEmpty(projectId)) {
+            return null;
+        }
+        return problemEntity.projectId.eq(projectId);
     }
 }

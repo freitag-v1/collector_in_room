@@ -55,7 +55,7 @@ public class WorkService {
 
         if (problemEntityWrapper.isEmpty()) {
             System.out.println("========================");
-            System.out.println("해당 문제의 교차검증 문제를 만들 수 없습니다.");
+            System.out.println("해당 문제의 교차검증 문제를 만들 수 없음");
             return;
         }
 
@@ -127,7 +127,7 @@ public class WorkService {
     public boolean collectionWork(String userId, int limit, MultipartHttpServletRequest uploadRequest,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
 
-        String className = requestService.getClassName(request);
+        String className = requestService.getClassNameP(request);
 
         List<MultipartFile> labellingDataList = uploadRequest.getFiles("files");
         int numberOfData = labellingDataList.size();
@@ -139,8 +139,8 @@ public class WorkService {
             return false;
         }
 
-        int projectId = requestService.getProjectId(request);
-        String bucketName = requestService.getBucketName(request);
+        int projectId = requestService.getProjectIdH(request);
+        String bucketName = requestService.getBucketNameH(request);
 
         if (0 < numberOfData && numberOfData <= limit) {
 
@@ -183,11 +183,13 @@ public class WorkService {
     // 분류 작업을 시작하면 문제 한 세트(5개) 제공
     public List<ProblemDtoWithClassDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
 
-        String dataType = requestService.getDataType(request);
+        String dataType = requestService.getDataTypeH(request);
 
         List<ProblemDtoWithClassDto> problemSet = combineProblems(dataType);
 
-        if(problemSet.isEmpty()) {
+        if(problemSet.isEmpty() || problemSet.size() != 5) {
+            System.out.println("========================");
+            System.out.println("분류 문제 한 세트(5개)를 만들 수가 없음");
             response.setHeader("problems", "fail");
             return null;
         }
@@ -251,7 +253,7 @@ public class WorkService {
     private void crossValidationProblems(List<ProblemEntity> selectedProblems) {
 
         List<ProblemEntity> crossValidationProblems =
-                problemRepositoryImpl.crossValidation("작업후");
+                problemRepositoryImpl.crossValidation("교차검증전");
         selectedProblems.addAll(crossValidationProblems);
 
     }
@@ -259,15 +261,34 @@ public class WorkService {
     // 라벨링 문제(2개) 가져오기
     private void labellingProblems(String dataType, List<ProblemEntity> selectedProblems) {
 
-        List<ProjectEntity> labellingProjects =
-                projectRepositoryImpl.labellingProjectSearch("labelling", dataType);
+        if (projectRepository.countByWorkTypeAndDataType("labelling", dataType) > 1) {
+            List<ProjectEntity> labellingProjects =
+                    projectRepositoryImpl.labellingProjectSearch("labelling", dataType);
 
-        for(ProjectEntity p : labellingProjects) {
-            int projectId = p.getProjectId();
+            for(ProjectEntity p : labellingProjects) {
+                int projectId = p.getProjectId();
 
-            Optional<ProblemEntity> labellingProblem = problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
-            selectedProblems.add(labellingProblem.get());
+                Optional<ProblemEntity> labellingProblem = problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
+                selectedProblems.add(labellingProblem.get());
+            }
+
+            System.out.println("========================");
+            System.out.println("교차검증 문제 각각은 서로 다른 프로젝트에서 가져옴");
+            return;
         }
+
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByWorkTypeAndDataType("labelling", dataType);
+
+        if (projectEntityWrapper.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("라벨링 분류 프로젝트를 찾을 수가 없음");
+            return;
+        }
+
+        int projectId = projectEntityWrapper.get().getProjectId();
+        List<ProblemEntity> labellingProblems = problemRepositoryImpl.labellingProblem(projectId);
+        selectedProblems.addAll(labellingProblems);
+
     }
 
     private List<ProblemDtoWithClassDto> combineProblems(String dataType) {
@@ -313,7 +334,7 @@ public class WorkService {
     public void labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
-        int historyId = requestService.getHistoryId(request);
+        int historyId = requestService.getHistoryIdH(request);
 
         LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
         for(String problemId : parameterMap.keySet()) {
@@ -436,6 +457,12 @@ public class WorkService {
 
     @Transactional
     protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDtoWithClassDto> problems) { // 5개만
+
+        if (problems.size() != 5) {
+            System.out.println("========================");
+            System.out.println("IndexOutOfBoundsException");
+            return -1;
+        }
 
         labellingWorkHistoryIdTurn = getLabellingWorkHistoryIdTurn();
         int historyId = this.labellingWorkHistoryIdTurn;

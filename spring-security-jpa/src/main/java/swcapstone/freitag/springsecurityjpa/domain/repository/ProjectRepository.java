@@ -12,8 +12,9 @@ public interface ProjectRepository extends JpaRepository<ProjectEntity, Long> {
 
     // 정적 쿼리
     long count();
+    long countByWorkTypeAndDataType(String workType, String dataType);
     List<ProjectEntity> findAllByUserId(String userId);
-    List<ProjectEntity> findAllByDataType(String dataType);
+    Optional<ProjectEntity> findByWorkTypeAndDataType(String workType, String dataType);
     Optional<ProjectEntity> findByProjectId(int projectId);
     Optional<ProjectEntity> findByBucketName(String bucketName);
     Optional<ProjectEntity> findTopByOrderByIdDesc();
