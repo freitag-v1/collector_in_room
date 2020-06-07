@@ -355,24 +355,21 @@ public class ProjectService {
 
     // work service only
     @Transactional
-    public void setProgressData(int projectId, MultipartHttpServletRequest uploadRequest) {
+    protected void setProgressData(int projectId, int numbOfProb) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if (!projectEntityWrapper.isPresent())
+        if (projectEntityWrapper.isEmpty())
             return;
-
-        int numberOfData = uploadRequest.getFiles("files").size();
 
         projectEntityWrapper.ifPresent(selectProject -> {
             int progressData = selectProject.getProgressData();
 
-            progressData += numberOfData;
+            progressData += numbOfProb;
             selectProject.setProgressData(progressData);
 
             projectRepository.save(selectProject);
         });
     }
-
 
     // work service only
     public int getLimit(int projectId) {

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static swcapstone.freitag.springsecurityjpa.domain.entity.QProblemEntity.problemEntity;
-import static swcapstone.freitag.springsecurityjpa.domain.entity.QProjectEntity.projectEntity;
 
 @Repository
 @RequiredArgsConstructor

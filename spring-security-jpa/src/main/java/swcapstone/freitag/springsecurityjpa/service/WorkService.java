@@ -172,7 +172,8 @@ public class WorkService {
                     return false;
                 }
             }
-            response.setHeader("upload", "success");
+
+            projectService.setProgressData(projectId, numberOfData);
             return true;
         }
 
@@ -331,12 +332,22 @@ public class WorkService {
     }
 
 
-    public void labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
+    public boolean labellingWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                  HttpServletRequest request, HttpServletResponse response) {
 
         int historyId = requestService.getHistoryIdH(request);
 
+        if(parameterMap.size() != 5) {
+            // 답이 제대로 안오면 labellingWorkHistory 삭제 추가 ***
+            labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+            System.out.println("========================");
+            System.out.println("문제의 답이 5개가 아님. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
+            response.setHeader("answer", "fail - 작업 다시 시작");
+            return false;
+        }
+
         LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
+
         for(String problemId : parameterMap.keySet()) {
             problemIdAnswerMap.put(problemId, parameterMap.get(problemId).toString());
         }
@@ -355,15 +366,14 @@ public class WorkService {
                 System.out.println("========================");
                 System.out.println("문제의 답을 저장할 수가 없음. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
                 response.setHeader("answer", "fail - 작업 다시 시작");
-                return;
+                return false;
             }
 
             // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
             updateValidationStatus(historyId, problemId);
         }
 
-        response.setHeader("answer", "success");
-        return;
+        return true;
     }
 
 
@@ -401,6 +411,8 @@ public class WorkService {
                 selectProblem.setValidationStatus("작업후");   // 작업전 -> 작업후
                 problemRepository.save(selectProblem);
             });
+
+            projectService.setProgressData(projectId, 1);
         }
     }
 
@@ -451,6 +463,8 @@ public class WorkService {
 
             problemRepository.save(selectProblem);
         });
+
+
 
         return true;
     }

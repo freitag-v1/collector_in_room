@@ -46,8 +46,7 @@ public class WorkController {
             int limit = projectService.getLimit(projectId);
 
             if(workService.collectionWork(userId, limit, uploadRequest, request, response)) {
-
-                projectService.setProgressData(projectId, uploadRequest);
+                response.setHeader("upload", "success");
             }
         }
     }
@@ -71,7 +70,11 @@ public class WorkController {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
-            workService.labellingWork(userId, problemIdAnswerMap, request, response);
+
+            if(workService.labellingWork(userId, problemIdAnswerMap, request, response)) {
+                response.setHeader("answer", "success");
+            }
+
         }
     }
 
