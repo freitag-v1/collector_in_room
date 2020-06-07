@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @AllArgsConstructor
-@RestController
+@Controller
 public class OpenBankingController {
 
     private UserRepository userRepository;
