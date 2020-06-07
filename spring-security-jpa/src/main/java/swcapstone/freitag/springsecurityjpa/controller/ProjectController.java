@@ -61,7 +61,6 @@ public class ProjectController {
                                   HttpServletResponse response) throws Exception {
 
         if(authorizationService.isAuthorized(request)) {
-
             projectService.uploadExampleContent(request, file, response);
         }
     }

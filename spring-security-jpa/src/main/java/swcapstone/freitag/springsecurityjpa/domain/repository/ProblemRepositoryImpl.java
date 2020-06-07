@@ -34,7 +34,7 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
     }
 
     @Override
-    public List<ProblemEntity> labellingProblem(int projectId, String validationStatus) {
+    public List<ProblemEntity> labellingProblem(int projectId, String validationStatus, int limit) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -43,7 +43,7 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
                 .where(eqProjectId(projectId), eqValidationStatus(validationStatus))
                 .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
                 .fetch()
-                .stream().limit(2).collect(Collectors.toList());
+                .stream().limit(limit).collect(Collectors.toList());
     }
 
     private BooleanExpression eqValidationStatus(String validationStatus) {

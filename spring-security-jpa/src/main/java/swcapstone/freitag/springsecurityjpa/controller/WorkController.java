@@ -6,14 +6,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
-import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.WorkHistoryDto;
-import swcapstone.freitag.springsecurityjpa.service.AuthorizationService;
-import swcapstone.freitag.springsecurityjpa.service.ProjectService;
-import swcapstone.freitag.springsecurityjpa.service.RequestService;
-import swcapstone.freitag.springsecurityjpa.service.WorkService;
+import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,9 +25,13 @@ public class WorkController {
     @Autowired
     WorkService workService;
     @Autowired
-    RequestService requestService;
+    CollectionWorkService collectionWorkService;
     @Autowired
-    ObjectStorageApiClient objectStorageApiClient;
+    ClassificationWorkService classificationWorkService;
+    @Autowired
+    BoundingBoxWorkService boundingBoxWorkService;
+    @Autowired
+    RequestService requestService;
 
     // 수집 작업
     @RequestMapping(value = "/api/work/collection", method = RequestMethod.POST)
@@ -45,7 +44,7 @@ public class WorkController {
 
             int limit = projectService.getLimit(projectId);
 
-            if(workService.collectionWork(userId, limit, uploadRequest, request, response)) {
+            if(collectionWorkService.collectionWork(userId, limit, uploadRequest, request, response)) {
                 response.setHeader("upload", "success");
             }
         }
@@ -58,13 +57,13 @@ public class WorkController {
 
     }
 
-    // 라벨링 분류 작업할 프로젝트의 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
+    // 라벨링 분류 작업 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
     @RequestMapping(value = "/api/work/classification/start")
     public List<ProblemDtoWithClassDto> provideClassificationProblems(HttpServletRequest request, HttpServletResponse response) {
 
         if (authorizationService.isAuthorized((request))) {
             String userId = authorizationService.getUserId(request);
-            return workService.provideClassificationProblems(userId, request, response);
+            return classificationWorkService.provideClassificationProblems(userId, request, response);
         }
 
         return null;
@@ -72,18 +71,48 @@ public class WorkController {
 
     // 라벨링 분류 작업
     @RequestMapping(value = "/api/work/classification", method = RequestMethod.POST)
-    public void labellingWork(@RequestBody LinkedHashMap<String, Object> problemIdAnswerMap,
+    public void labellingClassificationWork(@RequestBody LinkedHashMap<String, Object> problemIdAnswerMap,
             HttpServletRequest request, HttpServletResponse response) {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
 
-            if(workService.labellingWork(userId, problemIdAnswerMap, request, response)) {
+            if(classificationWorkService.classificationWork(userId, problemIdAnswerMap, request, response)) {
                 response.setHeader("answer", "success");
             }
 
         }
     }
+
+    // 라벨링 이미지 바운딩 박스 작업 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
+    @RequestMapping(value = "/api/work/boundingbox/start")
+    public List<ProblemDtoWithClassDto> provideBoundingBoxProblems(HttpServletRequest request, HttpServletResponse response) {
+
+        if (authorizationService.isAuthorized((request))) {
+            String userId = authorizationService.getUserId(request);
+
+            return boundingBoxWorkService.provideBoundingBoxProblems(userId, request, response);
+        }
+
+        return null;
+    }
+
+
+    // 라벨링 이미지 바운딩 작업
+    @RequestMapping(value = "/api/work/boundingbox", method = RequestMethod.POST)
+    public void labellingBoundingBoxWork(@RequestBody LinkedHashMap<String, Object> problemIdAnswerMap,
+                              HttpServletRequest request, HttpServletResponse response) {
+
+        if (authorizationService.isAuthorized(request)) {
+            String userId = authorizationService.getUserId(request);
+
+            if(boundingBoxWorkService.boundingBoxWork(userId, problemIdAnswerMap, request, response)) {
+                response.setHeader("answer", "success");
+            }
+
+        }
+    }
+
 
     // 본인이 작업한 목록 확인
     @RequestMapping(value = "/api/work/all")
