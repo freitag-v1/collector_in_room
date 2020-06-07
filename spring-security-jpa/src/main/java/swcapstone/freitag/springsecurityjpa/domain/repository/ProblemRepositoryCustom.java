@@ -7,5 +7,5 @@ import java.util.List;
 public interface ProblemRepositoryCustom {
 
     List<ProblemEntity> crossValidation(String validationStatus);
-    List<ProblemEntity> labellingProblem(int projectId);
+    List<ProblemEntity> labellingProblem(int projectId, String validationStatus);
 }

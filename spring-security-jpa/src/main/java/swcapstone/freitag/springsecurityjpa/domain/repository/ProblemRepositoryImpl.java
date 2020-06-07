@@ -34,13 +34,13 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
     }
 
     @Override
-    public List<ProblemEntity> labellingProblem(int projectId) {
+    public List<ProblemEntity> labellingProblem(int projectId, String validationStatus) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
         return jpaQueryFactory
                 .selectFrom(problemEntity)
-                .where(eqProjectId(projectId))
+                .where(eqProjectId(projectId), eqValidationStatus(validationStatus))
                 .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
                 .fetch()
                 .stream().limit(2).collect(Collectors.toList());

@@ -51,8 +51,15 @@ public class WorkController {
         }
     }
 
-    // 라벨링 작업할 프로젝트의 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
-    @RequestMapping(value = "/api/work/start")
+    // /api/work/~/start 했는데 작업자가 작업을 안한다?
+    // 그러면 이 때 만들어진 사용자 검증 문제와 작업 기록을 지워야 되는 요청을 클라이언트에서 날려줘야함!
+    @RequestMapping(value = "/api/work/cancel")
+    public void deleteWork(HttpServletRequest request, HttpServletResponse response) {
+
+    }
+
+    // 라벨링 분류 작업할 프로젝트의 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
+    @RequestMapping(value = "/api/work/classification/start")
     public List<ProblemDtoWithClassDto> provideClassificationProblems(HttpServletRequest request, HttpServletResponse response) {
 
         if (authorizationService.isAuthorized((request))) {
@@ -63,8 +70,8 @@ public class WorkController {
         return null;
     }
 
-    // 라벨링 작업
-    @RequestMapping(value = "/api/work/labelling", method = RequestMethod.POST)
+    // 라벨링 분류 작업
+    @RequestMapping(value = "/api/work/classification", method = RequestMethod.POST)
     public void labellingWork(@RequestBody LinkedHashMap<String, Object> problemIdAnswerMap,
             HttpServletRequest request, HttpServletResponse response) {
 

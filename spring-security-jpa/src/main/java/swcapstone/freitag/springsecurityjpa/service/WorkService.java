@@ -26,6 +26,9 @@ public class WorkService {
     @Autowired
     RequestService requestService;
     @Autowired
+    AdvancedWorkService advancedWorkService;
+
+    @Autowired
     ProblemRepository problemRepository;
     @Autowired
     ProblemRepositoryImpl problemRepositoryImpl;
@@ -249,7 +252,6 @@ public class WorkService {
 
     }
 
-
     // 교차검증 문제(2개) 생성하기
     private void crossValidationProblems(List<ProblemEntity> selectedProblems) {
 
@@ -287,7 +289,7 @@ public class WorkService {
         }
 
         int projectId = projectEntityWrapper.get().getProjectId();
-        List<ProblemEntity> labellingProblems = problemRepositoryImpl.labellingProblem(projectId);
+        List<ProblemEntity> labellingProblems = problemRepositoryImpl.labellingProblem(projectId, "작업전");
         selectedProblems.addAll(labellingProblems);
 
     }
@@ -381,8 +383,11 @@ public class WorkService {
     protected void updateValidationStatus(int historyId, int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper
-                = labellingWorkHistoryRepository.findByHistoryId(historyId);
+        if (problemEntityWrapper.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("문제를 찾을 수 없음");
+            return;
+        }
 
         // problemId를 통해 이 문제가 userValidation인지 crossValidation인지 labellingProblem인지 알아내야 함
         // userValidation
@@ -399,6 +404,9 @@ public class WorkService {
                 selectProblem.setValidationStatus("교차검증후");   // 교차검증전 -> 교차검증후
                 problemRepository.save(selectProblem);
             });
+
+            int referenceId = problemEntityWrapper.get().getReferenceId();
+            advancedWorkService.crossValidateProblem(referenceId);
         }
 
         // labellingProblem
@@ -414,6 +422,7 @@ public class WorkService {
 
             projectService.setProgressData(projectId, 1);
         }
+
     }
 
 
