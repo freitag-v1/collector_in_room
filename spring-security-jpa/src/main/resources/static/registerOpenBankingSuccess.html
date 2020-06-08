@@ -5,7 +5,7 @@
     <title>계좌 등록 완료</title>
     <script>
         function completeAndClose() {
-            window.parent.postMessage({ registerOpenBanking : 'complete' }, '*');
+            window.opener.postMessage({ registerOpenBanking : 'complete' }, '*');
             window.close();
         }
     </script>
