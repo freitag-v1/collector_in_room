@@ -1,10 +1,16 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.domain.dto.BoundingBoxDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.BoundingBoxRepository;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -16,6 +22,9 @@ import java.util.Optional;
 
 @Service
 public class BoundingBoxWorkService extends ClassificationWorkService {
+
+    @Autowired
+    BoundingBoxRepository boundingBoxRepository;
 
     // 바운딩 박스 작업을 시작하면 문제 한 세트(5개) 제공
     public List<ProblemDtoWithClassDto> provideBoundingBoxProblems
@@ -60,33 +69,39 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
     public boolean boundingBoxWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                    HttpServletRequest request, HttpServletResponse response) {
 
-        int projectId = requestService.getProjectIdH(request);
-        int historyId = requestService.getHistoryIdH(request);
-
-        if(parameterMap.size() != 5) {
-            // 답이 제대로 안오면 labellingWorkHistory 삭제 추가 ***
-            labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+        if (parameterMap.isEmpty()) {
             System.out.println("========================");
-            System.out.println("문제의 답이 5개가 아님. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
-            response.setHeader("answer", "fail - 작업 다시 시작");
+            System.out.println("아무것도 오지 않았음");
+            response.setHeader("map", "fail");
             return false;
         }
 
-        LinkedHashMap<String, String> problemIdAnswerMap = new LinkedHashMap<>();
+        int projectId = requestService.getProjectIdH(request);
+        int historyId = requestService.getHistoryIdH(request);
 
-        for(String problemId : parameterMap.keySet()) {
-            problemIdAnswerMap.put(problemId, parameterMap.get(problemId).toString());
+        int problemId = requestService.getProblemIdP(request);
+
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        if (projectEntityWrapper.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("해당 프로젝트를 찾을 수 없음");
+            response.setHeader("project", "fail");
+            return false;
         }
 
-        // 문제 하나씩
-        for(Map.Entry<String, String> entry : problemIdAnswerMap.entrySet()) {
+        LinkedHashMap<String, String> classNameBoundingBoxCoordinates = new LinkedHashMap<>();
 
-            String strProblemId = entry.getKey();
-            int problemId = Integer.parseInt(strProblemId);
+        for(String className : parameterMap.keySet()) {
+            classNameBoundingBoxCoordinates.put(className, parameterMap.get(className).toString());
+        }
 
-            String answer = entry.getValue();
+        for(Map.Entry<String, String> entry : classNameBoundingBoxCoordinates.entrySet()) {
 
-            if(saveAnswer(problemId, answer, userId)) {
+            String className = entry.getKey();
+            String boxCoordinates = entry.getValue();
+
+            if(saveBoundingBox(problemId, className, boxCoordinates)) {
                 // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
                 updateValidationStatus(historyId, problemId);
                 // 교차검증 문제 만들기
@@ -99,12 +114,45 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
                 response.setHeader("answer", "fail - 작업 다시 시작");
                 return false;
             }
+        }
+
+        if(saveAnswer(problemId, "boundingBox", userId)) {
+            projectService.setProgressData(projectId, 1);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Transactional
+    protected boolean saveBoundingBox(int problemId, String className, String boxCoordinate) {
+
+        // 동일 클래스에 대해 바운딩 박스를 여러개 쳤을 경우
+        String boundingBoxList[] = boxCoordinate.split("&");
+
+        if (boundingBoxList.length < 1) {
+            System.out.println("========================");
+            System.out.println("바운딩 박스가 1개 미만임");
+            return false;
+        }
+
+        for(String boundingBox : boundingBoxList) {
+
+            String coordinates[] = boundingBox.split(" ");
+            if (coordinates.length != 4) {
+                System.out.println("========================");
+                System.out.println("좌표가 4개가 아님");
+                return false;
+            }
+
+            BoundingBoxDto boundingBoxDto = new BoundingBoxDto(problemId, className, boundingBox);
+            boundingBoxRepository.save(boundingBoxDto.toEntity());
 
         }
 
         return true;
-    }
 
+    }
 
     @Override
     protected void updateValidationStatus(int historyId, int problemId) {

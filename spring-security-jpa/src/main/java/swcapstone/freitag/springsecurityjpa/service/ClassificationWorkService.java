@@ -135,8 +135,16 @@ public class ClassificationWorkService extends WorkService {
             for(ProjectEntity p : labellingProjects) {
                 int projectId = p.getProjectId();
 
-                Optional<ProblemEntity> labellingProblem = problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
-                selectedProblems.add(labellingProblem.get());
+                List<ProblemEntity> labellingProblem
+                        = problemRepositoryImpl.labellingProblem(projectId, "작업전", 1);
+
+                if (labellingProblem.isEmpty()) {
+                    System.out.println("========================");
+                    System.out.println("라벨링 문제를 가져올 수 없음");
+                    return;
+                }
+
+                selectedProblems.add(labellingProblem.get(0));
             }
 
             System.out.println("========================");

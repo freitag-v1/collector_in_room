@@ -54,6 +54,11 @@ public class RequestService {
         return Integer.parseInt(strProjectId);
     }
 
+    public int getProblemIdP(HttpServletRequest request) {
+        String strProblemId = request.getParameter("problemId");
+        return Integer.parseInt(strProblemId);
+    }
+
     protected int getDifficultyP(HttpServletRequest request) {
         String strDifficulty = request.getParameter("difficulty");
         return Integer.parseInt(strDifficulty);
