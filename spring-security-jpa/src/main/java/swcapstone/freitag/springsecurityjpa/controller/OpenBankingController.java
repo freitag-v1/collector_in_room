@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import lombok.AllArgsConstructor;
+import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @AllArgsConstructor
-@RestController
+@Controller
 public class OpenBankingController {
 
     private UserRepository userRepository;
@@ -37,10 +38,10 @@ public class OpenBankingController {
                     selectUser.setUserOpenBankingAccessToken("Bearer " + result.get("access_token"));
                     selectUser.setUserOpenBankingNum(Integer.parseInt(result.get("user_seq_no")));
                 });
-                return "<html><head><title>계좌 등록 완료</title></head><meta charset=\"UTF-8\"><body onLoad=\"setTimeout('window.close()',2000);\"><p>계좌등록이 완료되었습니다.</p></body></html>";
+                return "redirect:/registerOpenBankingSuccess.html";
             } catch (Exception e) {
                 e.printStackTrace();
-                return "<html><head><title>계좌 등록 실패</title></head><meta charset=\"UTF-8\"><body><p>계좌등록이 실패했습니다. 다시 시도해 주세요.</p></body></html>";
+                return "redirect:/registerOpenBankingFail.html";
             }
         }
         return null;

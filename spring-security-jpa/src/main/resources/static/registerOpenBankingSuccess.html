@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>계좌 등록 완료</title>
+    <script>
+        function completeAndClose() {
+            window.opener.postMessage({ registerOpenBanking : 'complete' }, '*');
+            window.close();
+        }
+    </script>
+</head>
+<body onLoad="setTimeout(completeAndClose, 2000);">
+<h1>계좌등록이 완료되었습니다.</h1>
+</body>
+</html>
