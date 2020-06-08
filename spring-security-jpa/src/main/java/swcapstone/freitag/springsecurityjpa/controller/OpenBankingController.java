@@ -38,10 +38,10 @@ public class OpenBankingController {
                     selectUser.setUserOpenBankingAccessToken("Bearer " + result.get("access_token"));
                     selectUser.setUserOpenBankingNum(Integer.parseInt(result.get("user_seq_no")));
                 });
-                return "/registerOpenBankingSuccess.html";
+                return "redirect:/registerOpenBankingSuccess.html";
             } catch (Exception e) {
                 e.printStackTrace();
-                return "/registerOpenBankingFail.html";
+                return "redirect:/registerOpenBankingFail.html";
             }
         }
         return null;
