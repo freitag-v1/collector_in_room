@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface ProblemRepositoryCustom {
 
-    List<ProblemEntity> crossValidation(String validationStatus);
+    List<ProblemEntity> validations(String validationStatus, int limit);
     List<ProblemEntity> labellingProblem(int projectId, String validationStatus, int limit);
 }

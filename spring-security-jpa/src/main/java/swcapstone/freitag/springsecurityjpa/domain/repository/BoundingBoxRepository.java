@@ -5,8 +5,10 @@ import org.springframework.stereotype.Repository;
 import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BoundingBoxRepository extends JpaRepository<BoundingBoxEntity, Long> {
-    List<BoundingBoxEntity> findAllByProblemIdAndClassName(int problemId, String className);
+    Optional<BoundingBoxEntity> findTopByOrderByIdDesc();
+    List<BoundingBoxEntity> findAllByProblemId(int problemId);
 }

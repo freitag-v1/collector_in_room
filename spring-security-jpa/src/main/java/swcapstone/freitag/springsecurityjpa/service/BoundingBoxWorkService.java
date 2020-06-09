@@ -3,11 +3,8 @@ package swcapstone.freitag.springsecurityjpa.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swcapstone.freitag.springsecurityjpa.domain.dto.BoundingBoxDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.*;
 import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
-import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.BoundingBoxRepository;
@@ -15,16 +12,23 @@ import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class BoundingBoxWorkService extends ClassificationWorkService {
 
     @Autowired
     BoundingBoxRepository boundingBoxRepository;
+
+    protected int getBoxIdTurn() {
+        Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findTopByOrderByIdDesc();
+
+        if (boundingBoxEntityWrapper.isEmpty())
+            return 1;
+
+        return boundingBoxEntityWrapper.get().getBoxId() + 1;
+    }
+
 
     // 바운딩 박스 작업을 시작하면 문제 한 세트(5개) 제공
     public List<ProblemDtoWithClassDto> provideBoundingBoxProblems
@@ -43,6 +47,13 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
         List<ProblemEntity> selectedProblems
                 = problemRepositoryImpl.labellingProblem(projectId, "작업전", 5);
 
+        if (selectedProblems.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("selectedProblems.isEmpty()");
+            response.setHeader("problems", "fail");
+            return null;
+        }
+
         List<ProblemDto> problemSet = ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
 
         // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
@@ -56,7 +67,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
         }
 
         String dataType = projectEntityWrapper.get().getDataType();
-        int historyId = saveLabellingWorkHistory(userId, dataType, problemSetWithClassNames);
+        int historyId = saveLabellingWorkHistory(userId, dataType, problemSet);
 
         response.setHeader("workHistory", String.valueOf(historyId));
         response.setHeader("problems", "success");
@@ -104,8 +115,6 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             if(saveBoundingBox(problemId, className, boxCoordinates)) {
                 // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
                 updateValidationStatus(historyId, problemId);
-                // 교차검증 문제 만들기
-                createCrossValidationProblem(projectId, problemId);
             } else {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
                 labellingWorkHistoryRepository.deleteByHistoryId(historyId);
@@ -116,7 +125,9 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             }
         }
 
-        if(saveAnswer(problemId, "boundingBox", userId)) {
+        if(saveAnswer(problemId, "", userId)) {
+            // 교차검증 문제 만들기
+            createCrossValidationProblem(projectId, problemId);
             projectService.setProgressData(projectId, 1);
             return true;
         }
@@ -145,7 +156,8 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
                 return false;
             }
 
-            BoundingBoxDto boundingBoxDto = new BoundingBoxDto(problemId, className, boundingBox);
+            int boxId = getBoxIdTurn();
+            BoundingBoxDto boundingBoxDto = new BoundingBoxDto(boxId, problemId, className, boundingBox);
             boundingBoxRepository.save(boundingBoxDto.toEntity());
 
         }

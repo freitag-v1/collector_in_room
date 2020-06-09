@@ -38,7 +38,7 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
     }
 
     @Override
-    public List<ProjectEntity> labellingProjectSearch(String workType, String dataType) {
+    public List<ProjectEntity> labellingProjectSearch(String workType, String dataType, int limit) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -48,7 +48,7 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
                         eqDataType(dataType))
                 .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
                 .fetch()
-                .stream().limit(2).collect(Collectors.toList());
+                .stream().limit(limit).collect(Collectors.toList());
     }
 
     private BooleanExpression eqWorkType(String workType) {

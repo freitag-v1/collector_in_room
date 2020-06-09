@@ -23,6 +23,8 @@ public class WorkService {
     RequestService requestService;
 
     @Autowired
+    BoundingBoxRepository boundingBoxRepository;
+    @Autowired
     ProblemRepository problemRepository;
     @Autowired
     ProblemRepositoryImpl problemRepositoryImpl;
@@ -47,6 +49,13 @@ public class WorkService {
         for(ProblemDto p : problemDtos) {
 
             int projectId = p.getProjectId();
+
+            Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+            if (projectEntityWrapper.isEmpty()) {
+                System.out.println("========================");
+                System.out.println("problemEntityWrapper.isEmpty()");
+                return null;
+            }
 
             List<ClassEntity> classEntities = classRepository.findAllByProjectId(projectId);
             List<ClassDto> classNameList = ObjectMapperUtils.mapAll(classEntities, ClassDto.class);
@@ -82,13 +91,53 @@ public class WorkService {
         return true;
     }
 
+    protected void withBoundingBoxDtos(List<ProblemDtoWithClassDto> problemDtoWithClassDtos) {
+
+        for(int i = 1; i < 3; i++) {
+            int projectId = problemDtoWithClassDtos.get(i).getProblemDto().getProjectId();
+            int referenceId = problemDtoWithClassDtos.get(i).getProblemDto().getReferenceId();
+            List<BoundingBoxDto> boundingBoxDtos = isBoundingBoxWork(projectId, referenceId);
+
+            if(boundingBoxDtos == null)
+                continue;
+            else {
+                problemDtoWithClassDtos.get(i).setBoundingBoxList(boundingBoxDtos);
+                problemDtoWithClassDtos.set(i, problemDtoWithClassDtos.get(i));
+            }
+        }
+    }
+
+
+    private List<BoundingBoxDto> isBoundingBoxWork(int projectId, int referenceId) {
+
+        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
+
+        if(projectEntity.isEmpty())
+            return null;
+
+        String dataType = projectEntity.get().getDataType();
+        if(dataType.equals("boundingBox")) {
+            List<BoundingBoxEntity> boundingBoxEntities = boundingBoxRepository.findAllByProblemId(referenceId);
+
+            if(boundingBoxEntities.isEmpty()) {
+                System.out.println("========================");
+                System.out.println("boundingBoxEntities.isEmpty()");
+                return null;
+            }
+
+            return ObjectMapperUtils.mapAll(boundingBoxEntities, BoundingBoxDto.class);
+        }
+
+        return null;
+    }
+
     // 교차검증 문제(2개) 생성하기
     protected void crossValidationProblems(List<ProblemEntity> selectedProblems) {
 
         List<ProblemEntity> crossValidationProblems =
-                problemRepositoryImpl.crossValidation("교차검증전");
-        selectedProblems.addAll(crossValidationProblems);
+                problemRepositoryImpl.validations("교차검증전", 2);
 
+        selectedProblems.addAll(crossValidationProblems);
     }
 
     // 교차검증 문제 생성 (작업자가 한 문제 풀 때마다 2개씩 생성)

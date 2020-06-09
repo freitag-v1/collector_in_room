@@ -13,6 +13,9 @@ public class BoundingBoxEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "box_id")
+    private int boxId;
+
     @Column(name = "problem_id")
     private int problemId;
 
@@ -23,8 +26,9 @@ public class BoundingBoxEntity {
     private String coordinates;
 
     @Builder
-    public BoundingBoxEntity(Long id, int problemId, String className, String coordinates) {
+    public BoundingBoxEntity(Long id, int boxId, int problemId, String className, String coordinates) {
         this.id = id;
+        this.boxId = boxId;
         this.problemId = problemId;
         this.className = className;
         this.coordinates = coordinates;

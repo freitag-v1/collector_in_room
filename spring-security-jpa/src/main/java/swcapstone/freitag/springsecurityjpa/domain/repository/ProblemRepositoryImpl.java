@@ -21,7 +21,7 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<ProblemEntity> crossValidation(String validationStatus) {
+    public List<ProblemEntity> validations(String validationStatus, int limit) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -30,7 +30,7 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
                 .where(eqValidationStatus(validationStatus))
                 .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
                 .fetch()
-                .stream().limit(2).collect(Collectors.toList());
+                .stream().limit(limit).collect(Collectors.toList());
     }
 
     @Override

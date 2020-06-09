@@ -153,7 +153,6 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
 
             String userId = authorizationService.getUserId(request);
-
             return projectService.getProjectList(userId, response);
         }
 

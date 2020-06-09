@@ -269,6 +269,8 @@ public class ProjectService {
     // workType, dataType, subject, difficulty
     public List<ProjectDtoWithClassDto> getSearchResults(HttpServletRequest request, HttpServletResponse response) {
 
+        // progressData == totalData라면?
+
         String workType = requestService.getWorkTypeP(request);
         String dataType = requestService.getDataTypeP(request); // image, audio, text / boundingBox, classfication
         String subject = requestService.getSubjectP(request);

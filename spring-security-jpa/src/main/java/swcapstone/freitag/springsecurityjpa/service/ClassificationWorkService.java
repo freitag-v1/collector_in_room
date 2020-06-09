@@ -3,9 +3,7 @@ package swcapstone.freitag.springsecurityjpa.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import swcapstone.freitag.springsecurityjpa.domain.dto.LabellingWorkHistoryDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.*;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
@@ -32,7 +30,7 @@ public class ClassificationWorkService extends WorkService {
     }
 
     @Transactional
-    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDtoWithClassDto> problems) { // 5개만
+    protected int saveLabellingWorkHistory(String userId, String dataType, List<ProblemDto> problems) { // 5개만
 
         if (problems.size() != 5) {
             System.out.println("========================");
@@ -44,11 +42,11 @@ public class ClassificationWorkService extends WorkService {
         int historyId = this.labellingWorkHistoryIdTurn;
 
         LabellingWorkHistoryDto labellingWorkHistoryDto = new LabellingWorkHistoryDto(historyId, userId, dataType
-                , problems.get(0).getProblemDto().getProblemId()
-                , problems.get(1).getProblemDto().getProblemId()
-                , problems.get(2).getProblemDto().getProblemId()
-                , problems.get(3).getProblemDto().getProblemId()
-                , problems.get(4).getProblemDto().getProblemId());
+                , problems.get(0).getProblemId()
+                , problems.get(1).getProblemId()
+                , problems.get(2).getProblemId()
+                , problems.get(3).getProblemId()
+                , problems.get(4).getProblemId());
 
         if(labellingWorkHistoryRepository.save(labellingWorkHistoryDto.toEntity()) == null)
             return -1;
@@ -60,9 +58,11 @@ public class ClassificationWorkService extends WorkService {
     // 분류 작업을 시작하면 문제 한 세트(5개) 제공
     public List<ProblemDtoWithClassDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
 
-        String dataType = requestService.getDataTypeH(request);
+        String dataType = "classification";
+        List<ProblemDto> problemSet = combineProblems();
 
-        List<ProblemDtoWithClassDto> problemSet = combineProblems(dataType);
+        // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
+        List<ProblemDtoWithClassDto> problemSetWithClassNames = withClassDtos(problemSet);
 
         if(problemSet.isEmpty() || problemSet.size() != 5) {
             System.out.println("========================");
@@ -71,10 +71,13 @@ public class ClassificationWorkService extends WorkService {
             return null;
         }
 
+        // 교차검증 문제가 바운딩박스 문제 기반으로 만들어졌는가?
+        withBoundingBoxDtos(problemSetWithClassNames);
+
         int historyId = saveLabellingWorkHistory(userId, dataType, problemSet);
         response.setHeader("workHistory", String.valueOf(historyId));
         response.setHeader("problems", "success");
-        return problemSet;
+        return problemSetWithClassNames;
     }
 
     // 사용자검증 문제 (1개) 생성하기 - DB
@@ -98,8 +101,7 @@ public class ClassificationWorkService extends WorkService {
     // 사용자검증 문제 (1개) 생성하기
     private void userValidationProblems(List<ProblemEntity> selectedProblems) {
 
-        Optional<ProblemEntity> userValidation = problemRepository
-                .findByValidationStatus("검증완료");
+        List<ProblemEntity> userValidation = problemRepositoryImpl.validations("검증완료", 1);
 
         if(userValidation.isEmpty()) {
             System.out.println("========================");
@@ -107,8 +109,8 @@ public class ClassificationWorkService extends WorkService {
             return;
         }
 
-        int projectId = userValidation.get().getProjectId();
-        int problemId = userValidation.get().getProblemId();
+        int projectId = userValidation.get(0).getProjectId();
+        int problemId = userValidation.get(0).getProblemId();
         // 검증완료된 문제로 또다시 사용자검증 문제를 만들어
         int uvProblemId = createUserValidationProblem(projectId, problemId);
 
@@ -125,12 +127,12 @@ public class ClassificationWorkService extends WorkService {
 
     }
 
-    // 라벨링 문제(2개) 가져오기
-    private void labellingProblems(String dataType, List<ProblemEntity> selectedProblems) {
+    // 분류 문제(2개) 가져오기
+    private void labellingProblems(List<ProblemEntity> selectedProblems) {
 
-        if (projectRepository.countByWorkTypeAndDataType("labelling", dataType) > 1) {
+        if (projectRepository.countByWorkTypeAndDataType("labelling", "classification") > 1) {
             List<ProjectEntity> labellingProjects =
-                    projectRepositoryImpl.labellingProjectSearch("labelling", dataType);
+                    projectRepositoryImpl.labellingProjectSearch("labelling", "classification", 2);
 
             for(ProjectEntity p : labellingProjects) {
                 int projectId = p.getProjectId();
@@ -152,22 +154,24 @@ public class ClassificationWorkService extends WorkService {
             return;
         }
 
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByWorkTypeAndDataType("labelling", dataType);
+        List<ProjectEntity> labellingProject =
+                projectRepositoryImpl.labellingProjectSearch("labelling", "classification", 1);
 
-        if (projectEntityWrapper.isEmpty()) {
+        if (labellingProject.isEmpty()) {
             System.out.println("========================");
             System.out.println("라벨링 분류 프로젝트를 찾을 수가 없음");
             return;
         }
 
-        int projectId = projectEntityWrapper.get().getProjectId();
+        int projectId = labellingProject.get(0).getProjectId();
         List<ProblemEntity> labellingProblems
                 = problemRepositoryImpl.labellingProblem(projectId, "작업전", 2);
         selectedProblems.addAll(labellingProblems);
 
     }
 
-    private List<ProblemDtoWithClassDto> combineProblems(String dataType) {
+
+    private List<ProblemDto> combineProblems() {
         List<ProblemEntity> selectedProblems = new ArrayList<>();
 
         // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
@@ -176,13 +180,10 @@ public class ClassificationWorkService extends WorkService {
         // 20개 (테스트 2개) = crossValidation(작업후)
         crossValidationProblems(selectedProblems);
         // 20개 (테스트 2개) = labellingProblems(작업전)
-        labellingProblems(dataType, selectedProblems);
+        labellingProblems(selectedProblems);
 
         List<ProblemDto> problemSet = ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
-
-        // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
-        List<ProblemDtoWithClassDto> problemSetWithClassNames = withClassDtos(problemSet);
-        return problemSetWithClassNames;
+        return problemSet;
     }
 
 
