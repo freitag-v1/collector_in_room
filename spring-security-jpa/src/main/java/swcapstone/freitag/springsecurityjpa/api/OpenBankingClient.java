@@ -11,8 +11,8 @@ import java.util.Map;
 
 public class OpenBankingClient {
     private static OpenBankingClient instance = null;
-    private static final String clientID = "XXyvh2Ij7l9rss0HAVObS880qY3penX57JXkib9q";
-    private static final String clientSecret = "p947iEbMvXjslhyTw4d4p2HK8U0DkOHR7o83Mtdx";
+    private static final String clientID = "R9zNr3OIJNyJfj8pbMnBATU9OF6RtGb7Ih63xAdq";
+    private static final String clientSecret = "X4DaIBv33VaPQwXzDic8i3fiqAZGKbdjo4bmxDv1";
     private static final String baseURL = "https://testapi.openbanking.or.kr";
     private static final String callbackURL = "http://wodnd999999.iptime.org:8080/externalapi/openbanking/oauth/token";
     private final String oobAccountNum = "1111111111";
