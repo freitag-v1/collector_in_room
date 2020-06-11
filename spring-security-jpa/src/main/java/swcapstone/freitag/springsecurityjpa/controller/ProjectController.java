@@ -159,4 +159,16 @@ public class ProjectController {
         response.setHeader("login", "fail");
         return null;
     }
+
+    // 프로젝트 종료
+    @RequestMapping(value = "/api/project/terminate")
+    public void terminateProject(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            projectService.terminateProject(userId, projectId, response);
+        }
+    }
 }

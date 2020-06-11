@@ -62,13 +62,17 @@ public class ProjectEntity {
     @Column(name = "progress_data")
     private int progressData;
 
+    @Column(name = "validated_data")
+    private int validatedData;
+
     @Column(name = "cost")
     private int cost;
 
     @Builder
     public ProjectEntity(int projectId, String userId, String projectName, String bucketName, String status,
                          String workType, String dataType, String subject, int difficulty, String wayContent,
-                         String conditionContent, String exampleContent, String description, int totalData, int progressData, int cost) {
+                         String conditionContent, String exampleContent, String description,
+                         int totalData, int progressData, int validatedData, int cost) {
 
         this.projectId = projectId;
         this.userId = userId;
@@ -85,6 +89,7 @@ public class ProjectEntity {
         this.description = description;
         this.totalData = totalData;
         this.progressData = progressData;
+        this.validatedData = validatedData;
         this.cost = cost;
     }
 }

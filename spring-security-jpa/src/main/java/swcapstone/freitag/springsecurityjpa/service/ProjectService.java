@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
@@ -87,7 +86,7 @@ public class ProjectService {
         // int cost;
 
         ProjectDto projectDto = new ProjectDto(projectId, userId, projectName, bucketName, "없음", workType, dataType, subject,
-                0, wayContent, conditionContent, "없음", description, totalData, 0, 0);
+                0, wayContent, conditionContent, "없음", description, totalData, 0, 0, 0);
 
         if(projectRepository.save(projectDto.toEntity()) == null) {
             response.setHeader("create", "fail");
@@ -352,6 +351,27 @@ public class ProjectService {
 
         List<ProjectDto> projectDtoList = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
         return withClassDtos(projectDtoList);
+    }
+
+
+    // 프로젝트 종료
+    public void terminateProject(String userId, int projectId, HttpServletResponse response) {
+
+        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
+
+        if (projectEntity.isEmpty()) {
+            response.setHeader("project", "fail");
+            return;
+        }
+
+        if (projectEntity.get().getUserId().equals(userId)) {
+            // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
+            int cost = projectEntity.get().getCost();
+            // 난이도
+            int difficulty = projectEntity.get().getDifficulty();
+
+            // 최종 비용 결정해야 되는데 ..
+        }
     }
 
 

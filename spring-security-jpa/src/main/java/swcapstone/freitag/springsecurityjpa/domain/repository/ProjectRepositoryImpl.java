@@ -3,7 +3,6 @@ package swcapstone.freitag.springsecurityjpa.domain.repository;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
-import com.querydsl.core.types.dsl.NumberExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -32,7 +31,9 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
                 .where(eqWorkType(workType),
                         eqDataType(dataType),
                         eqSubject(subject),
-                        eqDifficulty(difficulty))
+                        eqDifficulty(difficulty),
+                        eqStatus("진행중")
+                        )
                 .fetch();
 
     }
@@ -81,5 +82,12 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
             return null;
         }
         return projectEntity.difficulty.eq(difficulty);
+    }
+
+    private BooleanExpression eqStatus(String status) {
+        if (StringUtils.isEmpty(status)) {
+            return null;
+        }
+        return projectEntity.status.eq(status);
     }
 }

@@ -42,6 +42,8 @@ public class ProjectDto {
     @JsonProperty
     private int progressData;
     @JsonProperty
+    private int validatedData;
+    @JsonProperty
     private int cost;
 
     public ProjectEntity toEntity() {
@@ -61,6 +63,7 @@ public class ProjectDto {
                 .description(description)
                 .totalData(totalData)
                 .progressData(progressData)
+                .validatedData(validatedData)
                 .cost(cost)
                 .build();
     }
@@ -68,7 +71,8 @@ public class ProjectDto {
     @Builder
     public ProjectDto(int projectId, String userId, String projectName, String bucketName, String status,
                       String workType, String dataType, String subject, int difficulty, String wayContent,
-                      String conditionContent, String exampleContent, String description, int totalData, int progressData, int cost) {
+                      String conditionContent, String exampleContent, String description,
+                      int totalData, int progressData, int validatedData, int cost) {
 
         this.projectId = projectId;
         this.userId = userId;
@@ -85,6 +89,7 @@ public class ProjectDto {
         this.description = description;
         this.totalData = totalData;
         this.progressData = progressData;
+        this.validatedData = validatedData;
         this.cost = cost;
     }
 }
