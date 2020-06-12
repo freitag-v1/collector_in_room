@@ -1,13 +1,10 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.dto.*;
-import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
-import swcapstone.freitag.springsecurityjpa.domain.repository.BoundingBoxRepository;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -16,19 +13,6 @@ import java.util.*;
 
 @Service
 public class BoundingBoxWorkService extends ClassificationWorkService {
-
-    @Autowired
-    BoundingBoxRepository boundingBoxRepository;
-
-    protected int getBoxIdTurn() {
-        Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findTopByOrderByIdDesc();
-
-        if (boundingBoxEntityWrapper.isEmpty())
-            return 1;
-
-        return boundingBoxEntityWrapper.get().getBoxId() + 1;
-    }
-
 
     // 바운딩 박스 작업을 시작하면 문제 한 세트(5개) 제공
     public List<ProblemDtoWithClassDto> provideBoundingBoxProblems

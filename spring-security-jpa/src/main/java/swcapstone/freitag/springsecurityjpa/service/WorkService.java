@@ -39,6 +39,7 @@ public class WorkService {
     @Autowired
     ClassRepository classRepository;
 
+
     protected List<ProblemDtoWithClassDto> withClassDtos(List<ProblemDto> problemDtos) {
 
         if(problemDtos.isEmpty())
@@ -90,6 +91,8 @@ public class WorkService {
 
         return true;
     }
+
+
 
     protected void withBoundingBoxDtos(List<ProblemDtoWithClassDto> problemDtoWithClassDtos) {
 
@@ -160,11 +163,11 @@ public class WorkService {
         String answer = problemEntityWrapper.get().getAnswer();
 
         // 한 문제에 대한 교차검증 문제 2개만 만든다고 가정
-        for(int i = 0; i < 2; i++) {
+        for(int i = 0; i < 4; i++) {
             int cvProblemId = projectService.getProblemIdTurn();
             // problemId, projectId, referenceId, bucketName, objectName, answer, finalAnswer, validationStatus, userId
             ProblemDto problemDto = new ProblemDto(cvProblemId, projectId, problemId,
-                    bucketName, objectName, answer, "없음", "교차검증전", null);
+                    bucketName, objectName, answer, "없음", "교차검증전", "");
             problemRepository.save(problemDto.toEntity());
         }
 

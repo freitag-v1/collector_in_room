@@ -84,8 +84,7 @@ public class AuthenticationService implements AuthenticationProvider {
         return UsernamePasswordAuthenticationToken.class.isAssignableFrom(authentication);
     }
 
-    public void successfulAuthentication(HttpServletResponse response, Authentication authResult)
-        throws IOException, ServletException {
+    public void successfulAuthentication(HttpServletResponse response, Authentication authResult) {
 
         String principal = (String) authResult.getPrincipal();
 

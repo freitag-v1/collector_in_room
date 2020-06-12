@@ -10,6 +10,8 @@ public interface LabellingWorkHistoryRepository extends JpaRepository<LabellingW
 
     long count();
     void deleteByHistoryId(int historyId);
+    Optional<LabellingWorkHistoryEntity> findTopByOrderByIdDesc();
     Optional<LabellingWorkHistoryEntity> findByHistoryId(int historyId);
     List<LabellingWorkHistoryEntity> findAllByUserId(String userId);
+
 }

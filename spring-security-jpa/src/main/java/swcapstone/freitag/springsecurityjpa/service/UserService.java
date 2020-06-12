@@ -19,8 +19,6 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.RankUserDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
-import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;

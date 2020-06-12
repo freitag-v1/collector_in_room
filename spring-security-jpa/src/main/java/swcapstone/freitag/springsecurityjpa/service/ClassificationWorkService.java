@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.dto.*;
+import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
@@ -20,13 +21,25 @@ public class ClassificationWorkService extends WorkService {
     @Autowired
     ProblemRepository problemRepository;
 
-    private static final int NUM_OF_ANSWERS = 3;
-
-    private int labellingWorkHistoryIdTurn;
+    private static final int NUM_OF_ANSWERS = 5;
 
     private int getLabellingWorkHistoryIdTurn() {
-        int count = (int) labellingWorkHistoryRepository.count();
-        return ++count;
+        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper =
+                labellingWorkHistoryRepository.findTopByOrderByIdDesc();
+
+        if (labellingWorkHistoryEntityWrapper.isEmpty())
+            return 1;
+
+        return labellingWorkHistoryEntityWrapper.get().getHistoryId() + 1;
+    }
+
+    protected int getBoxIdTurn() {
+        Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findTopByOrderByIdDesc();
+
+        if (boundingBoxEntityWrapper.isEmpty())
+            return 1;
+
+        return boundingBoxEntityWrapper.get().getBoxId() + 1;
     }
 
     @Transactional
@@ -38,8 +51,7 @@ public class ClassificationWorkService extends WorkService {
             return -1;
         }
 
-        labellingWorkHistoryIdTurn = getLabellingWorkHistoryIdTurn();
-        int historyId = this.labellingWorkHistoryIdTurn;
+        int historyId = getLabellingWorkHistoryIdTurn();
 
         LabellingWorkHistoryDto labellingWorkHistoryDto = new LabellingWorkHistoryDto(historyId, userId, dataType
                 , problems.get(0).getProblemId()
@@ -234,6 +246,47 @@ public class ClassificationWorkService extends WorkService {
     }
 
 
+    @Override
+    protected boolean saveAnswer(int problemId, String answer, String userId) {
+        if(answer.contains("b")) {
+
+            // 바운딩 박스 작업에 대한 교차검증이라면
+            // answer의 형태가
+            // boxId(공백)boxId..
+            String boxIdList[] = answer.split("b");
+
+            for (String b : boxIdList) {
+
+                System.out.println("========================");
+                System.out.println("boxId : " + b);
+
+                if(b.equals(""))
+                    break;
+
+                int referenceBoxId = Integer.parseInt(b);
+                Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findByBoxId(referenceBoxId);
+
+                if (boundingBoxEntityWrapper.isEmpty()) {
+                    System.out.println("========================");
+                    System.out.println("boundingBoxEntityWrapper.isEmpty()");
+                    return false;
+                }
+
+                String className = boundingBoxEntityWrapper.get().getClassName();
+                String coordinates = boundingBoxEntityWrapper.get().getCoordinates();
+
+                int boxId = getBoxIdTurn();
+                BoundingBoxDto boundingBoxDto = new BoundingBoxDto(boxId, problemId, className, coordinates);
+                boundingBoxRepository.save(boundingBoxDto.toEntity());
+            }
+
+            answer = "boundingBox";
+        }
+
+        return super.saveAnswer(problemId, answer, userId);
+    }
+
+
     @Transactional
     protected void updateValidationStatus(int historyId, int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
@@ -307,20 +360,6 @@ public class ClassificationWorkService extends WorkService {
         return false;
     }
 
-    // 검증완료 된 문제 개수 몇개인지 확인
-    protected int howManyValidated(int projectId) {
-
-        List<ProblemEntity> problemEntities = problemRepository.findAllByProjectId(projectId);
-        int count = 0;
-
-        for(ProblemEntity p : problemEntities) {
-            if (p.getValidationStatus().equals("검증완료"))
-                count++;
-        }
-
-        return count;
-    }
-
     // 교차검증
     @Transactional
     protected void crossValidateProblem(int referenceId) {
@@ -328,39 +367,44 @@ public class ClassificationWorkService extends WorkService {
         List<ProblemEntity> crossValidationProblems
                 = problemRepository.findAllByReferenceIdAndValidationStatus(referenceId, "교차검증후");
 
+        for(ProblemEntity p : crossValidationProblems) {
+            System.out.println("========================");
+            System.out.println("userId : " + p.getUserId());
+        }
+
         if (crossValidationProblems.isEmpty()) {
             System.out.println("========================");
             System.out.println("아무도 교차검증에 참여하지 않음");
             return;
-        } else if (crossValidationProblems.size() < 2) {
+        } else if (crossValidationProblems.size() < 3) {
             System.out.println("========================");
             System.out.println("교차검증에 참여한 작업자 수 미달");
             return;
         }
 
         Optional<ProblemEntity> originalProblem = problemRepository.findByProblemId(referenceId);
+        int projectId = originalProblem.get().getProjectId();
 
         if (originalProblem.isEmpty()) {
             System.out.println("========================");
             System.out.println("교차검증 대상인 문제를 찾을 수 없음");
             return;
-        } else if (originalProblem.get().getValidationStatus().equals("작업전")) {
-            System.out.println("========================");
-            System.out.println("교차검증 대상인 문제가 아직 작업전");
-            return;
         }
 
         String[] answers = new String[NUM_OF_ANSWERS];
+        String[] workers = new String[NUM_OF_ANSWERS];
 
-        for (int i = 0; i < answers.length; i++) {
+        for (int i = 0; i < NUM_OF_ANSWERS; i++) {
             if (i == 0) {
                 answers[i] = originalProblem.get().getAnswer();
+                workers[i] = originalProblem.get().getUserId();
             } else {
                 answers[i] = crossValidationProblems.get(i - 1).getAnswer();
+                workers[i] = crossValidationProblems.get(i - 1).getUserId();
             }
         }
 
-        String finalAnswer = findFinalAnswer(answers);
+        String finalAnswer = findFinalAnswer(answers, workers);
 
         if (finalAnswer.equals("없음")) {
             return;
@@ -383,41 +427,79 @@ public class ClassificationWorkService extends WorkService {
                     problemRepository.save(selectProblem);
                 });
             }
+
+            // validatedData++
+            Optional<ProjectEntity> targetProject = projectRepository.findByProjectId(projectId);
+
+            targetProject.ifPresent(selectProject -> {
+                int validatedData = selectProject.getValidatedData();
+                validatedData += 1;
+                selectProject.setValidatedData(validatedData);
+
+                projectRepository.save(selectProject);
+            });
+
+            System.out.println("========================");
+            System.out.println("교차검증 성공!");
         }
     }
 
     // Voting!
-    private static String findFinalAnswer(String[] answers) {
+    private static String findFinalAnswer(String[] answers, String[] workers) {
+
+        // 아기(~50), 유치원생(~60), 초등학생(~70), 중학생(~80) -> 0표
+        // 고등학생(~85) -> 1표
+        // 대학생(~90) -> 2표
+        // 척척박사(~95) -> 3표
+        // 신(~100) -> 4표
 
         int count = 0;
         String candidate = null;
 
-        for (int i = 0; i < answers.length; i++) {
+        // workers -> 기존 작업자(고등학생), user1(초등학생), user2(척척박사), user3(아기), user4(대학생)
+        // answers -> 개, 개, 고양이, 개, 고양이
+        int[] weightedCount = {1, 0, 3, 0, 2};
+        int totalWeight = 6;
+
+        for (int i = 0; i < NUM_OF_ANSWERS; i++) {
             if (count == 0) {
                 candidate = answers[i];
-                count = 1;
+                count = weightedCount[i];
                 continue;
             } else if (candidate.equals(answers[i]))
-                count++;
+                count += weightedCount[i];
             else {
-                count--;
+                count -= weightedCount[i];
             }
         }
 
         String finalAnswer = "없음";
+        String viceCandidate = null;
+        int viceCount = 0;
 
         if (count == 0) {
             System.out.println("========================");
-            System.out.println("기존 작업자(1명)와 교차검증 참여 작업자(2명) 모두 다른 답을 함");
+            System.out.println("보팅 결과가 5:5, 과반수 이상이 채택한 답을 정할 수 없음");
             return finalAnswer;
         } else {
             count = 0;
-            for (int i = 0; i < answers.length; i++) {
+            for (int i = 0; i < NUM_OF_ANSWERS; i++) {
                 if (candidate.equals(answers[i]))
-                    count++;
+                    count += weightedCount[i];
+                else {
+                    // 다른 정답을 한 작업자의 가중치가 더 높음
+                    if (count < weightedCount[i]) {
+                        viceCount = count;
+                        count = weightedCount[i];
+                        viceCandidate = candidate;
+                        candidate = answers[i];
+                    } else {
+                        viceCandidate += weightedCount[i];
+                    }
+                }
             }
 
-            if (count > answers.length / 2) {
+            if (count >= totalWeight / 2) {
                 System.out.println("========================");
                 System.out.println("Final answer : " + candidate);
                 finalAnswer = candidate;

@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface BoundingBoxRepository extends JpaRepository<BoundingBoxEntity, Long> {
     Optional<BoundingBoxEntity> findTopByOrderByIdDesc();
+    Optional<BoundingBoxEntity> findByBoxId(int BoxId);
     List<BoundingBoxEntity> findAllByProblemId(int problemId);
 }
