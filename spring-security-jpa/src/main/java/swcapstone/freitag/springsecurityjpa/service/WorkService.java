@@ -60,8 +60,9 @@ public class WorkService {
 
             List<ClassEntity> classEntities = classRepository.findAllByProjectId(projectId);
             List<ClassDto> classNameList = ObjectMapperUtils.mapAll(classEntities, ClassDto.class);
+            String conditionContent = projectEntityWrapper.get().getConditionContent();
 
-            ProblemDtoWithClassDto pc = new ProblemDtoWithClassDto(p, classNameList);
+            ProblemDtoWithClassDto pc = new ProblemDtoWithClassDto(p, classNameList, conditionContent);
             results.add(pc);
         }
 
