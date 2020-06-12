@@ -14,7 +14,7 @@ public class OpenBankingClient {
     private static final String clientID = "R9zNr3OIJNyJfj8pbMnBATU9OF6RtGb7Ih63xAdq";
     private static final String clientSecret = "X4DaIBv33VaPQwXzDic8i3fiqAZGKbdjo4bmxDv1";
     private static final String baseURL = "https://testapi.openbanking.or.kr";
-    private static final String callbackURL = "http://wodnd999999.iptime.org:8080/externalapi/openbanking/oauth/token";
+    private static final String callbackURL = "http://101.101.208.224:8080/externalapi/openbanking/oauth/token";
     private final String oobAccountNum = "1111111111";
     private final String oobAccessToken;
     private final String clientCode;
