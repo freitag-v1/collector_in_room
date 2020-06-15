@@ -23,6 +23,8 @@ public class UserDto {
     private Timestamp userLastVisit;
     private int totalPoint;
     private int point;
+    private int solvedProblems;
+    private int rightProblems;
 
     public UserEntity toEntity() {  // toEntity() 메서드를 통해서 DTO에서 필요한 부분을 이용하여 Entity로 만든다.
         return UserEntity.builder()
@@ -39,13 +41,16 @@ public class UserDto {
                 .userLastVisit(userLastVisit)
                 .totalPoint(totalPoint)
                 .point(point)
+                .solvedProblems(solvedProblems)
+                .rightProblems(rightProblems)
                 .build();
     }
 
     @Builder
     public UserDto(/*Long id, */String userId, String userPassword, String userName,
                                 int userOpenBankingNum, String userOpenBankingAccessToken, String userPhone, String userEmail,
-                                String userAffiliation, int userVisit, Timestamp userLastVisit, int totalPoint, int point) {
+                                String userAffiliation, int userVisit, Timestamp userLastVisit, int totalPoint, int point,
+                                int solvedProblems, int rightProblems) {
         // this.id = id;
         this.userId = userId;
         this.userPassword = userPassword;
@@ -59,5 +64,7 @@ public class UserDto {
         this.userLastVisit = userLastVisit;
         this.totalPoint = totalPoint;
         this.point = point;
+        this.solvedProblems = solvedProblems;
+        this.rightProblems = rightProblems;
     }
 }
