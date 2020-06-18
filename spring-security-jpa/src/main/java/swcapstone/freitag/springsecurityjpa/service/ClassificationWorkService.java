@@ -301,7 +301,7 @@ public class ClassificationWorkService extends WorkService {
         // userValidation
         if(isUserValidation(historyId, problemId)) {
             problemEntityWrapper.ifPresent(selectProblem -> {
-                selectProblem.setValidationStatus("사용자검증후");   // 사용자검증전 -> 사용자검증후
+                selectProblem.setValidationStatus("검증완료");   // 사용자검증전 -> 검증완료
                 problemRepository.save(selectProblem);
             });
         }
@@ -402,6 +402,12 @@ public class ClassificationWorkService extends WorkService {
             }
         }
 
+        double accuracies[] = new double[size];
+
+        for (int i = 0; i < size; i++) {
+            accuracies[i] = calculateAccuracy(workers[i]);
+        }
+
         Optional<ProjectEntity> projectEntityWrapper
                 = projectRepository.findByProjectId(projectId);
 
@@ -411,20 +417,22 @@ public class ClassificationWorkService extends WorkService {
             return;
         }
 
-        boolean isBoundingBox = false;
+        boolean isBoundingBox;
 
         if (projectEntityWrapper.get().getDataType().equals("boundingBox")) {
             isBoundingBox = true;
+        } else {
+            isBoundingBox = false;
         }
 
-        String finalAnswer = findFinalAnswer(isBoundingBox, answers, workers);
+        String finalAnswer = findFinalAnswer(isBoundingBox, answers, accuracies);
 
         if (finalAnswer == null) {
             return;
         } else {
             originalProblem.ifPresent(selectProblem -> {
                 selectProblem.setFinalAnswer(finalAnswer);
-                selectProblem.setValidationStatus("검증완료");
+                selectProblem.setValidationStatus("검증완료");  // 작업후 -> 검증완료
                 problemRepository.save(selectProblem);
             });
 
@@ -436,6 +444,7 @@ public class ClassificationWorkService extends WorkService {
                 problemEntityWrapper.ifPresent(selectProblem ->
                 {
                     selectProblem.setFinalAnswer(finalAnswer);
+                    selectProblem.setValidationStatus("검증완료");  // 교차검증후 -> 검증완료
                     problemRepository.save(selectProblem);
                 });
             }
@@ -458,18 +467,16 @@ public class ClassificationWorkService extends WorkService {
         }
     }
 
+    private double calculateAccuracy(String userId) {
+
+        long solvedProblems = problemRepository.countByUserIdAAndValidationStatus(userId, "검증완료");
+        long rightProblems = problemRepository.countRightProblems(userId, "검증완료");
+
+        return rightProblems / solvedProblems;
+    }
+
     // Voting!
-
-    private static String findFinalAnswer(boolean isBoundingBox, String[] answers, String[] workers) {
-
-        // 아기(~50), 유치원생(~60), 초등학생(~70), 중학생(~80) -> 0표
-        // 고등학생(~85) -> 1표
-        // 대학생(~90) -> 2표
-        // 척척박사(~95) -> 3표
-        // 신(~100) -> 4표
-
-        // 각 사용자별로 정확도 계산
-        // 12표 이상인지 확인
+    private static String findFinalAnswer(boolean isBoundingBox, String[] answers, double[] accuracies) {
         // Voting
 
 
