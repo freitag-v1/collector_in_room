@@ -16,6 +16,7 @@ public interface ProblemRepository extends JpaRepository<ProblemEntity, Long> {
     Optional<ProblemEntity> findByProblemId(int problemId);
     Optional<ProblemEntity> findFirstByProjectIdAndValidationStatus(int projectId, String validationStatus);
     Optional<ProblemEntity> findTopByOrderByIdDesc();
+    List<ProblemEntity> findAllByProjectId(int projectId);
     List<ProblemEntity> findAllByReferenceIdAndValidationStatus(int referenceId, String validationStatus);
 
     @Query(value = "SELECT COUNT(*) FROM problem_table " +
