@@ -36,8 +36,6 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
     @Override
     public List<ProblemEntity> labellingProblem(int projectId, String validationStatus, int limit) {
 
-        BooleanBuilder builder = new BooleanBuilder();
-
         return jpaQueryFactory
                 .selectFrom(problemEntity)
                 .where(eqProjectId(projectId), eqValidationStatus(validationStatus))

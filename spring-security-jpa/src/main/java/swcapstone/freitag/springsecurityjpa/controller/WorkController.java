@@ -21,6 +21,8 @@ public class WorkController {
     @Autowired
     AuthorizationService authorizationService;
     @Autowired
+    UserService userService;
+    @Autowired
     ProjectService projectService;
     @Autowired
     WorkService workService;
@@ -90,7 +92,6 @@ public class WorkController {
 
         if (authorizationService.isAuthorized((request))) {
             String userId = authorizationService.getUserId(request);
-
             return boundingBoxWorkService.provideBoundingBoxProblems(userId, request, response);
         }
 
