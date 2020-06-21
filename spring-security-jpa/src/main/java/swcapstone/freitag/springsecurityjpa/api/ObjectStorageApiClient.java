@@ -60,6 +60,15 @@ public class ObjectStorageApiClient {
         return null;
     }
 
+    public S3ObjectInputStream getObject(String bucketName, String objectName) {
+        try {
+            S3ObjectInputStream s3ObjectInputStream = s3.getObject(bucketName, objectName).getObjectContent();
+            return s3ObjectInputStream;
+        } catch (SdkClientException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     public boolean putBucket(String bucketName) {
 

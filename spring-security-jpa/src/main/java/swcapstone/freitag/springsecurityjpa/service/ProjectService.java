@@ -1,5 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,10 +21,12 @@ import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class ProjectService {
@@ -401,4 +404,58 @@ public class ProjectService {
         return limit;
     }
 
+    public File downloadProject(String userId, int projectId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        String projectStatus = projectEntityWrapper.get().getStatus();
+        String projectWorkType = projectEntityWrapper.get().getWorkType();
+        String projectBucketName = projectEntityWrapper.get().getBucketName();
+
+        // project 종료 상태 뭔지 몰라서 추가해야 됨
+        //if(projectStatus.equals("")) {
+        if(true) {
+            File zippedData = null;
+            try {
+                if (projectWorkType.equals("collection")) {
+                    zippedData = zipCollectionData(projectId, projectBucketName);
+                } else if (projectWorkType.equals("labelling")) {
+                    zippedData = zipLabellingData(projectId, projectBucketName);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return zippedData;
+        } else {
+            return null;
+        }
+    }
+
+    private File zipLabellingData(int projectId, String projectBucketName) {
+        List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
+
+        return null;
+    }
+
+    private File zipCollectionData(int projectId, String projectBucketName) throws Exception {
+        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
+
+        byte[] buf = new byte[4096];
+        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
+        for(ProblemEntity problemEntity : problemEntityList) {
+            if(problemEntity.getValidationStatus().equals("검증완료")) {
+                String objectName = problemEntity.getObjectName();
+                S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
+                zipOutputStream.putNextEntry(new ZipEntry(objectName));
+                int length = 0;
+                while (((length = s3ObjectInputStream.read(buf)) > 0)) {
+                    zipOutputStream.write(buf, 0, length);
+                }
+                zipOutputStream.closeEntry();
+                s3ObjectInputStream.close();
+            }
+        }
+        zipOutputStream.close();
+        return new File(zipPath);
+    }
 }

@@ -1,16 +1,26 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class ProjectController {
@@ -170,5 +180,24 @@ public class ProjectController {
 
             projectService.terminateProject(userId, projectId, response);
         }
+    }
+
+    // 프로젝트 다운로드
+    @RequestMapping(value = "/api/project/download", method = RequestMethod.GET)
+    public ResponseEntity<Resource> downloadProject(HttpServletRequest request, HttpServletResponse response) throws FileNotFoundException {
+        if(authorizationService.isAuthorized(request)) {
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            File zipFile = projectService.downloadProject(userId, projectId, response);
+            if(zipFile != null) {
+                InputStreamResource resource = new InputStreamResource(new FileInputStream(zipFile));
+                return ResponseEntity.ok()
+                        .contentLength(zipFile.length())
+                        .contentType(MediaType.parseMediaType("application/octet-stream"))
+                        .body(resource);
+            }
+        }
+        return null;
     }
 }
