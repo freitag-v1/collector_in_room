@@ -28,7 +28,6 @@ public class ProjectController {
     @Autowired
     UserService userService;
 
-
     @RequestMapping(value = "/api/project/create", method = RequestMethod.POST)
     public void createProject(HttpServletRequest request, HttpServletResponse response) {
 

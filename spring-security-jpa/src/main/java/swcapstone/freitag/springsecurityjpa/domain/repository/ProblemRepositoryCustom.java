@@ -8,4 +8,6 @@ public interface ProblemRepositoryCustom {
 
     List<ProblemEntity> validations(String validationStatus, int limit);
     List<ProblemEntity> labellingProblem(int projectId, String validationStatus, int limit);
+
+    long countRightProblems(String userId, String validationStatus);
 }
