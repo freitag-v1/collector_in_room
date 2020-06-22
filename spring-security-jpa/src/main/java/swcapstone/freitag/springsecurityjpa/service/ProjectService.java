@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
+import swcapstone.freitag.springsecurityjpa.api.SMSClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
@@ -44,6 +45,8 @@ public class ProjectService {
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
     ProblemRepository problemRepository;
+    @Autowired
+    SMSClient smsClient;
 
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
@@ -219,37 +222,29 @@ public class ProjectService {
 
     // 결제 후 프로젝트 상태 없음 -> 진행중 -> 결제완료 -> 수령전 -> 수령완료 변경
     @Transactional
-    public void setNextStatus(int projectId, HttpServletResponse response) {
+    public void setNextStatus(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
         if(projectEntityWrapper.get().getStatus().equals("없음")) {
             projectEntityWrapper.ifPresent(selectProject -> {
                 selectProject.setStatus("진행중");
-
                 projectRepository.save(selectProject);
-                response.setHeader("status", "진행중");
             });
         } else if(projectEntityWrapper.get().getStatus().equals("진행중")) {
             projectEntityWrapper.ifPresent(selectProject -> {
                 selectProject.setStatus("결제완료");
-
                 projectRepository.save(selectProject);
-                response.setHeader("status", "결제완료");
             });
         } else if(projectEntityWrapper.get().getStatus().equals("결제완료")) {
             projectEntityWrapper.ifPresent(selectProject -> {
                 selectProject.setStatus("수령전");
-
                 projectRepository.save(selectProject);
-                response.setHeader("status", "수령전");
             });
         }else if(projectEntityWrapper.get().getStatus().equals("수령전")) {
             projectEntityWrapper.ifPresent(selectProject -> {
                 selectProject.setStatus("수령완료");
-
                 projectRepository.save(selectProject);
-                response.setHeader("status", "수령완료");
             });
         }
     }
@@ -463,7 +458,7 @@ public class ProjectService {
         }
 
         if(result) {
-            // 프로젝트 상태를 수령전으로 바꾸고
+            setNextStatus(projectId);
             // 문자 보냄
         } else {
             // 관리자에게 문의하세용...

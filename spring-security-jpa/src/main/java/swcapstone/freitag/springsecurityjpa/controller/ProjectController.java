@@ -110,7 +110,7 @@ public class ProjectController {
 
             if(userService.accountPayment(userId, "프로젝트 생성", cost, response)) {
 
-                projectService.setNextStatus(projectId, response);
+                projectService.setNextStatus(projectId);
 
                 if(projectService.isCollection(projectId)) {
                     projectService.createProblem(projectId, response);
@@ -137,7 +137,7 @@ public class ProjectController {
 
             if(userService.pointPayment(userId, cost, response)) {
 
-                projectService.setNextStatus(projectId, response);
+                projectService.setNextStatus(projectId);
 
                 if(projectService.isCollection(projectId)) {
                     projectService.createProblem(projectId, response);
@@ -197,7 +197,7 @@ public class ProjectController {
                 response.setHeader("payment", "fail");
             } else {
                 if(userService.accountPayment(userId, "프로젝트 종료", finalCost, response)) {
-                    projectService.setNextStatus(projectId, response);
+                    projectService.setNextStatus(projectId);
                     projectService.zipProject(projectId);
                 }
             }
@@ -217,7 +217,7 @@ public class ProjectController {
                 response.setHeader("project", "fail");
             } else {
                 if(userService.pointPayment(userId, finalCost, response)) {
-                    projectService.setNextStatus(projectId, response);
+                    projectService.setNextStatus(projectId);
                     projectService.zipProject(projectId);
                 }
             }
