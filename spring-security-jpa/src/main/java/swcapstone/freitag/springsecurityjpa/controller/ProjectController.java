@@ -198,7 +198,7 @@ public class ProjectController {
             } else {
                 if(userService.accountPayment(userId, "프로젝트 종료", finalCost, response)) {
                     projectService.setNextStatus(projectId, response);
-                    // 압축 시작
+                    projectService.zipProject(projectId);
                 }
             }
         }
@@ -218,7 +218,7 @@ public class ProjectController {
             } else {
                 if(userService.pointPayment(userId, finalCost, response)) {
                     projectService.setNextStatus(projectId, response);
-                    // 압축 시작
+                    projectService.zipProject(projectId);
                 }
             }
         }

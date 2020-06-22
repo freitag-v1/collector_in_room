@@ -2,6 +2,7 @@ package swcapstone.freitag.springsecurityjpa.service;
 
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -385,6 +386,10 @@ public class ProjectService {
             return null;
         }
 
+        if(!projectEntity.get().getStatus().equals("진행중")) {
+            return null;
+        }
+
         if (projectEntity.get().getUserId().equals(userId)) {
             // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
             int cost = projectEntity.get().getCost();
@@ -439,39 +444,43 @@ public class ProjectService {
         return limit;
     }
 
-    public File downloadProject(String userId, int projectId, HttpServletResponse response) {
+    @Async
+    public void zipProject(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        String projectStatus = projectEntityWrapper.get().getStatus();
         String projectWorkType = projectEntityWrapper.get().getWorkType();
         String projectBucketName = projectEntityWrapper.get().getBucketName();
 
-        // project 종료 상태 뭔지 몰라서 추가해야 됨
-        //if(projectStatus.equals("")) {
-        if(true) {
-            File zippedData = null;
-            try {
-                if (projectWorkType.equals("collection")) {
-                    zippedData = zipCollectionData(projectId, projectBucketName);
-                } else if (projectWorkType.equals("labelling")) {
-                    zippedData = zipLabellingData(projectId, projectBucketName);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+        boolean result = false;
+        try {
+            if (projectWorkType.equals("collection")) {
+                result = zipCollectionData(projectId, projectBucketName);
+            } else if (projectWorkType.equals("labelling")) {
+                result = zipLabellingData(projectId, projectBucketName);
             }
-            return zippedData;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if(result) {
+            // 프로젝트 상태를 수령전으로 바꾸고
+            // 문자 보냄
         } else {
-            return null;
+            // 관리자에게 문의하세용...
         }
     }
 
-    private File zipLabellingData(int projectId, String projectBucketName) {
-        List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
-
+    public File downloadProject(String userId, int projectId, HttpServletResponse response) {
         return null;
     }
 
-    private File zipCollectionData(int projectId, String projectBucketName) throws Exception {
+    private boolean zipLabellingData(int projectId, String projectBucketName) {
+        List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
+
+        return false;
+    }
+
+    private boolean zipCollectionData(int projectId, String projectBucketName) throws Exception {
         String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
         List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
 
@@ -491,6 +500,6 @@ public class ProjectService {
             }
         }
         zipOutputStream.close();
-        return new File(zipPath);
+        return true;
     }
 }
