@@ -166,7 +166,7 @@ public class ProjectController {
         return null;
     }
 
-    // 프로젝트 종료
+    // 프로젝트 종료 - 최종 금액 확인
     @RequestMapping(value = "/api/project/terminate")
     public void terminateProject(HttpServletRequest request, HttpServletResponse response) {
         if(authorizationService.isAuthorized(request)) {
@@ -184,7 +184,7 @@ public class ProjectController {
         }
     }
 
-    // 프로젝트 종료
+    // 프로젝트 종료 - 계좌로 결제 또는 환급
     @RequestMapping(value = "/api/project/terminate/account")
     public void terminateProjectByAccount(HttpServletRequest request, HttpServletResponse response) {
         if(authorizationService.isAuthorized(request)) {
@@ -204,7 +204,7 @@ public class ProjectController {
         }
     }
 
-    // 프로젝트 종료
+    // 프로젝트 종료 - 포인트로 결제 또는 환급
     @RequestMapping(value = "/api/project/terminate/point")
     public void terminateProjectByPoint(HttpServletRequest request, HttpServletResponse response) {
         if(authorizationService.isAuthorized(request)) {

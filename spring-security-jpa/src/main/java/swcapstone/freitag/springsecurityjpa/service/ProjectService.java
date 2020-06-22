@@ -471,6 +471,27 @@ public class ProjectService {
     }
 
     public File downloadProject(String userId, int projectId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+        String projectBucketName = projectEntityWrapper.get().getBucketName();
+
+        // 의뢰자가 맞는지
+        if(!projectEntityWrapper.get().getUserId().equals(userId)) {
+            return null;
+        }
+
+        // 수령 가능한 상태가 맞는지
+        if(!projectEntityWrapper.get().getStatus().equals("수령전")) {
+            return null;
+        }
+
+        // 파일이 정상적으로 존재하는지
+        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        File zipFile = new File(zipPath);
+        if(zipFile.exists()) {
+            setNextStatus(projectId);
+            return zipFile;
+        }
+
         return null;
     }
 
