@@ -28,7 +28,7 @@ public class ProjectDto {
     @JsonProperty
     private String subject;
     @JsonProperty
-    private int difficulty;  // 0~5점
+    private float difficulty;  // 0~5점
     @JsonProperty
     private String wayContent;  // 작업 방법
     @JsonProperty
@@ -70,7 +70,7 @@ public class ProjectDto {
 
     @Builder
     public ProjectDto(int projectId, String userId, String projectName, String bucketName, String status,
-                      String workType, String dataType, String subject, int difficulty, String wayContent,
+                      String workType, String dataType, String subject, float difficulty, String wayContent,
                       String conditionContent, String exampleContent, String description,
                       int totalData, int progressData, int validatedData, int cost) {
 

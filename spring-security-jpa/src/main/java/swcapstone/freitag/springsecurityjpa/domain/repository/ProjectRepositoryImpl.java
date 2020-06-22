@@ -21,7 +21,7 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<ProjectEntity> projectSearch(String workType, String dataType, String subject, int difficulty) {
+    public List<ProjectEntity> projectSearch(String workType, String dataType, String subject) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
@@ -31,7 +31,6 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
                 .where(eqWorkType(workType),
                         eqDataType(dataType),
                         eqSubject(subject),
-                        eqDifficulty(difficulty),
                         eqStatus("진행중")
                         )
                 .fetch();
@@ -71,17 +70,6 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
             return null;
         }
         return projectEntity.subject.eq(subject);
-    }
-
-    private BooleanExpression eqDifficulty(int difficulty) {
-        if (StringUtils.isEmpty(difficulty)) {
-            return null;
-        }
-
-        if( difficulty == -1) {
-            return null;
-        }
-        return projectEntity.difficulty.eq(difficulty);
     }
 
     private BooleanExpression eqStatus(String status) {

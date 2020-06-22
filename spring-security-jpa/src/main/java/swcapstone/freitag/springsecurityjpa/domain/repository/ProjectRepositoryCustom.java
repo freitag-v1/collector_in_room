@@ -6,6 +6,6 @@ import java.util.List;
 
 public interface ProjectRepositoryCustom {
 
-    List<ProjectEntity> projectSearch(String workType, String dataType, String subject, int difficulty);
+    List<ProjectEntity> projectSearch(String workType, String dataType, String subject);
     List<ProjectEntity> labellingProjectSearch(String workType, String dataType, int limit);
 }

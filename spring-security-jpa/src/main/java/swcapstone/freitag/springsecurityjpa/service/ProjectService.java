@@ -298,7 +298,7 @@ public class ProjectService {
         String subject = requestService.getSubjectP(request);
         int difficulty = requestService.getDifficultyP(request);
 
-        List<ProjectEntity> projectEntityList = projectRepositoryImpl.projectSearch(workType, dataType, subject, difficulty);
+        List<ProjectEntity> projectEntityList = projectRepositoryImpl.projectSearch(workType, dataType, subject);
 
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
@@ -389,21 +389,19 @@ public class ProjectService {
             // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
             int cost = projectEntity.get().getCost();
             // 난이도
-            int difficulty = projectEntity.get().getDifficulty() / projectEntity.get().getValidatedData();
-            difficulty = (int)(6 - (difficulty * 5));
+            int difficulty = (int)(projectEntity.get().getDifficulty() / projectEntity.get().getValidatedData());
+            difficulty = 6 - (difficulty * 5);
 
             int finalCost = projectEntity.get().getValidatedData();
             // 최종 비용 결정해야 되는데 ..
             switch (difficulty) {
-                case 5:
+                case 4:
                     finalCost *= 100;
                     break;
-                case 4:
+                case 3:
                     finalCost *= 75;
                     break;
-                case 3:
-                case 2:
-                case 1:
+                default:
                     finalCost *= 50;
                     break;
             }
