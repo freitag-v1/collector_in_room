@@ -164,7 +164,7 @@ public class UserService implements UserDetailsService {
 
     // 계좌이체 결제
     @Transactional
-    public boolean accountPayment(String userId, int cost, HttpServletResponse response) {
+    public boolean accountPayment(String userId, String memo, int cost, HttpServletResponse response) {
 
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
@@ -172,19 +172,36 @@ public class UserService implements UserDetailsService {
         int openbankingNum = userEntityWrapper.get().getUserOpenBankingNum();
         if(openbankingNum == 0) {
             response.setHeader("state", openbankingAccessToken);
-        } else if(OpenBankingClient.getInstance().withdraw(openbankingAccessToken, openbankingNum,"프로젝트 생성", cost)) {
-            response.setHeader("payment", "success");
+        } else if(cost < 0) {
+            if(OpenBankingClient.getInstance().deposit(openbankingAccessToken, openbankingNum, memo, cost)) {
+                response.setHeader("payment", "success");
 
-            String phoneNumber = userEntityWrapper.get().getUserPhone();
-            String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
-            try {
-                smsClient.sendSMS(phoneNumber, msg);
-            } catch (IOException e) {
-                e.printStackTrace();
+                String phoneNumber = userEntityWrapper.get().getUserPhone();
+                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
+                try {
+                    smsClient.sendSMS(phoneNumber, msg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return true;
             }
+        } else if(cost > 0) {
+            if(OpenBankingClient.getInstance().withdraw(openbankingAccessToken, openbankingNum, memo, cost)) {
+                response.setHeader("payment", "success");
+
+                String phoneNumber = userEntityWrapper.get().getUserPhone();
+                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", cost);
+                try {
+                    smsClient.sendSMS(phoneNumber, msg);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return true;
+            }
+        } else {
+            response.setHeader("payment", "success");
             return true;
         }
-
         response.setHeader("payment", "fail");
         return false;
 

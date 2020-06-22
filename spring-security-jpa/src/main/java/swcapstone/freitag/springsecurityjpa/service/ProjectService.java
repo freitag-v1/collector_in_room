@@ -216,21 +216,41 @@ public class ProjectService {
         return false;
     }
 
-    // 결제 후 프로젝트 상태 없음 -> 진행중 변경
+    // 결제 후 프로젝트 상태 없음 -> 진행중 -> 결제완료 -> 수령전 -> 수령완료 변경
     @Transactional
-    public void setStatus(int projectId, HttpServletResponse response) {
+    public void setNextStatus(int projectId, HttpServletResponse response) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
-        if(! projectEntityWrapper.get().getStatus().equals("없음"))
-            return;
+        if(projectEntityWrapper.get().getStatus().equals("없음")) {
+            projectEntityWrapper.ifPresent(selectProject -> {
+                selectProject.setStatus("진행중");
 
-        projectEntityWrapper.ifPresent(selectProject -> {
-            selectProject.setStatus("진행중");
+                projectRepository.save(selectProject);
+                response.setHeader("status", "진행중");
+            });
+        } else if(projectEntityWrapper.get().getStatus().equals("진행중")) {
+            projectEntityWrapper.ifPresent(selectProject -> {
+                selectProject.setStatus("결제완료");
 
-            projectRepository.save(selectProject);
-            response.setHeader("status", "진행중");
-        });
+                projectRepository.save(selectProject);
+                response.setHeader("status", "결제완료");
+            });
+        } else if(projectEntityWrapper.get().getStatus().equals("결제완료")) {
+            projectEntityWrapper.ifPresent(selectProject -> {
+                selectProject.setStatus("수령전");
+
+                projectRepository.save(selectProject);
+                response.setHeader("status", "수령전");
+            });
+        }else if(projectEntityWrapper.get().getStatus().equals("수령전")) {
+            projectEntityWrapper.ifPresent(selectProject -> {
+                selectProject.setStatus("수령완료");
+
+                projectRepository.save(selectProject);
+                response.setHeader("status", "수령완료");
+            });
+        }
     }
 
     public int calculateBasicCost(int totalData) {
@@ -358,22 +378,39 @@ public class ProjectService {
 
 
     // 프로젝트 종료
-    public void terminateProject(String userId, int projectId, HttpServletResponse response) {
-
+    public Integer calculateFinalCost(String userId, int projectId, HttpServletResponse response) {
         Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
 
         if (projectEntity.isEmpty()) {
-            response.setHeader("project", "fail");
-            return;
+            return null;
         }
 
         if (projectEntity.get().getUserId().equals(userId)) {
             // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
             int cost = projectEntity.get().getCost();
             // 난이도
-            int difficulty = projectEntity.get().getDifficulty();
+            int difficulty = projectEntity.get().getDifficulty() / projectEntity.get().getValidatedData();
+            difficulty = (int)(6 - (difficulty * 5));
 
+            int finalCost = projectEntity.get().getValidatedData();
             // 최종 비용 결정해야 되는데 ..
+            switch (difficulty) {
+                case 5:
+                    finalCost *= 100;
+                    break;
+                case 4:
+                    finalCost *= 75;
+                    break;
+                case 3:
+                case 2:
+                case 1:
+                    finalCost *= 50;
+                    break;
+            }
+            finalCost -= cost;
+            return finalCost;
+        } else {
+            return null;
         }
     }
 

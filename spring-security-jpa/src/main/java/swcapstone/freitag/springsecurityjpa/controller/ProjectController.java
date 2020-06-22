@@ -10,7 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
-import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
@@ -18,9 +17,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 public class ProjectController {
@@ -112,9 +109,9 @@ public class ProjectController {
 
             int cost = projectService.getCost(projectId);
 
-            if(userService.accountPayment(userId, cost, response)) {
+            if(userService.accountPayment(userId, "프로젝트 생성", cost, response)) {
 
-                projectService.setStatus(projectId, response);
+                projectService.setNextStatus(projectId, response);
 
                 if(projectService.isCollection(projectId)) {
                     projectService.createProblem(projectId, response);
@@ -141,7 +138,7 @@ public class ProjectController {
 
             if(userService.pointPayment(userId, cost, response)) {
 
-                projectService.setStatus(projectId, response);
+                projectService.setNextStatus(projectId, response);
 
                 if(projectService.isCollection(projectId)) {
                     projectService.createProblem(projectId, response);
@@ -178,7 +175,53 @@ public class ProjectController {
             String userId = authorizationService.getUserId(request);
             int projectId = requestService.getProjectIdP(request);
 
-            projectService.terminateProject(userId, projectId, response);
+            Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
+            if(finalCost == null) {
+                response.setHeader("project", "fail");
+            } else {
+                response.setHeader("project", "success");
+                response.setHeader("finalCost", finalCost.toString());
+            }
+        }
+    }
+
+    // 프로젝트 종료
+    @RequestMapping(value = "/api/project/terminate/account")
+    public void terminateProjectByAccount(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
+            if(finalCost == null) {
+                response.setHeader("payment", "fail");
+            } else {
+                if(userService.accountPayment(userId, "프로젝트 종료", finalCost, response)) {
+                    projectService.setNextStatus(projectId, response);
+                    // 압축 시작
+                }
+            }
+        }
+    }
+
+    // 프로젝트 종료
+    @RequestMapping(value = "/api/project/terminate/point")
+    public void terminateProjectByPoint(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
+            if(finalCost == null) {
+                response.setHeader("project", "fail");
+            } else {
+                if(userService.pointPayment(userId, finalCost, response)) {
+                    projectService.setNextStatus(projectId, response);
+                    // 압축 시작
+                }
+            }
         }
     }
 
