@@ -44,6 +44,16 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
                 .stream().limit(limit).collect(Collectors.toList());
     }
 
+    @Override
+    public long countRightProblems(String userId, String validationStatus) {
+
+        return jpaQueryFactory
+                .selectFrom(problemEntity)
+                .where(eqUserId(userId), eqValidationStatus(validationStatus))
+                .where(problemEntity.answer.eq(problemEntity.finalAnswer))
+                .fetchCount();
+    }
+
     private BooleanExpression eqValidationStatus(String validationStatus) {
         if (StringUtils.isEmpty(validationStatus)) {
             return null;
@@ -56,5 +66,12 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
             return null;
         }
         return problemEntity.projectId.eq(projectId);
+    }
+
+    private BooleanExpression eqUserId(String userId) {
+        if (StringUtils.isEmpty(userId)) {
+            return null;
+        }
+        return problemEntity.userId.eq(userId);
     }
 }

@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
@@ -14,6 +15,7 @@ import java.util.Optional;
 @Service
 public class MyPageService {
 
+    @Autowired
     private UserRepository userRepository;
 
     // 마이페이지 수정

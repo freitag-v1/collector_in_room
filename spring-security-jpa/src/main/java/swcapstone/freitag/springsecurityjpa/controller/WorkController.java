@@ -21,8 +21,6 @@ public class WorkController {
     @Autowired
     AuthorizationService authorizationService;
     @Autowired
-    UserService userService;
-    @Autowired
     ProjectService projectService;
     @Autowired
     WorkService workService;

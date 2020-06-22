@@ -8,7 +8,6 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -17,9 +16,6 @@ import java.util.*;
 
 @Service
 public class ClassificationWorkService extends WorkService {
-
-    @Autowired
-    ProblemRepository problemRepository;
 
     private int getLabellingWorkHistoryIdTurn() {
         Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper =
@@ -427,9 +423,12 @@ public class ClassificationWorkService extends WorkService {
 
         String finalAnswer = findFinalAnswer(isBoundingBox, answers, accuracies);
 
+        // Voting을 할 수 없는 경우
         if (finalAnswer == null) {
             return;
-        } else {
+        }
+        // Voting을 통해 최종 답이 나온 경우
+        else {
             originalProblem.ifPresent(selectProblem -> {
                 selectProblem.setFinalAnswer(finalAnswer);
                 selectProblem.setValidationStatus("검증완료");  // 작업후 -> 검증완료
@@ -462,15 +461,14 @@ public class ClassificationWorkService extends WorkService {
 
             // 난이도 -> difficulty 게산
 
-            System.out.println("========================");
-            System.out.println("교차검증 성공!");
         }
     }
 
+    // 교차검증에 참여하는 작업자의 정확도 계산
     private double calculateAccuracy(String userId) {
 
-        long solvedProblems = problemRepository.countByUserIdAAndValidationStatus(userId, "검증완료");
-        long rightProblems = problemRepository.countRightProblems(userId, "검증완료");
+        long solvedProblems = problemRepository.countByUserIdAndValidationStatus(userId, "검증완료");
+        long rightProblems = problemRepositoryImpl.countRightProblems(userId, "검증완료");
 
         return rightProblems / solvedProblems;
     }

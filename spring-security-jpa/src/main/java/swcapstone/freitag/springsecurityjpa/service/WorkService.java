@@ -21,7 +21,6 @@ public class WorkService {
     ProjectService projectService;
     @Autowired
     RequestService requestService;
-
     @Autowired
     BoundingBoxRepository boundingBoxRepository;
     @Autowired
