@@ -440,7 +440,7 @@ public class ProjectService {
     }
 
     @Async
-    public void zipProject(int projectId) {
+    public void zipProject(String userId, int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         String projectWorkType = projectEntityWrapper.get().getWorkType();
@@ -459,7 +459,12 @@ public class ProjectService {
 
         if(result) {
             setNextStatus(projectId);
-            // 문자 보냄
+            try {
+                smsClient.sendSMS(userId, "[방구석 수집가]\n결과물 다운로드가 준비 완료되었습니다.");
+            } catch (IOException e) {
+                e.printStackTrace();
+                // 관리자에게 문의하세용...
+            }
         } else {
             // 관리자에게 문의하세용...
         }

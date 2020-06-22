@@ -7,14 +7,21 @@ import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
+import swcapstone.freitag.springsecurityjpa.service.UserService;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Base64;
+import java.util.Optional;
 
 @Service
 public class SMSClient {
+    @Autowired
+    UserRepository userRepository;
 
     private final String sms_url = "https://sslsms.cafe24.com/sms_sender.php";
     private final String user_id = "ung27540421";
@@ -45,7 +52,10 @@ public class SMSClient {
         return new String(Base64.getDecoder().decode(str));
     }
 
-    public boolean sendSMS(String rphone, String msg) throws IOException {
+    public boolean sendSMS(String userId, String msg) throws IOException {
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String rphone = userEntityWrapper.get().getUserPhone();
+
         HttpClient httpClient = new DefaultHttpClient();
         MultipartEntityBuilder builder = MultipartEntityBuilder.create();
         builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
