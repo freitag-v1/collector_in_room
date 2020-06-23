@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import com.google.gson.Gson;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -405,29 +406,30 @@ public class ProjectService {
         JSONArray problemArr = new JSONArray();
 
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
-        if (projectEntityWrapper.get().getDataType().equals("boundingBox")) {
+        Boolean isBoundingBox;
 
-            System.out.println("========================");
-            System.out.println("바운딩 박스 작업");
+        if (projectEntityWrapper.get().getDataType().equals("boundingBox"))
+            isBoundingBox = true;
+        else
+            isBoundingBox = false;
 
-            for (ProblemEntity p : validatedProblems) {
-                int problemId = p.getProblemId();
+        for (ProblemEntity p : validatedProblems) {
 
-                JSONObject eachProblem = new JSONObject();
+            int problemId = p.getProblemId();
+            String objectName = p.getObjectName();
+            String finalAnswer = p.getFinalAnswer();
 
-                String objectName = p.getObjectName();
+            JSONObject eachProblem = new JSONObject();
 
-                JSONObject problemDetails = new JSONObject();
-                problemDetails.put("objectName", objectName);
+            JSONObject problemDetails = new JSONObject();
+            problemDetails.put("objectName", objectName);
 
-                String finalAnswer = p.getFinalAnswer();
+            if (isBoundingBox) {
                 String[] boxIds = finalAnswer.split(" ");
 
                 JSONArray boxArr = new JSONArray();
                 for(String s : boxIds) {
                     int boxId = Integer.parseInt(s);
-                    System.out.println("========================");
-                    System.out.println("boxId : " + boxId);
 
                     Optional<BoundingBoxEntity> boundingBoxEntity = boundingBoxRepository.findByBoxId(boxId);
                     String className = boundingBoxEntity.get().getClassName();
@@ -441,26 +443,13 @@ public class ProjectService {
                 }
 
                 problemDetails.put("boundingBoxList", boxArr);
-                eachProblem.put(String.valueOf(problemId), problemDetails);
-                problemArr.put(eachProblem);
-            }
-
-        } else {
-
-            for (ProblemEntity p : validatedProblems) {
-                int problemId = p.getProblemId();
-                String objectName = p.getObjectName();
+            } else {
                 String className = p.getFinalAnswer();
-
-                JSONObject eachProblem = new JSONObject();
-
-                JSONObject problemDetails = new JSONObject();
-                problemDetails.put("objectName", objectName);
                 problemDetails.put("className", className);
-
-                eachProblem.put(String.valueOf(problemId), problemDetails);
-                problemArr.put(eachProblem);
             }
+
+            eachProblem.put(String.valueOf(problemId), problemDetails);
+            problemArr.put(eachProblem);
         }
 
         JSONObject jsonObject = new JSONObject();
