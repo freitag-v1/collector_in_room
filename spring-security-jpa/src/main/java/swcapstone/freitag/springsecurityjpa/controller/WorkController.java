@@ -63,7 +63,7 @@ public class WorkController {
 
         if (authorizationService.isAuthorized((request))) {
             String userId = authorizationService.getUserId(request);
-            return classificationWorkService.provideClassificationProblems(userId, request, response);
+            return classificationWorkService.provideClassificationProblems(userId, response);
         }
 
         return null;
@@ -99,13 +99,13 @@ public class WorkController {
 
     // 라벨링 이미지 바운딩 작업
     @RequestMapping(value = "/api/work/boundingbox", method = RequestMethod.POST)
-    public void labellingBoundingBoxWork(@RequestBody LinkedHashMap<String, Object> problemIdAnswerMap,
+    public void labellingBoundingBoxWork(@RequestBody LinkedHashMap<String, Object> classNameBoundingBoxCoordinates,
                               HttpServletRequest request, HttpServletResponse response) {
 
         if (authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
 
-            if(boundingBoxWorkService.boundingBoxWork(userId, problemIdAnswerMap, request, response)) {
+            if(boundingBoxWorkService.boundingBoxWork(userId, classNameBoundingBoxCoordinates, request, response)) {
                 response.setHeader("answer", "success");
             }
 

@@ -59,11 +59,6 @@ public class RequestService {
         return Integer.parseInt(strProblemId);
     }
 
-    protected int getDifficultyP(HttpServletRequest request) {
-        String strDifficulty = request.getParameter("difficulty");
-        return Integer.parseInt(strDifficulty);
-    }
-
     // Header
     public int getProjectIdH(HttpServletRequest request) {
         String strProjectId = request.getHeader("projectId");

@@ -46,7 +46,7 @@ public class ProjectService {
     protected int problemIdTurn;
 
     private int getProjectIdTurn() {
-        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findTopByOrderByIdDesc();
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findTopByOrderByProjectIdDesc();
 
         if (projectEntityWrapper.isEmpty())
             return 1;
@@ -56,7 +56,7 @@ public class ProjectService {
     }
 
     protected int getProblemIdTurn() {
-        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findTopByOrderByIdDesc();
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findTopByOrderByProblemIdDesc();
 
         if (problemEntityWrapper.isEmpty())
             return 1;
@@ -273,9 +273,8 @@ public class ProjectService {
         String workType = requestService.getWorkTypeP(request);
         String dataType = requestService.getDataTypeP(request); // image, audio, text / boundingBox, classfication
         String subject = requestService.getSubjectP(request);
-        int difficulty = requestService.getDifficultyP(request);
 
-        List<ProjectEntity> projectEntityList = projectRepositoryImpl.projectSearch(workType, dataType, subject, difficulty);
+        List<ProjectEntity> projectEntityList = projectRepositoryImpl.projectSearch(workType, dataType, subject);
 
         if(!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
@@ -329,7 +328,7 @@ public class ProjectService {
                 int problemId = this.problemIdTurn;
 
                 ProblemDto problemDto = new ProblemDto(problemId, projectId, -1
-                        , bucketName, null, null, null, "작업전", null);
+                        , bucketName, null, null, null, "작업전", null, null);
 
                 if (problemRepository.save(problemDto.toEntity()) == null) {
                     response.setHeader("createProblem"+problemDto.getProblemId(), "fail");
@@ -388,6 +387,10 @@ public class ProjectService {
 
             progressData += numbOfProb;
             selectProject.setProgressData(progressData);
+
+            if (selectProject.getTotalData() == selectProject.getProgressData()) {
+                selectProject.setStatus("검증대기");    // 작업후 -> 검증대기
+            }
 
             projectRepository.save(selectProject);
         });

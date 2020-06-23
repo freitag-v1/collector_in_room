@@ -10,6 +10,8 @@ import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -34,10 +36,11 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
 
-            int num = (int) (Math.random() * 100) + 1;  // 1 ~ 100
+            SimpleDateFormat format = new SimpleDateFormat("MMddHHmm"); // 월일시분
+            Date time = new Date();
 
             // 버킷 생성
-            String bucketName = userId + num;
+            String bucketName = userId + format.format(time);
             if(objectStorageApiClient.putBucket(bucketName)) {
                 // 버킷 생성되면 수집 프로젝트 생성에 필요한 사용자 입력 필드와 함께 디비 저장
                 projectService.createProject(request, userId, bucketName, response);

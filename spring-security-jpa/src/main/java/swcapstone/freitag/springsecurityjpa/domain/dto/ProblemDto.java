@@ -18,7 +18,7 @@ public class ProblemDto {
     private String finalAnswer;
     private String validationStatus;
     private String userId;
-
+    private String level;
 
     public ProblemEntity toEntity() {
         return ProblemEntity.builder()
@@ -31,13 +31,14 @@ public class ProblemDto {
                 .finalAnswer(finalAnswer)
                 .validationStatus(validationStatus)
                 .userId(userId)
+                .level(level)
                 .build();
     }
 
 
     @Builder
     public ProblemDto(int problemId, int projectId, int referenceId, String bucketName, String objectName,
-                      String answer, String finalAnswer, String validationStatus, String userId) {
+                      String answer, String finalAnswer, String validationStatus, String userId, String level) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
@@ -47,5 +48,6 @@ public class ProblemDto {
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
         this.userId = userId;
+        this.level = level;
     }
 }

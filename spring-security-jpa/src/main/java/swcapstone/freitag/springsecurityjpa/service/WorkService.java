@@ -53,7 +53,7 @@ public class WorkService {
             Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
             if (projectEntityWrapper.isEmpty()) {
                 System.out.println("========================");
-                System.out.println("problemEntityWrapper.isEmpty()");
+                System.out.println("projectEntityWrapper.isEmpty()");
                 return null;
             }
 
@@ -68,6 +68,7 @@ public class WorkService {
         return results;
     }
 
+
     @Transactional
     protected boolean saveAnswer(int problemId, String answer, String userId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
@@ -81,17 +82,20 @@ public class WorkService {
         problemEntityWrapper.ifPresent(selectProblem -> {
 
             // 수집/분류 작업은 작업자가 선택한 className을 answer에 저장
-            // 바운딩박스 작업은 ..
             selectProblem.setAnswer(answer);
             // 작업자의 userID를 저장
             selectProblem.setUserId(userId);
+
+            // 사용자 검증 문제는 바로 결과를 냄
+            if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer())) {
+                selectProblem.setRightAnswer(true);
+            }
 
             problemRepository.save(selectProblem);
         });
 
         return true;
     }
-
 
 
     protected void withBoundingBoxDtos(List<ProblemDtoWithClassDto> problemDtoWithClassDtos) {
@@ -135,17 +139,23 @@ public class WorkService {
     }
 
     // 교차검증 문제(2개) 생성하기
-    protected void crossValidationProblems(List<ProblemEntity> selectedProblems) {
+    @Transactional
+    protected void crossValidationProblems(List<ProblemEntity> selectedProblems, String level) {
 
         List<ProblemEntity> crossValidationProblems =
-                problemRepositoryImpl.validations("교차검증전", 2);
+                problemRepositoryImpl.crossValidations("교차검증전", level, 2);
+
+        for (ProblemEntity p : crossValidationProblems) {
+            p.setValidationStatus("교차검증중");
+            problemRepository.save(p);
+        }
 
         selectedProblems.addAll(crossValidationProblems);
     }
 
     // 교차검증 문제 생성 (작업자가 한 문제 풀 때마다 2개씩 생성)
     @Transactional
-    protected void createCrossValidationProblem(int projectId, int problemId) {
+    protected void createCrossValidationProblem(int problemId) {
 
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
@@ -155,23 +165,82 @@ public class WorkService {
             return;
         }
 
+        // 검증 대상 문제의 projectId
+        int projectId = problemEntityWrapper.get().getProjectId();
         // 검증 대상 문제의 파일을 담은 bucketName
         String bucketName = problemEntityWrapper.get().getBucketName();
         // 검증 대상 문제의 파일 objectName
         String objectName = problemEntityWrapper.get().getObjectName();
-        // 검증 대상 문제의 answer
-        String answer = problemEntityWrapper.get().getAnswer();
+        // 검증 대상 문제의 level
+        String level = problemEntityWrapper.get().getLevel();
+
+        String[] levelList;
+        if (level.equals("상"))
+            levelList = new String[]{"상", "중", "중", "하"};
+        else if (level.equals("중"))
+            levelList = new String[]{"상", "상", "중", "하"};
+        else
+            levelList = new String[]{"상", "상", "중", "중"};
+
+        if (levelList.length != 4) {
+            System.out.println("========================");
+            System.out.println("등급 구성 에러 발생함");
+            return;
+        }
 
         // 한 문제에 대한 교차검증 문제 2개만 만든다고 가정
         for(int i = 0; i < 4; i++) {
             int cvProblemId = projectService.getProblemIdTurn();
-            // problemId, projectId, referenceId, bucketName, objectName, answer, finalAnswer, validationStatus, userId
+            // problemId, projectId, referenceId, bucketName, objectName, answer, finalAnswer, validationStatus, userId, level
             ProblemDto problemDto = new ProblemDto(cvProblemId, projectId, problemId,
-                    bucketName, objectName, answer, "없음", "교차검증전", "");
+                    bucketName, objectName, "없음", "없음", "교차검증전", null, levelList[i]);
             problemRepository.save(problemDto.toEntity());
         }
+    }
 
-        return;
+    // 교차검증에 참여하는 작업자의 정확도 계산
+    private double calculateAccuracy(String userId) {
+
+        double solvedProblems = problemRepository.countByUserIdAndValidationStatus(userId, "검증완료");
+        double rightProblems = problemRepository.countByUserIdAndValidationStatusAndRightAnswer(userId, "검증완료", true);
+
+        if (solvedProblems == 0)
+            return 0;
+
+        double userAccuracy = rightProblems / solvedProblems;
+
+        System.out.println("========================");
+        System.out.println("userAccuracy: " + userAccuracy);
+
+        return userAccuracy;
+    }
+
+    // 교차검증에 참여하는 작업자의 레벨 산출
+    protected String getLevel(String userId) {
+
+        double userAccuracy = calculateAccuracy(userId);
+
+        if (userAccuracy > 0.9)
+            return "상";
+        else if (userAccuracy > 0.8)
+            return "중";
+        else
+            return "하";
+    }
+
+    @Transactional
+    protected void updateLevel(String userId, int problemId) {
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+
+        String level = getLevel(userId);
+
+        System.out.println("========================");
+        System.out.println(userId + "님의 level은 " + level);
+
+        problemEntityWrapper.ifPresent(selectProblem -> {
+            selectProblem.setLevel(level);
+            problemRepository.save(selectProblem);
+        });
     }
 
     // 본인이 작업한 목록 확인

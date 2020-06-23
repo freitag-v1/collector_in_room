@@ -40,7 +40,6 @@ public class UserService implements UserDetailsService {
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
         Optional<UserEntity> loginedUser = userRepository.findByUserId(userId);
 
-
         loginedUser.ifPresent(selectedUser -> {
 
             if(oneDay < currentTime.getTime() - selectedUser.getUserLastVisit().getTime()) {
@@ -49,10 +48,11 @@ public class UserService implements UserDetailsService {
                     selectedUser.setUserLastVisit(currentTime);
                     selectedUser.setTotalPoint(selectedUser.getTotalPoint() + 100);
                     selectedUser.setPoint(selectedUser.getPoint() + 100);
-                    response.setHeader("reward", "true");
                 }
             }
         });
+
+        response.setHeader("reward", "true");
     }
 
     @Transactional
@@ -150,7 +150,6 @@ public class UserService implements UserDetailsService {
 
             userEntityWrapper.ifPresent(selectUser -> {
                 selectUser.setPoint(point - cost);
-
                 userRepository.save(selectUser);
             });
 
