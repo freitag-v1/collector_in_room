@@ -1,5 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -12,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -162,15 +164,16 @@ public class ProjectController {
         return null;
     }
 
-    // 프로젝트 종료
-    @RequestMapping(value = "/api/project/terminate")
-    public void terminateProject(HttpServletRequest request, HttpServletResponse response) {
+
+    // 검증완료 문제 상세페이지
+    @RequestMapping(value = "/api/project/crossvalidation")
+    public String getCrossValidationDetails(HttpServletRequest request, HttpServletResponse response) {
         if(authorizationService.isAuthorized(request)) {
-
-            String userId = authorizationService.getUserId(request);
-            int projectId = requestService.getProjectIdP(request);
-
-            projectService.terminateProject(userId, projectId, response);
+            return projectService.getCrossValidationDetails(request, response).toString();
         }
+
+        response.setHeader("login", "fail");
+        return null;
     }
+
 }

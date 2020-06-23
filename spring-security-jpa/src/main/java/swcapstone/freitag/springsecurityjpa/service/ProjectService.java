@@ -1,5 +1,8 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
+import com.google.gson.Gson;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -9,19 +12,18 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepositoryImpl;
+import swcapstone.freitag.springsecurityjpa.domain.repository.*;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +42,8 @@ public class ProjectService {
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
     ProblemRepository problemRepository;
+    @Autowired
+    BoundingBoxRepository boundingBoxRepository;
 
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
@@ -88,7 +92,7 @@ public class ProjectService {
         ProjectDto projectDto = new ProjectDto(projectId, userId, projectName, bucketName, "없음", workType, dataType, subject,
                 0, wayContent, conditionContent, "없음", description, totalData, 0, 0, 0);
 
-        if(projectRepository.save(projectDto.toEntity()) == null) {
+        if (projectRepository.save(projectDto.toEntity()) == null) {
             response.setHeader("create", "fail");
             return;
         }
@@ -103,16 +107,16 @@ public class ProjectService {
 
         String[] classNameList = requestService.getClassNameListP(request);
 
-        if(classNameList == null) {
+        if (classNameList == null) {
             response.setHeader("class", "fail");
             return;
         }
 
         int projectId = requestService.getProjectIdP(request);
 
-        for(String className : classNameList) {
+        for (String className : classNameList) {
             ClassDto classDto = new ClassDto(projectId, className);
-            if(classRepository.save(classDto.toEntity()) == null) {
+            if (classRepository.save(classDto.toEntity()) == null) {
                 response.setHeader("class", "fail");
                 return;
             }
@@ -140,16 +144,16 @@ public class ProjectService {
 
         int projectId = setExampleContent(bucketName, exampleContent, response);
 
-        if(projectId != -1) {
+        if (projectId != -1) {
 
             // 수집 프로젝트이던 라벨링 프로젝트이던 projetId 알려줌
             response.setHeader("projectId", String.valueOf(projectId));
 
             // 수집 프로젝트는 예시 데이터 업로드 성공하면 바로 결제할 수 있도록 cost 계산해서 헤더에 쓰기
-            if(isCollection(projectId))
+            if (isCollection(projectId))
                 setCost(projectId, response);
 
-            // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
+                // System.out.println("status: 없음 - 결제만 하면 됨. 그 외 프로젝트 생성 작업은 모두 완료");
             else
                 response.setHeader("bucketName", bucketName);
         }
@@ -158,14 +162,14 @@ public class ProjectService {
     @Transactional
     protected int setExampleContent(String bucketName, String exampleContent, HttpServletResponse response) {
 
-        if(exampleContent == null)
+        if (exampleContent == null)
             return -1;
 
         // System.out.println("exampleContent: "+exampleContent);
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByBucketName(bucketName);
 
         // status 없음 아니라면 -1 리턴
-        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+        if (!projectEntityWrapper.get().getStatus().equals("없음"))
             return -1;
 
         projectEntityWrapper.ifPresent(selectProject -> {
@@ -183,22 +187,22 @@ public class ProjectService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
-        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+        if (!projectEntityWrapper.get().getStatus().equals("없음"))
             return;
 
         int totalData = projectEntityWrapper.get().getTotalData();
         int cost = calculateBasicCost(totalData);
 
         // cost 계산이 잘못 되었으면 종료
-        if( cost == -1) {
+        if (cost == -1) {
             return;
         }
 
         projectEntityWrapper.ifPresent(selectProject -> {
-           selectProject.setCost(cost);
+            selectProject.setCost(cost);
 
             projectRepository.save(selectProject);
-           response.setHeader("cost", String.valueOf(cost));
+            response.setHeader("cost", String.valueOf(cost));
         });
 
     }
@@ -206,8 +210,8 @@ public class ProjectService {
     public boolean isCollection(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if(projectEntityWrapper.isPresent() &
-            projectEntityWrapper.get().getWorkType().equals("collection"))
+        if (projectEntityWrapper.isPresent() &
+                projectEntityWrapper.get().getWorkType().equals("collection"))
             return true;
 
         return false;
@@ -219,7 +223,7 @@ public class ProjectService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
-        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+        if (!projectEntityWrapper.get().getStatus().equals("없음"))
             return;
 
         projectEntityWrapper.ifPresent(selectProject -> {
@@ -239,10 +243,10 @@ public class ProjectService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
-        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+        if (!projectEntityWrapper.get().getStatus().equals("없음"))
             return -1;
 
-        if(projectEntityWrapper.isPresent()) {
+        if (projectEntityWrapper.isPresent()) {
             return projectEntityWrapper.get().getCost();
         }
 
@@ -254,10 +258,10 @@ public class ProjectService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         // status 없음 아니라면 종료
-        if(! projectEntityWrapper.get().getStatus().equals("없음"))
+        if (!projectEntityWrapper.get().getStatus().equals("없음"))
             return null;
 
-        if(projectEntityWrapper.isPresent()) {
+        if (projectEntityWrapper.isPresent()) {
             return projectEntityWrapper.get().getBucketName();
         }
 
@@ -276,7 +280,7 @@ public class ProjectService {
 
         List<ProjectEntity> projectEntityList = projectRepositoryImpl.projectSearch(workType, dataType, subject);
 
-        if(!projectEntityList.isEmpty()) {
+        if (!projectEntityList.isEmpty()) {
             List<ProjectDto> searchResults = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
 
             // 클래스 정보도 함께 주기 위해서 ProjectDto -> ProjectDtoWithClassDto 변환
@@ -292,12 +296,12 @@ public class ProjectService {
 
     private List<ProjectDtoWithClassDto> withClassDtos(List<ProjectDto> projectDtos) {
 
-        if(projectDtos.isEmpty())
+        if (projectDtos.isEmpty())
             return null;
 
         List<ProjectDtoWithClassDto> results = new ArrayList<>();
 
-        for(ProjectDto p : projectDtos) {
+        for (ProjectDto p : projectDtos) {
 
             int projectId = p.getProjectId();
 
@@ -322,7 +326,7 @@ public class ProjectService {
         if (projectEntityWrapper.get().getStatus().equals("진행중")) {
             int totalData = projectEntityWrapper.get().getTotalData();
 
-            for(int i = 0; i < totalData; i++) {
+            for (int i = 0; i < totalData; i++) {
 
                 problemIdTurn = getProblemIdTurn();
                 int problemId = this.problemIdTurn;
@@ -331,7 +335,7 @@ public class ProjectService {
                         , bucketName, null, null, null, "작업전", null, null);
 
                 if (problemRepository.save(problemDto.toEntity()) == null) {
-                    response.setHeader("createProblem"+problemDto.getProblemId(), "fail");
+                    response.setHeader("createProblem" + problemDto.getProblemId(), "fail");
                     break;
                 }
             }
@@ -350,27 +354,6 @@ public class ProjectService {
 
         List<ProjectDto> projectDtoList = ObjectMapperUtils.mapAll(projectEntityList, ProjectDto.class);
         return withClassDtos(projectDtoList);
-    }
-
-
-    // 프로젝트 종료
-    public void terminateProject(String userId, int projectId, HttpServletResponse response) {
-
-        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
-
-        if (projectEntity.isEmpty()) {
-            response.setHeader("project", "fail");
-            return;
-        }
-
-        if (projectEntity.get().getUserId().equals(userId)) {
-            // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
-            int cost = projectEntity.get().getCost();
-            // 난이도
-            int difficulty = projectEntity.get().getDifficulty();
-
-            // 최종 비용 결정해야 되는데 ..
-        }
     }
 
 
@@ -402,6 +385,87 @@ public class ProjectService {
 
         int limit = projectEntityWrapper.get().getTotalData() - projectEntityWrapper.get().getProgressData();
         return limit;
+    }
+
+
+    // 검증 완료 문제 주기
+    public JSONObject getCrossValidationDetails(HttpServletRequest request, HttpServletResponse response) {
+        int projectId = requestService.getProjectIdP(request);
+
+        JSONObject jsonObject = findValidatedData(projectId);
+        return jsonObject;
+    }
+
+    @Transactional
+    protected JSONObject findValidatedData(int projectId) {
+        // 의뢰자가 만든 검증완료된 문제들(원본) 가져오기
+        List<ProblemEntity> validatedProblems =
+                problemRepository.findAllByProjectIdAndReferenceIdAndValidationStatus(projectId, -1, "검증완료");
+
+        JSONArray problemArr = new JSONArray();
+
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+        if (projectEntityWrapper.get().getDataType().equals("boundingBox")) {
+
+            System.out.println("========================");
+            System.out.println("바운딩 박스 작업");
+
+            for (ProblemEntity p : validatedProblems) {
+                int problemId = p.getProblemId();
+
+                JSONObject eachProblem = new JSONObject();
+
+                String objectName = p.getObjectName();
+
+                JSONObject problemDetails = new JSONObject();
+                problemDetails.put("objectName", objectName);
+
+                String finalAnswer = p.getFinalAnswer();
+                String[] boxIds = finalAnswer.split(" ");
+
+                JSONArray boxArr = new JSONArray();
+                for(String s : boxIds) {
+                    int boxId = Integer.parseInt(s);
+                    System.out.println("========================");
+                    System.out.println("boxId : " + boxId);
+
+                    Optional<BoundingBoxEntity> boundingBoxEntity = boundingBoxRepository.findByBoxId(boxId);
+                    String className = boundingBoxEntity.get().getClassName();
+                    String coordinates = boundingBoxEntity.get().getCoordinates();
+
+                    JSONObject boxDetails = new JSONObject();
+                    boxDetails.put("className", className);
+                    boxDetails.put("coordinates", coordinates);
+
+                    boxArr.put(boxDetails);
+                }
+
+                problemDetails.put("boundingBoxList", boxArr);
+                eachProblem.put(String.valueOf(problemId), problemDetails);
+                problemArr.put(eachProblem);
+            }
+
+        } else {
+
+            for (ProblemEntity p : validatedProblems) {
+                int problemId = p.getProblemId();
+                String objectName = p.getObjectName();
+                String className = p.getFinalAnswer();
+
+                JSONObject eachProblem = new JSONObject();
+
+                JSONObject problemDetails = new JSONObject();
+                problemDetails.put("objectName", objectName);
+                problemDetails.put("className", className);
+
+                eachProblem.put(String.valueOf(problemId), problemDetails);
+                problemArr.put(eachProblem);
+            }
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("problems", problemArr);
+        return jsonObject;
     }
 
 }
