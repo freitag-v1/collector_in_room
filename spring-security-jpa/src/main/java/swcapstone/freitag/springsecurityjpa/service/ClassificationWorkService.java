@@ -226,7 +226,7 @@ public class ClassificationWorkService extends WorkService {
             System.out.println("========================");
             System.out.println("아무도 교차검증에 참여하지 않음");
             return;
-        } else if (crossValidationProblems.size() < 3) {
+        } else if (crossValidationProblems.size() < 4) {
             System.out.println("========================");
             System.out.println("교차검증에 참여한 작업자 수 미달");
             return;
