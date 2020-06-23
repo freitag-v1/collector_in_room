@@ -13,13 +13,11 @@ import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDtoWithClassDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
-import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepositoryImpl;
+import swcapstone.freitag.springsecurityjpa.domain.repository.*;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -49,6 +47,8 @@ public class ProjectService {
     ProblemRepository problemRepository;
     @Autowired
     SMSClient smsClient;
+    @Autowired
+    BoundingBoxRepository boundingBoxRepository;
 
     private static final int COST_PER_DATA = 50;
     private int projectIdTurn;
@@ -496,6 +496,7 @@ public class ProjectService {
 
     private boolean zipLabellingData(int projectId, String projectBucketName) throws Exception {
         String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
         List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
 
         ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
@@ -504,17 +505,35 @@ public class ProjectService {
                 String objectName = problemEntity.getObjectName();
                 S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
                 zipOutputStream.putNextEntry(new ZipEntry(objectName + ".json"));
+
                 HashMap<String, Object> problem = new HashMap<>();
                 problem.put("object_name", objectName);
-                // classification, bounding box에 따라 추가로 put
+                if(projectEntityWrapper.get().getDataType().equals("classification")) {
+                    problem.put("label", problemEntity.getFinalAnswer());
+                } else {
+                    problem.put("boundingBox", getBoundingBox(problemEntity));
+                }
                 JSONObject problemJSON = new JSONObject(problem);
                 zipOutputStream.write(problemJSON.toString().getBytes());
+
                 zipOutputStream.closeEntry();
                 s3ObjectInputStream.close();
             }
         }
         zipOutputStream.close();
         return true;
+    }
+
+    private List<HashMap<String, Object>> getBoundingBox(ProblemEntity problemEntity) {
+        List<HashMap<String, Object>> boundingBoxList = new ArrayList<>();
+        for (String boxId : problemEntity.getFinalAnswer().split(" ")) {
+            Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findByBoxId(Integer.parseInt(boxId));
+            HashMap<String, Object> boundingBox = new HashMap<>();
+            boundingBox.put("label", boundingBoxEntityWrapper.get().getClassName());
+            boundingBox.put("coordinates", boundingBoxEntityWrapper.get().getCoordinates());
+            boundingBoxList.add(boundingBox);
+        }
+        return boundingBoxList;
     }
 
     private boolean zipCollectionData(int projectId, String projectBucketName) throws Exception {
