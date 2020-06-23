@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.zip.ZipEntry;
@@ -495,10 +497,27 @@ public class ProjectService {
         return null;
     }
 
-    private boolean zipLabellingData(int projectId, String projectBucketName) {
+    private boolean zipLabellingData(int projectId, String projectBucketName) throws Exception {
+        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
         List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
 
-        return false;
+        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
+        for(ProblemEntity problemEntity : problemEntityList) {
+            if(problemEntity.getValidationStatus().equals("검증완료")) {
+                String objectName = problemEntity.getObjectName();
+                S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
+                zipOutputStream.putNextEntry(new ZipEntry(objectName + ".json"));
+                HashMap<String, Object> problem = new HashMap<>();
+                problem.put("object_name", objectName);
+                // classification, bounding box에 따라 추가로 put
+                JSONObject problemJSON = new JSONObject(problem);
+                zipOutputStream.write(problemJSON.toString().getBytes());
+                zipOutputStream.closeEntry();
+                s3ObjectInputStream.close();
+            }
+        }
+        zipOutputStream.close();
+        return true;
     }
 
     private boolean zipCollectionData(int projectId, String projectBucketName) throws Exception {
