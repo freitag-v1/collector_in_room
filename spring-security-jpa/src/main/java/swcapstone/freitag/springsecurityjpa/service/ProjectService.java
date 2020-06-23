@@ -222,33 +222,30 @@ public class ProjectService {
         return false;
     }
 
-    // 결제 후 프로젝트 상태 없음 -> 진행중 -> 결제완료 -> 수령전 -> 수령완료 변경
+    // 결제 후 프로젝트 상태 없음 -> 진행중, 검증대기, 검증완료 -> 결제완료 -> 수령전 -> 수령완료 변경
     @Transactional
     public void setNextStatus(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        // status 없음 아니라면 종료
-        if(projectEntityWrapper.get().getStatus().equals("없음")) {
-            projectEntityWrapper.ifPresent(selectProject -> {
-                selectProject.setStatus("진행중");
-                projectRepository.save(selectProject);
-            });
-        } else if(projectEntityWrapper.get().getStatus().equals("진행중")) {
-            projectEntityWrapper.ifPresent(selectProject -> {
-                selectProject.setStatus("결제완료");
-                projectRepository.save(selectProject);
-            });
-        } else if(projectEntityWrapper.get().getStatus().equals("결제완료")) {
-            projectEntityWrapper.ifPresent(selectProject -> {
-                selectProject.setStatus("수령전");
-                projectRepository.save(selectProject);
-            });
-        }else if(projectEntityWrapper.get().getStatus().equals("수령전")) {
-            projectEntityWrapper.ifPresent(selectProject -> {
-                selectProject.setStatus("수령완료");
-                projectRepository.save(selectProject);
-            });
-        }
+        projectEntityWrapper.ifPresent(selectProject -> {
+            switch (selectProject.getStatus()) {
+                case "없음":
+                    selectProject.setStatus("진행중");
+                    break;
+                case "진행중":
+                case "검증대기":
+                case "검증완료":
+                    selectProject.setStatus("결제완료");
+                    break;
+                case "결제완료":
+                    selectProject.setStatus("수령전");
+                    break;
+                case "수령전":
+                    selectProject.setStatus("수령완료");
+                    break;
+            }
+            projectRepository.save(selectProject);
+        });
     }
 
     public int calculateBasicCost(int totalData) {
@@ -383,7 +380,8 @@ public class ProjectService {
             return null;
         }
 
-        if(!projectEntity.get().getStatus().equals("진행중")) {
+        String projectStatus = projectEntity.get().getStatus();
+        if(!(projectStatus.equals("진행중") || projectStatus.equals("검증대기") || projectStatus.equals("검증완료"))) {
             return null;
         }
 
@@ -395,7 +393,6 @@ public class ProjectService {
             difficulty = 6 - (difficulty * 5);
 
             int finalCost = projectEntity.get().getValidatedData();
-            // 최종 비용 결정해야 되는데 ..
             switch (difficulty) {
                 case 4:
                     finalCost *= 100;
@@ -503,7 +500,7 @@ public class ProjectService {
 
         ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
         for(ProblemEntity problemEntity : problemEntityList) {
-            if(problemEntity.getValidationStatus().equals("검증완료")) {
+            if((problemEntity.getValidationStatus().equals("검증완료")) && (problemEntity.getReferenceId() == -1)) {
                 String objectName = problemEntity.getObjectName();
                 S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
                 zipOutputStream.putNextEntry(new ZipEntry(objectName + ".json"));
@@ -527,7 +524,7 @@ public class ProjectService {
         byte[] buf = new byte[4096];
         ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
         for(ProblemEntity problemEntity : problemEntityList) {
-            if(problemEntity.getValidationStatus().equals("검증완료")) {
+            if((problemEntity.getValidationStatus().equals("검증완료")) && (problemEntity.getReferenceId() == -1)) {
                 String objectName = problemEntity.getObjectName();
                 S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
                 zipOutputStream.putNextEntry(new ZipEntry(objectName));
