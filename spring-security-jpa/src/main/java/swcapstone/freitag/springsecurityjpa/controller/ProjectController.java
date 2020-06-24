@@ -215,6 +215,7 @@ public class ProjectController {
             } else {
                 if(userService.accountPayment(userId, "프로젝트 종료", finalCost, response)) {
                     projectService.setNextStatus(projectId);
+                    projectService.deleteNotWorkedProblem(projectId);
                     projectService.zipProject(userId, projectId);
                 }
             }
@@ -235,6 +236,7 @@ public class ProjectController {
             } else {
                 if(userService.pointPayment(userId, finalCost, response)) {
                     projectService.setNextStatus(projectId);
+                    projectService.deleteNotWorkedProblem(projectId);
                     projectService.zipProject(userId, projectId);
                 }
             }
