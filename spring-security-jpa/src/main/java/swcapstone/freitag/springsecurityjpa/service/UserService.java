@@ -114,7 +114,7 @@ public class UserService implements UserDetailsService {
             }
 
             User user = new User(userEntity.getUserId(), userEntity.getUserPassword(), authorityList);
-            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation());
+            return new CustomUser(user, userEntity.getUserName(), userEntity.getUserPhone(), userEntity.getUserEmail(), userEntity.getUserAffiliation(), userEntity.getPoint(), userEntity.getUserAccuracy());
         }
 
         return null;

@@ -20,15 +20,19 @@ public class CustomUser extends User {
     private String userPhone;
     private String userEmail;
     private String userAffiliation;
+    private int userPoint;
+    private double userAccuracy;
 
     public CustomUser(User user, /*boolean enabled, boolean accountNonExpired, boolean credentialsNonExpired, boolean accountNonLocked,*/
-                      String userName, String userPhone, String userEmail, String userAffiliation) {
+                      String userName, String userPhone, String userEmail, String userAffiliation, int userPoint, double userAccuracy) {
         super(user.getUsername(), user.getPassword(), user.getAuthorities());
         this.user = user;
         this.userName = userName;
         this.userPhone = userPhone;
         this.userEmail = userEmail;
         this.userAffiliation = userAffiliation;
+        this.userPoint = userPoint;
+        this.userAccuracy = userAccuracy;
     }
 
 }
