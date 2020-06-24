@@ -39,24 +39,4 @@ public class MyPageService {
         });
     }
 
-    // 사용자 방문일, 전체 포인트, 현재 포인트 정보를 헤더에 저장
-    // 이 3개 필드는 사용자가 마이페이지에서 수정할 수 없음
-    public void getUpdateProhibitedUserInfo(String userId, HttpServletResponse response) {
-        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
-
-        if(userEntityWrapper.isPresent()) {
-            // get() 메소드를 사용하면 Optional 객체에 저장된 값에 접근
-            UserEntity userEntity = userEntityWrapper.get();
-
-            int userVist = userEntity.getUserVisit();
-            response.setHeader("userVisit", String.valueOf(userVist));
-
-            // int totalPoint = userEntity.getTotalPoint();
-            // response.setHeader("totalPoint", String.valueOf(totalPoint));
-
-            int point = userEntity.getPoint();
-            response.setHeader("point", String.valueOf(point));
-        }
-    }
-
 }

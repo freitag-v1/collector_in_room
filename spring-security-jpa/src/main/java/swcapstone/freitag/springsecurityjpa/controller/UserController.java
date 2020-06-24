@@ -68,11 +68,8 @@ public class UserController {
             String userId = authorizationService.getUserId(request);
             CustomUser user = (CustomUser) userService.loadUserByUsername(userId);
             System.out.println(user.getUsername()+" 님의 마이페이지 입니다!");
-            myPageService.getUpdateProhibitedUserInfo(userId, response);
             return user;
-        }
-
-        else {
+        } else {
             System.out.println("로그인부터 하세요.");
             return null;
         }
