@@ -193,29 +193,47 @@ public class UserService implements UserDetailsService {
 
     // 누적 포인트별 랭킹 갱신 기능
     public List<TotalPointRankUserDto> rankingUpdateByTotalPoint(HttpServletResponse response) {
-        List<UserEntity> top10Users = userRepository.findTop3ByOrderByTotalPointDesc();   // 임시로 3명만
+        List<UserEntity> top5Users = userRepository.findTop5ByOrderByTotalPointDesc();
 
-        if(top10Users == null) {
+        if(top5Users == null) {
             response.setHeader("ranking", "fail");
             return null;
         }
 
-        List<TotalPointRankUserDto> top10 = new ArrayList<>();
-        for(UserEntity u : top10Users) {
+        List<TotalPointRankUserDto> top5 = new ArrayList<>();
+        for(UserEntity u : top5Users) {
             String userId = u.getUserId();
             int numOfProblems = (int) problemRepository.countByUserId(userId);
             int totalPoint = u.getTotalPoint();
 
             TotalPointRankUserDto rankUserDto = new TotalPointRankUserDto(userId, numOfProblems, totalPoint);
-            top10.add(rankUserDto);
+            top5.add(rankUserDto);
         }
 
         response.setHeader("ranking", "success");
-        return top10;
+        return top5;
     }
 
     // 정확도별 랭킹 갱신 기능
     public List<AccuracyRankUserDto> rankingUpdateByAccuracy(HttpServletResponse response) {
-        return null;
+        List<UserEntity> top5Users = userRepository.findTop5ByOrderByUserAccuracyDesc();
+
+        if(top5Users == null) {
+            response.setHeader("ranking", "fail");
+            return null;
+        }
+
+        List<AccuracyRankUserDto> top5 = new ArrayList<>();
+        for(UserEntity u : top5Users) {
+            String userId = u.getUserId();
+            int numOfProblems = (int) problemRepository.countByUserId(userId);
+            double userAccuracy = u.getUserAccuracy();
+
+            AccuracyRankUserDto rankUserDto = new AccuracyRankUserDto(userId, numOfProblems, userAccuracy);
+            top5.add(rankUserDto);
+        }
+
+        response.setHeader("ranking", "success");
+        return top5;
     }
 }
