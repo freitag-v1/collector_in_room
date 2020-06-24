@@ -1,15 +1,15 @@
 package swcapstone.freitag.springsecurityjpa.domain.dto;
 
-import lombok.Getter;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-@Getter
-public class RankUserDto {
-
+public abstract class RankUserDto {
+    @JsonProperty
     private String userId;
-    private int totalPoint;
+    @JsonProperty
+    private int numOfProblems;
 
-    public RankUserDto(String userId, int totalPoint) {
+    public RankUserDto(String userId, int numOfProblems) {
         this.userId = userId;
-        this.totalPoint = totalPoint;
+        this.numOfProblems = numOfProblems;
     }
 }

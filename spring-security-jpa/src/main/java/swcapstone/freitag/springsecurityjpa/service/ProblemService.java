@@ -126,6 +126,10 @@ public class ProblemService extends WorkService {
     protected List<ProblemDto> combineProblems(String userId) {
 
         String level = getLevel(userId);
+
+        System.out.println("========================");
+        System.out.println("userId : " + userId + " level : " + level);
+
         List<ProblemEntity> selectedProblems = new ArrayList<>();
 
         // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임

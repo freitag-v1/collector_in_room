@@ -14,10 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
 import swcapstone.freitag.springsecurityjpa.api.SMSClient;
 import swcapstone.freitag.springsecurityjpa.domain.*;
-import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
-import swcapstone.freitag.springsecurityjpa.domain.dto.RankUserDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.*;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -30,6 +29,8 @@ public class UserService implements UserDetailsService {
     // UserDetailsService 는 데이터베이스의 유저정보를 불러오는 역할
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private ProblemRepository problemRepository;
     @Autowired
     private SMSClient smsClient;
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -70,10 +71,11 @@ public class UserService implements UserDetailsService {
         Timestamp userLastVisit = new Timestamp(0);
         int totalPoint = 0;
         int point = 0;
+        double userAccuracy = 0;
 
         UserDto userDto = new UserDto
                 (userId, userPassword, userName, userOpenBankingNum, userOpenBankingAccessToken, userPhone, userEmail, userAffiliation
-                        , userVisit, userLastVisit, totalPoint, point);
+                        , userVisit, userLastVisit, totalPoint, point, userAccuracy);
 
         // System.out.println("암호화 전 비번: "+userDto.getUserPassword());
         // 비밀번호 암호화
@@ -205,24 +207,48 @@ public class UserService implements UserDetailsService {
 
 
     // 누적 포인트별 랭킹 갱신 기능
-    public List<RankUserDto> rankingUpdateByTotalPoint(HttpServletResponse response) {
-        List<UserEntity> top10Users = userRepository.findTop3ByOrderByTotalPointDesc();   // 임시로 3명만
+    public List<TotalPointRankUserDto> rankingUpdateByTotalPoint(HttpServletResponse response) {
+        List<UserEntity> top5Users = userRepository.findTop5ByOrderByTotalPointDesc();
 
-        if(top10Users == null) {
+        if(top5Users == null) {
             response.setHeader("ranking", "fail");
             return null;
         }
 
-        List<RankUserDto> top10 = new ArrayList<>();
-        for(UserEntity u : top10Users) {
-            RankUserDto rankUserDto = new RankUserDto(u.getUserId(), u.getTotalPoint());
-            // System.out.println("=======================================");
-            // System.out.println(rankUserDto.getUserId() + "님의 누적 포인트는 " + rankUserDto.getTotalPoint());
-            top10.add(rankUserDto);
+        List<TotalPointRankUserDto> top5 = new ArrayList<>();
+        for(UserEntity u : top5Users) {
+            String userId = u.getUserId();
+            int numOfProblems = (int) problemRepository.countByUserId(userId);
+            int totalPoint = u.getTotalPoint();
+
+            TotalPointRankUserDto rankUserDto = new TotalPointRankUserDto(userId, numOfProblems, totalPoint);
+            top5.add(rankUserDto);
         }
 
         response.setHeader("ranking", "success");
-        return top10;
+        return top5;
     }
 
+    // 정확도별 랭킹 갱신 기능
+    public List<AccuracyRankUserDto> rankingUpdateByAccuracy(HttpServletResponse response) {
+        List<UserEntity> top5Users = userRepository.findTop5ByOrderByUserAccuracyDesc();
+
+        if(top5Users == null) {
+            response.setHeader("ranking", "fail");
+            return null;
+        }
+
+        List<AccuracyRankUserDto> top5 = new ArrayList<>();
+        for(UserEntity u : top5Users) {
+            String userId = u.getUserId();
+            int numOfProblems = (int) problemRepository.countByUserId(userId);
+            double userAccuracy = u.getUserAccuracy();
+
+            AccuracyRankUserDto rankUserDto = new AccuracyRankUserDto(userId, numOfProblems, userAccuracy);
+            top5.add(rankUserDto);
+        }
+
+        response.setHeader("ranking", "success");
+        return top5;
+    }
 }

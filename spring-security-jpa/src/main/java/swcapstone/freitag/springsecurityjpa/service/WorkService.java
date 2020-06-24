@@ -37,6 +37,8 @@ public class WorkService {
     ProjectRepositoryImpl projectRepositoryImpl;
     @Autowired
     ClassRepository classRepository;
+    @Autowired
+    UserRepository userRepository;
 
 
     protected List<ProblemDtoWithClassDto> withClassDtos(List<ProblemDto> problemDtos) {
@@ -210,7 +212,15 @@ public class WorkService {
         double userAccuracy = rightProblems / solvedProblems;
 
         System.out.println("========================");
-        System.out.println("userAccuracy: " + userAccuracy);
+        System.out.println("rightProblems : " + rightProblems);
+        System.out.println("solvedProblems : " + solvedProblems);
+        System.out.println("userAccuracy : " + userAccuracy);
+
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(selectUser -> {
+            selectUser.setUserAccuracy(userAccuracy);
+            userRepository.save(selectUser);
+        });
 
         return userAccuracy;
     }

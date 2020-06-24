@@ -18,5 +18,6 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {   // J
     // SQL의 where절을 메서드 이름을 통해 전달한다고 생각하면 됨
     Optional<UserEntity> findByUserId(String userId);
     Optional<UserEntity> findByUserOpenBankingAccessToken(String userOpenBankingAccessToken);
-    List<UserEntity> findTop3ByOrderByTotalPointDesc();
+    List<UserEntity> findTop5ByOrderByTotalPointDesc();
+    List<UserEntity> findTop5ByOrderByUserAccuracyDesc();
 }

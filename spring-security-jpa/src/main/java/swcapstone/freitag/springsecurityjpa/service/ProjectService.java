@@ -350,7 +350,7 @@ public class ProjectService {
                 int problemId = this.problemIdTurn;
 
                 ProblemDto problemDto = new ProblemDto(problemId, projectId, -1
-                        , bucketName, null, null, null, "작업전", null, null);
+                        , bucketName, "", "", "", "작업전", "", "");
 
                 if (problemRepository.save(problemDto.toEntity()) == null) {
                     response.setHeader("createProblem" + problemDto.getProblemId(), "fail");
