@@ -448,7 +448,8 @@ public class ProjectService {
                 problemDetails.put("className", className);
             }
 
-            eachProblem.put(String.valueOf(problemId), problemDetails);
+            eachProblem.put("problemId", problemId);
+            eachProblem.put("details", problemDetails);
             problemArr.put(eachProblem);
         }
 

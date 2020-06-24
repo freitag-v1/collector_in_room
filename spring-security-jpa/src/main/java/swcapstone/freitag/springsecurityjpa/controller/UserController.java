@@ -122,6 +122,7 @@ public class UserController {
     // 정확도별 랭킹 갱신 기능
     @RequestMapping(value = "/api/ranking/accuracy")
     public List<RankUserDto> top10SmartUser(HttpServletResponse response) {
-        return userService.rankingUpdateByAccuracy(response);
+        // return userService.rankingUpdateByAccuracy(response);
+        return null;
     }
 }

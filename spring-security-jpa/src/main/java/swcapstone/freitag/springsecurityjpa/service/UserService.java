@@ -210,9 +210,4 @@ public class UserService implements UserDetailsService {
         return top10;
     }
 
-
-    // 정확도별 랭킹 갱신 기능
-    public List<RankUserDto> rankingUpdateByAccuracy(HttpServletResponse response) {
-        
-    }
 }
