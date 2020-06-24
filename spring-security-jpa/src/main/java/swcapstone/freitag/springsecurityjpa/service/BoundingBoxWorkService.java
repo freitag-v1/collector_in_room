@@ -3,6 +3,7 @@ package swcapstone.freitag.springsecurityjpa.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.domain.dto.*;
+import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
@@ -15,8 +16,9 @@ import java.util.*;
 public class BoundingBoxWorkService extends ClassificationWorkService {
 
     // 바운딩 박스 작업을 시작하면 문제 한 세트(5개) 제공
+    @Transactional
     public List<ProblemDtoWithClassDto> provideBoundingBoxProblems
-        (String userId, HttpServletRequest request, HttpServletResponse response) {
+    (String userId, HttpServletRequest request, HttpServletResponse response) {
 
         int projectId = requestService.getProjectIdH(request);
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
@@ -38,6 +40,13 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             return null;
         }
 
+        String level = getLevel(userId);
+        for (ProblemEntity p : selectedProblems) {
+            p.setValidationStatus("작업중");   // 작업전 -> 작업중
+            p.setLevel(level);  // level 설정
+            problemRepository.save(p);
+        }
+
         List<ProblemDto> problemSet = ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
 
         // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
@@ -50,8 +59,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             return null;
         }
 
-        String dataType = projectEntityWrapper.get().getDataType();
-        int historyId = saveLabellingWorkHistory(userId, dataType, problemSet);
+        int historyId = saveLabellingWorkHistory(userId, "boundingBox", problemSet);
 
         response.setHeader("workHistory", String.valueOf(historyId));
         response.setHeader("problems", "success");
@@ -73,7 +81,6 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
 
         int projectId = requestService.getProjectIdH(request);
         int historyId = requestService.getHistoryIdH(request);
-
         int problemId = requestService.getProblemIdP(request);
 
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
@@ -109,14 +116,31 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             }
         }
 
-        if(saveAnswer(problemId, "", userId)) {
+        // answer는 boxId의 조합으로 구성
+        String answer = boundingBoxAnswer(problemId);
+        if(saveAnswer(problemId, answer, userId)) {
             // 교차검증 문제 만들기
-            createCrossValidationProblem(projectId, problemId);
+            problemService.createCrossValidationProblem(problemId);
             projectService.setProgressData(projectId, 1);
             return true;
         }
 
         return false;
+    }
+
+    private String boundingBoxAnswer(int problemId) {
+        List<BoundingBoxEntity> boxIdList = boundingBoxRepository.findAllByProblemId(problemId);
+
+        if (boxIdList.isEmpty())
+            return "해당 문제에 대한 바운딩 박스 없음";
+
+        String answer = "";
+        for(BoundingBoxEntity b : boxIdList) {
+            answer += b.getBoxId();
+            answer += " ";
+        }
+
+        return answer;
     }
 
     @Transactional
@@ -161,7 +185,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
         }
 
         problemEntityWrapper.ifPresent(selectProblem -> {
-            selectProblem.setValidationStatus("작업후");   // 작업전 -> 작업후
+            selectProblem.setValidationStatus("작업후");   // 작업중 -> 작업후
             problemRepository.save(selectProblem);
         });
     }

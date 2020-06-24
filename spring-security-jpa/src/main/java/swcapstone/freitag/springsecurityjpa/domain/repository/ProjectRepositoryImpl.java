@@ -45,7 +45,8 @@ public class ProjectRepositoryImpl implements ProjectRepositoryCustom {
         return jpaQueryFactory
                 .selectFrom(projectEntity)
                 .where(eqWorkType(workType),
-                        eqDataType(dataType))
+                        eqDataType(dataType),
+                        eqStatus("진행중"))
                 .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
                 .fetch()
                 .stream().limit(limit).collect(Collectors.toList());

@@ -1,6 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.domain.repository;
 
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.core.types.dsl.Expressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,13 +23,25 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
     private final JPAQueryFactory jpaQueryFactory;
 
     @Override
-    public List<ProblemEntity> validations(String validationStatus, int limit) {
+    public List<ProblemEntity> userValidation(String validationStatus, int limit) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        return jpaQueryFactory
+                .selectFrom(problemEntity)
+                .where(eqValidationStatus(validationStatus), eqRightAnswer(true))
+                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .fetch()
+                .stream().limit(limit).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ProblemEntity> crossValidations(String validationStatus, String level, int limit) {
 
         BooleanBuilder builder = new BooleanBuilder();
 
         return jpaQueryFactory
                 .selectFrom(problemEntity)
-                .where(eqValidationStatus(validationStatus))
+                .where(eqValidationStatus(validationStatus), eqLevel(level))
                 .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
                 .fetch()
                 .stream().limit(limit).collect(Collectors.toList());
@@ -44,16 +58,6 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
                 .stream().limit(limit).collect(Collectors.toList());
     }
 
-    @Override
-    public long countRightProblems(String userId, String validationStatus) {
-
-        return jpaQueryFactory
-                .selectFrom(problemEntity)
-                .where(eqUserId(userId), eqValidationStatus(validationStatus))
-                .where(problemEntity.answer.eq(problemEntity.finalAnswer))
-                .fetchCount();
-    }
-
     private BooleanExpression eqValidationStatus(String validationStatus) {
         if (StringUtils.isEmpty(validationStatus)) {
             return null;
@@ -68,10 +72,17 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
         return problemEntity.projectId.eq(projectId);
     }
 
-    private BooleanExpression eqUserId(String userId) {
-        if (StringUtils.isEmpty(userId)) {
+    private BooleanExpression eqLevel(String level) {
+        if(StringUtils.isEmpty(level)) {
             return null;
         }
-        return problemEntity.userId.eq(userId);
+        return problemEntity.level.eq(level);
+    }
+
+    private BooleanExpression eqRightAnswer(Boolean rightAnswer) {
+        if(StringUtils.isEmpty(rightAnswer)) {
+            return null;
+        }
+        return problemEntity.rightAnswer.eq(rightAnswer);
     }
 }

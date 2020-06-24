@@ -40,9 +40,15 @@ public class ProblemEntity {
     @Column(name = "user_id")
     private String userId;
 
+    @Column(name = "level")
+    private String level;
+
+    @Column(name = "right_answer")
+    private boolean rightAnswer;
+
     @Builder
     public ProblemEntity(int problemId, int projectId, int referenceId, String bucketName, String objectName,
-                         String answer, String finalAnswer, String validationStatus, String userId) {
+                         String answer, String finalAnswer, String validationStatus, String userId, String level) {
         this.problemId = problemId;
         this.projectId = projectId;
         this.referenceId = referenceId;
@@ -52,5 +58,6 @@ public class ProblemEntity {
         this.finalAnswer = finalAnswer;
         this.validationStatus = validationStatus;
         this.userId = userId;
+        this.level = level;
     }
 }

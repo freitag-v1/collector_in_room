@@ -12,9 +12,11 @@ public interface ProblemRepository extends JpaRepository<ProblemEntity, Long> {
 
     long count();
     long countByUserIdAndValidationStatus(String userId, String validationStatus);
+    long countByUserIdAndValidationStatusAndRightAnswer(String userId, String validationStatus, Boolean rightAnswer);
     Optional<ProblemEntity> findByProblemId(int problemId);
     Optional<ProblemEntity> findFirstByProjectIdAndValidationStatus(int projectId, String validationStatus);
-    Optional<ProblemEntity> findTopByOrderByIdDesc();
+    Optional<ProblemEntity> findTopByOrderByProblemIdDesc();
     List<ProblemEntity> findAllByProjectId(int projectId);
     List<ProblemEntity> findAllByReferenceIdAndValidationStatus(int referenceId, String validationStatus);
+    List<ProblemEntity> findAllByProjectIdAndReferenceIdAndValidationStatus(int projectId, int referenceId, String validationStatus);
 }

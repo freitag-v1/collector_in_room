@@ -8,7 +8,6 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
-import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -16,6 +15,9 @@ import java.util.*;
 
 @Service
 public class ClassificationWorkService extends WorkService {
+
+    @Autowired
+    ProblemService problemService;
 
     private int getLabellingWorkHistoryIdTurn() {
         Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper =
@@ -62,134 +64,34 @@ public class ClassificationWorkService extends WorkService {
 
 
     // 분류 작업을 시작하면 문제 한 세트(5개) 제공
-    public List<ProblemDtoWithClassDto> provideClassificationProblems(String userId, HttpServletRequest request, HttpServletResponse response) {
+    public List<ProblemDtoWithClassDto> provideClassificationProblems(String userId, HttpServletResponse response) {
 
-        String dataType = "classification";
-        List<ProblemDto> problemSet = combineProblems();
+        List<ProblemDto> problemSet = problemService.combineProblems(userId);
 
-        // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
-        List<ProblemDtoWithClassDto> problemSetWithClassNames = withClassDtos(problemSet);
-
-        if(problemSet.isEmpty() || problemSet.size() != 5) {
+        if (problemSet.isEmpty()) {
             System.out.println("========================");
-            System.out.println("분류 문제 한 세트(5개)를 만들 수가 없음");
+            System.out.println("problemSet.isEmpty()");
             response.setHeader("problems", "fail");
             return null;
         }
 
+        if(problemSet.size() != 5) {
+            System.out.println("========================");
+            System.out.println("problemSet.size() != 5");
+            response.setHeader("problems", "fail");
+            return null;
+        }
+
+        // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
+        List<ProblemDtoWithClassDto> problemSetWithClassNames = withClassDtos(problemSet);
         // 교차검증 문제가 바운딩박스 문제 기반으로 만들어졌는가?
         withBoundingBoxDtos(problemSetWithClassNames);
 
-        int historyId = saveLabellingWorkHistory(userId, dataType, problemSet);
+        int historyId = saveLabellingWorkHistory(userId, "classification", problemSet);
+
         response.setHeader("workHistory", String.valueOf(historyId));
         response.setHeader("problems", "success");
         return problemSetWithClassNames;
-    }
-
-    // 사용자검증 문제 (1개) 생성하기 - DB
-    @Transactional
-    protected int createUserValidationProblem(int projectId, int problemId) {
-
-        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
-
-        String bucketName = problemEntityWrapper.get().getBucketName();
-        String objectName = problemEntityWrapper.get().getObjectName();
-        String finalAnswer = problemEntityWrapper.get().getFinalAnswer();
-
-        int uvProblemId = projectService.getProblemIdTurn();
-        ProblemDto problemDto = new ProblemDto(uvProblemId, projectId, problemId,
-                bucketName, objectName, "없음", finalAnswer, "사용자검증전", null);
-        problemRepository.save(problemDto.toEntity());
-
-        return uvProblemId;
-    }
-
-    // 사용자검증 문제 (1개) 생성하기
-    private void userValidationProblems(List<ProblemEntity> selectedProblems) {
-
-        List<ProblemEntity> userValidation = problemRepositoryImpl.validations("검증완료", 1);
-
-        if(userValidation.isEmpty()) {
-            System.out.println("========================");
-            System.out.println("검증완료 문제를 찾을 수 없음");
-            return;
-        }
-
-        int projectId = userValidation.get(0).getProjectId();
-        int problemId = userValidation.get(0).getProblemId();
-        // 검증완료된 문제로 또다시 사용자검증 문제를 만들어
-        int uvProblemId = createUserValidationProblem(projectId, problemId);
-
-        // 만들어진 사용자검증 문제의 problemId로 찾아
-        Optional<ProblemEntity> userValidationProblem = problemRepository.findByProblemId(uvProblemId);
-
-        if(userValidationProblem.isEmpty()) {
-            System.out.println("========================");
-            System.out.println("생성한 사용자검증 문제를 찾을 수 없음");
-            return;
-        }
-
-        selectedProblems.add(userValidationProblem.get());
-
-    }
-
-    // 분류 문제(2개) 가져오기
-    private void labellingProblems(List<ProblemEntity> selectedProblems) {
-
-        if (projectRepository.countByWorkTypeAndDataType("labelling", "classification") > 1) {
-            List<ProjectEntity> labellingProjects =
-                    projectRepositoryImpl.labellingProjectSearch("labelling", "classification", 2);
-
-            for(ProjectEntity p : labellingProjects) {
-                int projectId = p.getProjectId();
-
-                List<ProblemEntity> labellingProblem
-                        = problemRepositoryImpl.labellingProblem(projectId, "작업전", 1);
-
-                if (labellingProblem.isEmpty()) {
-                    System.out.println("========================");
-                    System.out.println("라벨링 문제를 가져올 수 없음");
-                    return;
-                }
-
-                selectedProblems.add(labellingProblem.get(0));
-            }
-
-            System.out.println("========================");
-            System.out.println("교차검증 문제 각각은 서로 다른 프로젝트에서 가져옴");
-            return;
-        }
-
-        List<ProjectEntity> labellingProject =
-                projectRepositoryImpl.labellingProjectSearch("labelling", "classification", 1);
-
-        if (labellingProject.isEmpty()) {
-            System.out.println("========================");
-            System.out.println("라벨링 분류 프로젝트를 찾을 수가 없음");
-            return;
-        }
-
-        int projectId = labellingProject.get(0).getProjectId();
-        List<ProblemEntity> labellingProblems
-                = problemRepositoryImpl.labellingProblem(projectId, "작업전", 2);
-        selectedProblems.addAll(labellingProblems);
-
-    }
-
-
-    private List<ProblemDto> combineProblems() {
-        List<ProblemEntity> selectedProblems = new ArrayList<>();
-
-        // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
-        // 10개 (테스트 1개) = userValidation(검증완료)
-        userValidationProblems(selectedProblems);
-        // 20개 (테스트 2개) = crossValidation(작업후)
-        crossValidationProblems(selectedProblems);
-        // 20개 (테스트 2개) = labellingProblems(작업전)
-        labellingProblems(selectedProblems);
-
-        List<ProblemDto> problemSet = ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
-        return problemSet;
     }
 
 
@@ -204,7 +106,7 @@ public class ClassificationWorkService extends WorkService {
             labellingWorkHistoryRepository.deleteByHistoryId(historyId);
             System.out.println("========================");
             System.out.println("문제의 답이 5개가 아님. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
-            response.setHeader("answer", "fail - 작업 다시 시작");
+            response.setHeader("answer", "send answers again");
             return false;
         }
 
@@ -239,50 +141,6 @@ public class ClassificationWorkService extends WorkService {
         return true;
     }
 
-
-    @Override
-    protected boolean saveAnswer(int problemId, String answer, String userId) {
-        if(answer.contains("b")) {
-
-            // 바운딩 박스 작업에 대한 교차검증이라면
-            // answer의 형태가
-            // boxId(공백)boxId..
-            String boxIdList[] = answer.split("b");
-
-            for (String b : boxIdList) {
-
-                System.out.println("========================");
-                System.out.println("boxId : " + b);
-
-                if(b.equals(""))
-                    break;
-
-                int referenceBoxId = Integer.parseInt(b);
-                Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findByBoxId(referenceBoxId);
-
-                if (boundingBoxEntityWrapper.isEmpty()) {
-                    System.out.println("========================");
-                    System.out.println("boundingBoxEntityWrapper.isEmpty()");
-                    return false;
-                }
-
-                // 굳이 만들 필요 없을듯
-                String className = boundingBoxEntityWrapper.get().getClassName();
-                String coordinates = boundingBoxEntityWrapper.get().getCoordinates();
-
-                int boxId = getBoxIdTurn();
-                BoundingBoxDto boundingBoxDto = new BoundingBoxDto(boxId, problemId, className, coordinates);
-                boundingBoxRepository.save(boundingBoxDto.toEntity());
-            }
-
-            answer = "boundingBox";
-            // answer = boxId1 boxId2 이런 식으로 고치고
-        }
-
-        return super.saveAnswer(problemId, answer, userId);
-    }
-
-
     @Transactional
     protected void updateValidationStatus(int historyId, int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
@@ -294,18 +152,18 @@ public class ClassificationWorkService extends WorkService {
         }
 
         // problemId를 통해 이 문제가 userValidation인지 crossValidation인지 labellingProblem인지 알아내야 함
-        // userValidation
+        // userValidation - 사용자검증전, 사용자검증중, 검증완료
         if(isUserValidation(historyId, problemId)) {
             problemEntityWrapper.ifPresent(selectProblem -> {
-                selectProblem.setValidationStatus("검증완료");   // 사용자검증전 -> 검증완료
+                selectProblem.setValidationStatus("검증완료");   // 사용자검증중 -> 검증완료
                 problemRepository.save(selectProblem);
             });
         }
 
-        // crossValidation
+        // crossValidation - 교차검증전, 교차검증중, 교차검증후, 검증완료
         else if(isCrossValidation(historyId, problemId)) {
             problemEntityWrapper.ifPresent(selectProblem -> {
-                selectProblem.setValidationStatus("교차검증후");   // 교차검증전 -> 교차검증후
+                selectProblem.setValidationStatus("교차검증후");   // 교차검증중 -> 교차검증후
                 problemRepository.save(selectProblem);
             });
 
@@ -313,17 +171,18 @@ public class ClassificationWorkService extends WorkService {
             crossValidateProblem(referenceId);
         }
 
-        // labellingProblem
+        // labellingProblem - 작업전, 작업중, 작업후, (검증대기), 검증완료
         else {
-            // 교차검증 문제 생성
-            int projectId = problemEntityWrapper.get().getProjectId();
-            createCrossValidationProblem(projectId, problemId);
 
             problemEntityWrapper.ifPresent(selectProblem -> {
-                selectProblem.setValidationStatus("작업후");   // 작업전 -> 작업후
+                selectProblem.setValidationStatus("작업후");   // 작업중 -> 작업후
                 problemRepository.save(selectProblem);
             });
 
+            // 교차검증 문제 생성
+            createCrossValidationProblem(problemId);
+
+            int projectId = problemEntityWrapper.get().getProjectId();
             projectService.setProgressData(projectId, 1);
         }
 
@@ -367,7 +226,7 @@ public class ClassificationWorkService extends WorkService {
             System.out.println("========================");
             System.out.println("아무도 교차검증에 참여하지 않음");
             return;
-        } else if (crossValidationProblems.size() < 3) {
+        } else if (crossValidationProblems.size() < 4) {
             System.out.println("========================");
             System.out.println("교차검증에 참여한 작업자 수 미달");
             return;
@@ -398,10 +257,10 @@ public class ClassificationWorkService extends WorkService {
             }
         }
 
-        double accuracies[] = new double[size];
+        String levelList[] = new String[size];
 
         for (int i = 0; i < size; i++) {
-            accuracies[i] = calculateAccuracy(workers[i]);
+            levelList[i] = getLevel(workers[i]);
         }
 
         Optional<ProjectEntity> projectEntityWrapper
@@ -413,15 +272,7 @@ public class ClassificationWorkService extends WorkService {
             return;
         }
 
-        boolean isBoundingBox;
-
-        if (projectEntityWrapper.get().getDataType().equals("boundingBox")) {
-            isBoundingBox = true;
-        } else {
-            isBoundingBox = false;
-        }
-
-        String finalAnswer = findFinalAnswer(isBoundingBox, answers, accuracies);
+        String finalAnswer = findFinalAnswer(answers, levelList);
 
         // Voting을 할 수 없는 경우
         if (finalAnswer == null) {
@@ -432,6 +283,10 @@ public class ClassificationWorkService extends WorkService {
             originalProblem.ifPresent(selectProblem -> {
                 selectProblem.setFinalAnswer(finalAnswer);
                 selectProblem.setValidationStatus("검증완료");  // 작업후 -> 검증완료
+
+                if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer()))
+                    selectProblem.setRightAnswer(true);
+
                 problemRepository.save(selectProblem);
             });
 
@@ -444,6 +299,10 @@ public class ClassificationWorkService extends WorkService {
                 {
                     selectProblem.setFinalAnswer(finalAnswer);
                     selectProblem.setValidationStatus("검증완료");  // 교차검증후 -> 검증완료
+
+                    if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer()))
+                        selectProblem.setRightAnswer(true);
+
                     problemRepository.save(selectProblem);
                 });
             }
@@ -464,25 +323,95 @@ public class ClassificationWorkService extends WorkService {
         }
     }
 
-    // 교차검증에 참여하는 작업자의 정확도 계산
-    private double calculateAccuracy(String userId) {
-
-        long solvedProblems = problemRepository.countByUserIdAndValidationStatus(userId, "검증완료");
-        long rightProblems = problemRepositoryImpl.countRightProblems(userId, "검증완료");
-
-        return rightProblems / solvedProblems;
-    }
-
     // Voting!
-    private static String findFinalAnswer(boolean isBoundingBox, String[] answers, double[] accuracies) {
-        // Voting
-
-
-        // 맞은 사람 수랑 총 참여자 수를 여기서 알아낼 수 있음
-
-
-        return null;    // finalAnswer
+    private static String findFinalAnswer(String[] answers, String[] levelList) {
+        String candidate = boyerMooreMajorityVote(answers, levelList);
+        if(candidate == null) {
+            return mostFrequent(answers, levelList);
+        } else {
+            return candidate;
+        }
     }
 
+    private static String boyerMooreMajorityVote(String[] answers, String[] levelList) {
+        String candidate = null;
+        int voted = 0;
+
+        // first pass - 과반수 표를 받은 후보
+        for(int i = 0; i < answers.length; i++) {
+            // 유저마다 기존 정확도에 따라 가중치를 가짐
+            int num = getWeight(levelList[i]);
+            for(int j = 0; j < num; j++) {
+                if(voted == 0) {
+                    candidate = answers[i];
+                    voted++;
+                } else if(candidate.equals(answers[i])) {
+                    voted++;
+                } else {
+                    voted--;
+                }
+            }
+        }
+
+        // second pass - 과반수 검증
+        voted = 0;
+        for(int i = 0; i < answers.length; i++) {
+            // 유저마다 기존 정확도에 따라 가중치를 가짐
+            int num = getWeight(levelList[i]);
+            for(int j = 0; j < num; j++) {
+                if(candidate.equals(answers[i])) {
+                    voted++;
+                }
+            }
+        }
+
+        if(6 <= voted) {
+            // 과반수 득표
+            return candidate;
+        } else {
+            return null;
+        }
+    }
+
+    private static String mostFrequent(String[] answers, String[] levelList) {
+        TreeMap<String, Integer> voted = new TreeMap<>();
+
+        for(int i = 0; i < answers.length; i++) {
+            if(voted.containsKey(answers[i])) {
+                voted.put(answers[i], voted.get(answers[i]) + getWeight(levelList[i]));
+            } else {
+                voted.put(answers[i], getWeight(levelList[i]));
+            }
+        }
+
+        Map.Entry<String, Integer> candidate = voted.firstEntry();
+        int count = 0;
+        for(Map.Entry<String, Integer> entry : voted.entrySet()) {
+            if(candidate.getValue() < entry.getValue()) {
+                candidate = entry;
+                count = 1;
+            } else if(candidate.getValue() == entry.getValue()) {
+                count++;
+            }
+        }
+
+        if(count == 1) {
+            return candidate.getKey();
+        } else {
+            return null;
+        }
+    }
+
+    private static int getWeight(String level) {
+        int num = 0;
+        if ("상".equals(level)) {
+            num = 3;
+        } else if ("중".equals(level)) {
+            num = 2;
+        } else if ("하".equals(level)) {
+            num = 1;
+        }
+        return num;
+    }
 
 }

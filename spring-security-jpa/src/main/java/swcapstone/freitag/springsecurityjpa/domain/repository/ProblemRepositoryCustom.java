@@ -6,8 +6,7 @@ import java.util.List;
 
 public interface ProblemRepositoryCustom {
 
-    List<ProblemEntity> validations(String validationStatus, int limit);
+    List<ProblemEntity> userValidation(String validationStatus, int limit);
+    List<ProblemEntity> crossValidations(String validationStatus, String level, int limit);
     List<ProblemEntity> labellingProblem(int projectId, String validationStatus, int limit);
-
-    long countRightProblems(String userId, String validationStatus);
 }

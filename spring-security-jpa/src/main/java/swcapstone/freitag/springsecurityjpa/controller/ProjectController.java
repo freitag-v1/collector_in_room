@@ -1,5 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
@@ -17,6 +18,9 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 @RestController
@@ -41,10 +45,11 @@ public class ProjectController {
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
 
-            int num = (int) (Math.random() * 100) + 1;  // 1 ~ 100
+            SimpleDateFormat format = new SimpleDateFormat("MMddHHmm"); // 월일시분
+            Date time = new Date();
 
             // 버킷 생성
-            String bucketName = userId + num;
+            String bucketName = userId + format.format(time);
             if(objectStorageApiClient.putBucket(bucketName)) {
                 // 버킷 생성되면 수집 프로젝트 생성에 필요한 사용자 입력 필드와 함께 디비 저장
                 projectService.createProject(request, userId, bucketName, response);
@@ -166,6 +171,18 @@ public class ProjectController {
         return null;
     }
 
+
+    // 검증완료 문제 상세페이지
+    @RequestMapping(value = "/api/project/crossvalidation")
+    public String getCrossValidationDetails(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+            return projectService.getCrossValidationDetails(request, response).toString();
+        }
+
+        response.setHeader("login", "fail");
+        return null;
+    }
+
     // 프로젝트 종료 - 최종 금액 확인
     @RequestMapping(value = "/api/project/terminate")
     public void terminateProject(HttpServletRequest request, HttpServletResponse response) {
@@ -242,4 +259,5 @@ public class ProjectController {
         }
         return null;
     }
+
 }

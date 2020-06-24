@@ -73,14 +73,13 @@ public class CollectionWorkService extends WorkService {
         if (limit < 1) {
             System.out.println("========================");
             System.out.println("이미 필요한 데이터를 모두 수집");
-            response.setHeader("upload", "fail - 이미 필요한 데이터를 모두 수집");
             return false;
         }
 
-        int projectId = requestService.getProjectIdH(request);
-        String bucketName = requestService.getBucketNameH(request);
-
         if (0 < numberOfData && numberOfData <= limit) {
+
+            int projectId = requestService.getProjectIdH(request);
+            String bucketName = requestService.getBucketNameH(request);
 
             for(MultipartFile f : labellingDataList) {
 
@@ -89,7 +88,7 @@ public class CollectionWorkService extends WorkService {
                 if(objectName == null) {
                     System.out.println("========================");
                     System.out.println("Object Storage에 데이터 업로드 실패");
-                    response.setHeader("upload", "fail - Object Storage에 데이터 업로드 실패");
+                    response.setHeader("upload", "fail to upload data to Object Storage");
                     return false;
                 }
 
@@ -101,12 +100,14 @@ public class CollectionWorkService extends WorkService {
                 if(problemId != -1) {
                     if (saveAnswer(problemId, className, userId)) {
                         saveCollectionWorkHistory(userId, problemId);
+                        // 이 문제의 등급 정하기
+                        updateLevel(userId, problemId);
                         // 교차검증 문제 만들기
-                        createCrossValidationProblem(projectId, problemId);
+                        createCrossValidationProblem(problemId);
                         continue;
                     }
                 } else {
-                    response.setHeader("upload", "fail - 프로젝트 아이디로 작업전 문제를 찾을 수 없음");
+                    response.setHeader("upload", "fail to find problems");
                     return false;
                 }
             }
@@ -115,6 +116,7 @@ public class CollectionWorkService extends WorkService {
             return true;
         }
 
+        response.setHeader("upload", "fail - number of data exceeds limit");
         return false;
     }
 }
