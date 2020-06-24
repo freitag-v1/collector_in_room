@@ -144,8 +144,26 @@ public class WorkService {
     @Transactional
     protected void crossValidationProblems(List<ProblemEntity> selectedProblems, String level) {
 
-        List<ProblemEntity> crossValidationProblems =
-                problemRepositoryImpl.crossValidations("교차검증전", level, 2);
+        List<ProblemEntity> crossValidationProblems = new ArrayList<>();
+        // 이 level의 작업자가 참여할 수 있는 교차검증 문제 개수
+        int numOfProblems = (int) problemRepository.countByValidationStatusAndLevel("교차검증전", level);
+
+        if (numOfProblems == 1) {
+            // ex) 하나는 슈퍼작업자, 하나는 상
+            crossValidationProblems.addAll(problemRepositoryImpl.crossValidations("교차검증전", level, 1));
+
+            Optional<ProblemEntity> problemEntityWrapper = problemRepository.findOneByValidationStatus("교차검증전");
+            if (problemEntityWrapper.isPresent()) {
+                crossValidationProblems.add(problemEntityWrapper.get());
+            } else {
+                System.out.println("========================");
+                System.out.println("problemEntityWrapper.isEmpty()");
+                return;
+            }
+
+        } else {
+            crossValidationProblems.addAll(problemRepositoryImpl.crossValidations("교차검증전", level, 2));
+        }
 
         for (ProblemEntity p : crossValidationProblems) {
             p.setValidationStatus("교차검증중");
@@ -222,6 +240,10 @@ public class WorkService {
             userRepository.save(selectUser);
         });
 
+        // 정확도가 100%이면서 맞춘 문제가 10개 이상이면 슈퍼작업자
+        if (userAccuracy == 1 && solvedProblems >= 10)
+            return 1.1;
+
         return userAccuracy;
     }
 
@@ -230,7 +252,9 @@ public class WorkService {
 
         double userAccuracy = calculateAccuracy(userId);
 
-        if (userAccuracy >= 0.9)
+        if (userAccuracy == 1.1)
+            return "슈퍼작업자";
+        else if (userAccuracy >= 0.9)
             return "상";
         else if (userAccuracy >= 0.8)
             return "중";
@@ -260,7 +284,7 @@ public class WorkService {
         getCollectionWorkList(userId, workList);
         getLabellingWorkList(userId, workList);
 
-        if(workList == null) {
+        if(workList.isEmpty()) {
             response.setHeader("workList", "fail");
             return null;
         }
@@ -360,7 +384,9 @@ public class WorkService {
 
         if (validationStatus.equals("검증완료")) {
             return "포인트지급 완료";
-        } else if (validationStatus.equals("작업후") || validationStatus.equals("교차검증후")) {
+        } else if (validationStatus.equals("작업후") ||
+                validationStatus.equals("교차검증후") ||
+                validationStatus.equals("검증대기")) {
             return "포인트지급 대기";
         } else {
             return "";
@@ -387,6 +413,8 @@ public class WorkService {
 
                     userRepository.save(selectUser);
                 });
+            } else if (validationStatus.equals("검증완료")) {
+                // 포인트 차등 지급 ??
             }
         });
     }

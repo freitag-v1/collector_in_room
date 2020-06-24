@@ -11,12 +11,14 @@ import java.util.Optional;
 public interface ProblemRepository extends JpaRepository<ProblemEntity, Long> {
 
     long count();
+    long countByValidationStatusAndLevel(String validationStatus, String level);
     long countByUserId(String userId);
     long countByUserIdAndValidationStatus(String userId, String validationStatus);
     long countByUserIdAndValidationStatusAndRightAnswer(String userId, String validationStatus, Boolean rightAnswer);
     Optional<ProblemEntity> findByProblemId(int problemId);
     Optional<ProblemEntity> findFirstByProjectIdAndValidationStatus(int projectId, String validationStatus);
     Optional<ProblemEntity> findTopByOrderByProblemIdDesc();
+    Optional<ProblemEntity> findOneByValidationStatus(String validationStatus);
     List<ProblemEntity> findAllByProjectId(int projectId);
     List<ProblemEntity> findAllByReferenceIdAndValidationStatus(int referenceId, String validationStatus);
     List<ProblemEntity> findAllByProjectIdAndReferenceIdAndValidationStatus(int projectId, int referenceId, String validationStatus);

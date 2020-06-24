@@ -8,6 +8,7 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -163,7 +164,7 @@ public class ClassificationWorkService extends WorkService {
             });
         }
 
-        // crossValidation - 교차검증전, 교차검증중, 교차검증후, 검증완료
+        // crossValidation - 교차검증전, 교차검증중, 교차검증후, (검증대기), 검증완료
         else if(isCrossValidation(historyId, problemId)) {
             problemEntityWrapper.ifPresent(selectProblem -> {
                 selectProblem.setValidationStatus("교차검증후");   // 교차검증중 -> 교차검증후
@@ -245,6 +246,7 @@ public class ClassificationWorkService extends WorkService {
         }
 
         int projectId = originalProblem.get().getProjectId();
+
         int size = crossValidationProblems.size() + 1;
 
         String answers[] = new String[size];
@@ -279,7 +281,10 @@ public class ClassificationWorkService extends WorkService {
 
         // Voting을 할 수 없는 경우
         if (finalAnswer == null) {
-            // Super 작업자 선정해야 하는데 ..
+            int originalProblemId = originalProblem.get().getProblemId();
+            // Super 작업자를 위한 문제 생성
+            projectService.createProblemForSuperWorker(originalProblemId);
+
             originalProblem.ifPresent(selectProblem -> {
                 selectProblem.setValidationStatus("검증대기");  // 작업후 -> 검증대기
                 problemRepository.save(selectProblem);
