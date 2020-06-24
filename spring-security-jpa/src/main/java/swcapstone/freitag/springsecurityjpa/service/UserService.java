@@ -205,6 +205,26 @@ public class UserService implements UserDetailsService {
 
     }
 
+    @Transactional
+    public void pointExchange(String userId, int amount, HttpServletResponse response) {
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(selectUser -> {
+            if(selectUser.getUserOpenBankingNum() == 0) {
+                response.setHeader("state", selectUser.getUserOpenBankingAccessToken());
+                response.setHeader("exchange", "fail");
+                return;
+            }
+            if(amount <= selectUser.getPoint()) {
+                if(OpenBankingClient.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "테스트", amount)) {
+                    selectUser.setPoint(selectUser.getPoint() - amount);
+                    userRepository.save(selectUser);
+                    response.setHeader("exchange", "success");
+                    return;
+                }
+            }
+            response.setHeader("exchange", "fail");
+        });
+    }
 
     // 누적 포인트별 랭킹 갱신 기능
     public List<TotalPointRankUserDto> rankingUpdateByTotalPoint(HttpServletResponse response) {
