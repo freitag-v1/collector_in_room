@@ -219,6 +219,12 @@ public class UserService implements UserDetailsService {
                     selectUser.setPoint(selectUser.getPoint() - amount);
                     userRepository.save(selectUser);
                     response.setHeader("exchange", "success");
+                    String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", amount);
+                    try {
+                        smsClient.sendSMS(userId, msg);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                     return;
                 }
             }
