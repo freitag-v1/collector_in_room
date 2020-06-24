@@ -48,11 +48,10 @@ public class UserService implements UserDetailsService {
                     selectedUser.setUserLastVisit(currentTime);
                     selectedUser.setTotalPoint(selectedUser.getTotalPoint() + 100);
                     selectedUser.setPoint(selectedUser.getPoint() + 100);
+                    response.setHeader("reward", "true");
                 }
             }
         });
-
-        response.setHeader("reward", "true");
     }
 
     @Transactional

@@ -226,7 +226,7 @@ public class ClassificationWorkService extends WorkService {
             System.out.println("========================");
             System.out.println("아무도 교차검증에 참여하지 않음");
             return;
-        } else if (crossValidationProblems.size() < 3) {
+        } else if (crossValidationProblems.size() < 4) {
             System.out.println("========================");
             System.out.println("교차검증에 참여한 작업자 수 미달");
             return;
@@ -272,15 +272,7 @@ public class ClassificationWorkService extends WorkService {
             return;
         }
 
-        boolean isBoundingBox;
-
-        if (projectEntityWrapper.get().getDataType().equals("boundingBox")) {
-            isBoundingBox = true;
-        } else {
-            isBoundingBox = false;
-        }
-
-        String finalAnswer = findFinalAnswer(isBoundingBox, answers, levelList);
+        String finalAnswer = findFinalAnswer(answers, levelList);
 
         // Voting을 할 수 없는 경우
         if (finalAnswer == null) {
@@ -332,15 +324,94 @@ public class ClassificationWorkService extends WorkService {
     }
 
     // Voting!
-    private static String findFinalAnswer(boolean isBoundingBox, String[] answers, String[] levelList) {
-        // Voting
-
-
-        // 맞은 사람 수랑 총 참여자 수를 여기서 알아낼 수 있음
-
-
-        return null;    // finalAnswer
+    private static String findFinalAnswer(String[] answers, String[] levelList) {
+        String candidate = boyerMooreMajorityVote(answers, levelList);
+        if(candidate == null) {
+            return mostFrequent(answers, levelList);
+        } else {
+            return candidate;
+        }
     }
 
+    private static String boyerMooreMajorityVote(String[] answers, String[] levelList) {
+        String candidate = null;
+        int voted = 0;
+
+        // first pass - 과반수 표를 받은 후보
+        for(int i = 0; i < answers.length; i++) {
+            // 유저마다 기존 정확도에 따라 가중치를 가짐
+            int num = getWeight(levelList[i]);
+            for(int j = 0; j < num; j++) {
+                if(voted == 0) {
+                    candidate = answers[i];
+                    voted++;
+                } else if(candidate.equals(answers[i])) {
+                    voted++;
+                } else {
+                    voted--;
+                }
+            }
+        }
+
+        // second pass - 과반수 검증
+        voted = 0;
+        for(int i = 0; i < answers.length; i++) {
+            // 유저마다 기존 정확도에 따라 가중치를 가짐
+            int num = getWeight(levelList[i]);
+            for(int j = 0; j < num; j++) {
+                if(candidate.equals(answers[i])) {
+                    voted++;
+                }
+            }
+        }
+
+        if(6 <= voted) {
+            // 과반수 득표
+            return candidate;
+        } else {
+            return null;
+        }
+    }
+
+    private static String mostFrequent(String[] answers, String[] levelList) {
+        TreeMap<String, Integer> voted = new TreeMap<>();
+
+        for(int i = 0; i < answers.length; i++) {
+            if(voted.containsKey(answers[i])) {
+                voted.put(answers[i], voted.get(answers[i]) + getWeight(levelList[i]));
+            } else {
+                voted.put(answers[i], getWeight(levelList[i]));
+            }
+        }
+
+        Map.Entry<String, Integer> candidate = voted.firstEntry();
+        int count = 0;
+        for(Map.Entry<String, Integer> entry : voted.entrySet()) {
+            if(candidate.getValue() < entry.getValue()) {
+                candidate = entry;
+                count = 1;
+            } else if(candidate.getValue() == entry.getValue()) {
+                count++;
+            }
+        }
+
+        if(count == 1) {
+            return candidate.getKey();
+        } else {
+            return null;
+        }
+    }
+
+    private static int getWeight(String level) {
+        int num = 0;
+        if ("상".equals(level)) {
+            num = 3;
+        } else if ("중".equals(level)) {
+            num = 2;
+        } else if ("하".equals(level)) {
+            num = 1;
+        }
+        return num;
+    }
 
 }
