@@ -42,7 +42,7 @@ public class ProjectEntity {
     private String subject;
 
     @Column(name = "difficulty")
-    private int difficulty;  // 0~5점
+    private float difficulty;  // 0~5점
 
     @Column(name = "way_content")
     private String wayContent;  // 작업 방법
@@ -70,7 +70,7 @@ public class ProjectEntity {
 
     @Builder
     public ProjectEntity(int projectId, String userId, String projectName, String bucketName, String status,
-                         String workType, String dataType, String subject, int difficulty, String wayContent,
+                         String workType, String dataType, String subject, float difficulty, String wayContent,
                          String conditionContent, String exampleContent, String description,
                          int totalData, int progressData, int validatedData, int cost) {
 

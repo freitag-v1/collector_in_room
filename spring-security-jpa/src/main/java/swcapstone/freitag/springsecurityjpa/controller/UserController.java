@@ -115,7 +115,13 @@ public class UserController {
 
     // 누적 포인트별 랭킹 갱신 기능
     @RequestMapping(value = "/api/ranking/point")
-    public List<RankUserDto> top10User(HttpServletResponse response) {
+    public List<RankUserDto> top10RichUser(HttpServletResponse response) {
         return userService.rankingUpdateByTotalPoint(response);
+    }
+
+    // 정확도별 랭킹 갱신 기능
+    @RequestMapping(value = "/api/ranking/accuracy")
+    public List<RankUserDto> top10SmartUser(HttpServletResponse response) {
+        return userService.rankingUpdateByAccuracy(response);
     }
 }
