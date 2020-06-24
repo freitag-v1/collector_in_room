@@ -3,9 +3,7 @@ package swcapstone.freitag.springsecurityjpa.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import swcapstone.freitag.springsecurityjpa.api.OpenBankingClient;
-import swcapstone.freitag.springsecurityjpa.domain.dto.CustomUser;
-import swcapstone.freitag.springsecurityjpa.domain.dto.RankUserDto;
-import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.dto.*;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 import swcapstone.freitag.springsecurityjpa.service.AuthenticationService;
@@ -115,14 +113,13 @@ public class UserController {
 
     // 누적 포인트별 랭킹 갱신 기능
     @RequestMapping(value = "/api/ranking/point")
-    public List<RankUserDto> top10RichUser(HttpServletResponse response) {
+    public List<TotalPointRankUserDto> top10RichUser(HttpServletResponse response) {
         return userService.rankingUpdateByTotalPoint(response);
     }
 
     // 정확도별 랭킹 갱신 기능
     @RequestMapping(value = "/api/ranking/accuracy")
-    public List<RankUserDto> top10SmartUser(HttpServletResponse response) {
-        // return userService.rankingUpdateByAccuracy(response);
-        return null;
+    public List<AccuracyRankUserDto> top10SmartUser(HttpServletResponse response) {
+        return userService.rankingUpdateByAccuracy(response);
     }
 }

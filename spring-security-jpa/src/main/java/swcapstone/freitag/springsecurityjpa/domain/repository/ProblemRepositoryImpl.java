@@ -10,8 +10,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.StringUtils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static swcapstone.freitag.springsecurityjpa.domain.entity.QProblemEntity.problemEntity;
@@ -42,9 +43,19 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
         return jpaQueryFactory
                 .selectFrom(problemEntity)
                 .where(eqValidationStatus(validationStatus), eqLevel(level))
-                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                // .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                // referenceId가 서로 다른 문제 2개를 가져오기!
+                .orderBy(problemEntity.referenceId.asc())
                 .fetch()
-                .stream().limit(limit).collect(Collectors.toList());
+                .stream()
+                .filter(distinctByKey(p -> p.getReferenceId()))
+                .sorted(new Comparator<ProblemEntity>() {
+                    @Override
+                    public int compare(ProblemEntity p1, ProblemEntity p2) {
+                        return Long.compare(p1.getReferenceId(), p2.getReferenceId());
+                    }
+                })
+                .limit(limit).collect(Collectors.toList());
     }
 
     @Override
@@ -53,9 +64,15 @@ public class ProblemRepositoryImpl implements ProblemRepositoryCustom {
         return jpaQueryFactory
                 .selectFrom(problemEntity)
                 .where(eqProjectId(projectId), eqValidationStatus(validationStatus))
-                .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                // .orderBy(Expressions.numberTemplate(Double.class, "function('rand')").asc())
+                .orderBy(problemEntity.problemId.asc())
                 .fetch()
                 .stream().limit(limit).collect(Collectors.toList());
+    }
+
+    private static <T> Predicate<T> distinctByKey(Function<? super T, Object> keyExtractor) {
+        Map<Object, Boolean> map = new HashMap<>();
+        return t -> map.putIfAbsent(keyExtractor.apply(t), Boolean.TRUE) == null;
     }
 
     private BooleanExpression eqValidationStatus(String validationStatus) {

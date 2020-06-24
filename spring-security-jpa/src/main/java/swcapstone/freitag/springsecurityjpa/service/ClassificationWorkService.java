@@ -12,6 +12,7 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class ClassificationWorkService extends WorkService {
@@ -276,16 +277,20 @@ public class ClassificationWorkService extends WorkService {
 
         // Voting을 할 수 없는 경우
         if (finalAnswer == null) {
+            // Super 작업자 선정해야 하는데 ..
+
             return;
-        }
-        // Voting을 통해 최종 답이 나온 경우
-        else {
+        } else {    // Voting을 통해 최종 답이 나온 경우
+            AtomicInteger numOfRightAnswers = new AtomicInteger();
+
             originalProblem.ifPresent(selectProblem -> {
                 selectProblem.setFinalAnswer(finalAnswer);
                 selectProblem.setValidationStatus("검증완료");  // 작업후 -> 검증완료
 
-                if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer()))
+                if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer())) {
                     selectProblem.setRightAnswer(true);
+                    numOfRightAnswers.getAndIncrement();
+                }
 
                 problemRepository.save(selectProblem);
             });
@@ -300,8 +305,10 @@ public class ClassificationWorkService extends WorkService {
                     selectProblem.setFinalAnswer(finalAnswer);
                     selectProblem.setValidationStatus("검증완료");  // 교차검증후 -> 검증완료
 
-                    if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer()))
+                    if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer())) {
                         selectProblem.setRightAnswer(true);
+                        numOfRightAnswers.getAndIncrement();
+                    }
 
                     problemRepository.save(selectProblem);
                 });
@@ -310,16 +317,19 @@ public class ClassificationWorkService extends WorkService {
             // validatedData++
             Optional<ProjectEntity> targetProject = projectRepository.findByProjectId(projectId);
 
+            // 난이도 계산
+            float difficulty = numOfRightAnswers.get() / size;
+
             targetProject.ifPresent(selectProject -> {
                 int validatedData = selectProject.getValidatedData();
                 validatedData += 1;
                 selectProject.setValidatedData(validatedData);
 
+                float currDifficulty = selectProject.getDifficulty();
+                selectProject.setDifficulty(currDifficulty + difficulty);
+
                 projectRepository.save(selectProject);
             });
-
-            // 난이도 -> difficulty 게산
-
         }
     }
 

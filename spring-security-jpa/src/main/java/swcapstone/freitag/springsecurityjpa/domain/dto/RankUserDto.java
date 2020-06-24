@@ -2,14 +2,13 @@ package swcapstone.freitag.springsecurityjpa.domain.dto;
 
 import lombok.Getter;
 
-@Getter
-public class RankUserDto {
+public abstract class RankUserDto {
 
     private String userId;
-    private int totalPoint;
+    private int numOfProblems;
 
-    public RankUserDto(String userId, int totalPoint) {
+    public RankUserDto(String userId, int numOfProblems) {
         this.userId = userId;
-        this.totalPoint = totalPoint;
+        this.numOfProblems = numOfProblems;
     }
 }
