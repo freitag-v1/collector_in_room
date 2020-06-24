@@ -128,6 +128,8 @@ public class ClassificationWorkService extends WorkService {
             if(saveAnswer(problemId, answer, userId)) {
                 // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
                 updateValidationStatus(historyId, problemId);
+                // 포인트 지급
+                payPoints(problemId, userId);
             } else {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
                 labellingWorkHistoryRepository.deleteByHistoryId(historyId);
@@ -144,12 +146,12 @@ public class ClassificationWorkService extends WorkService {
 
     @Transactional
     protected void updateValidationStatus(int historyId, int problemId) {
+
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
         if (problemEntityWrapper.isEmpty()) {
             System.out.println("========================");
             System.out.println("문제를 찾을 수 없음");
-            return;
         }
 
         // problemId를 통해 이 문제가 userValidation인지 crossValidation인지 labellingProblem인지 알아내야 함
@@ -278,8 +280,21 @@ public class ClassificationWorkService extends WorkService {
         // Voting을 할 수 없는 경우
         if (finalAnswer == null) {
             // Super 작업자 선정해야 하는데 ..
+            originalProblem.ifPresent(selectProblem -> {
+                selectProblem.setValidationStatus("검증대기");  // 작업후 -> 검증대기
+                problemRepository.save(selectProblem);
+            });
 
-            return;
+            for (ProblemEntity p : crossValidationProblems) {
+                int problemId = p.getProblemId();
+
+                Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+                problemEntityWrapper.ifPresent(selectProblem ->
+                {
+                    selectProblem.setValidationStatus("검증대기");  // 교차검증후 -> 검증대기
+                    problemRepository.save(selectProblem);
+                });
+            }
         } else {    // Voting을 통해 최종 답이 나온 경우
             AtomicInteger numOfRightAnswers = new AtomicInteger();
 

@@ -230,9 +230,9 @@ public class WorkService {
 
         double userAccuracy = calculateAccuracy(userId);
 
-        if (userAccuracy > 0.9)
+        if (userAccuracy >= 0.9)
             return "상";
-        else if (userAccuracy > 0.8)
+        else if (userAccuracy >= 0.8)
             return "중";
         else
             return "하";
@@ -319,27 +319,75 @@ public class WorkService {
 
     // problemId -> workHistoryDto 생성
     private WorkHistoryDto createWorkHistoryDto(int problemId) {
-        Optional<ProblemEntity> problemEntity = problemRepository.findByProblemId(problemId);
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntity.get() == null)
-            return null;
+        if (problemEntityWrapper.isPresent()) {
 
-        int projectId = problemEntity.get().getProjectId();
-        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
+            String validationStatus = problemEntityWrapper.get().getValidationStatus();
 
-        if (projectEntity.isPresent()) {
-            String projectRequester = projectEntity.get().getUserId();
-            String projectName = projectEntity.get().getProjectName();
-            String projectWorkType = projectEntity.get().getWorkType();
-            String projectDataType = projectEntity.get().getDataType();
-            String projectStatus = projectEntity.get().getStatus();
+            int projectId = problemEntityWrapper.get().getProjectId();
+            Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+            String projectRequester = "";
+            String projectName = "";
+            String projectWorkType = "";
+            String projectDataType = "";
+
+            if (projectEntityWrapper.isPresent()) {
+                projectRequester += projectEntityWrapper.get().getUserId();
+                projectName += projectEntityWrapper.get().getProjectName();
+                projectWorkType += projectEntityWrapper.get().getWorkType();
+                projectDataType += projectEntityWrapper.get().getDataType();
+            } else {
+                return null;
+            }
+
+            String problemStatus = mappingStatus(validationStatus);
 
             WorkHistoryDto workHistoryDto = new WorkHistoryDto(projectRequester, projectName, projectWorkType,
-                    projectDataType, projectStatus, problemId);
+                    projectDataType, problemStatus, problemId);
 
             return workHistoryDto;
         }
 
         return null;
+    }
+
+    private String mappingStatus(String validationStatus) {
+
+        if (validationStatus.isEmpty())
+            return null;
+
+        if (validationStatus.equals("검증완료")) {
+            return "포인트지급 완료";
+        } else if (validationStatus.equals("작업후") || validationStatus.equals("교차검증후")) {
+            return "포인트지급 대기";
+        } else {
+            return "";
+        }
+    }
+
+    // 포인트 지급
+    @Transactional
+    protected void payPoints(int problemId, String userId) {
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        problemEntityWrapper.ifPresent(selectProblem -> {
+            String validationStatus = selectProblem.getValidationStatus();
+
+            // 작업 기본 비용 지급 - 10원?
+            if (validationStatus.equals("작업후") || validationStatus.equals("교차검증후")) {
+                userEntityWrapper.ifPresent(selectUser -> {
+                    int point = selectUser.getPoint();
+                    int totalPoint = selectUser.getTotalPoint();
+
+                    selectUser.setPoint(point + 10);
+                    selectUser.setTotalPoint(totalPoint + 10);
+
+                    userRepository.save(selectUser);
+                });
+            }
+        });
     }
 }
