@@ -231,7 +231,7 @@ public class ProjectController {
 
             Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
             if(finalCost == null) {
-                response.setHeader("project", "fail");
+                response.setHeader("payment", "fail");
             } else {
                 if(userService.pointPayment(userId, finalCost, response)) {
                     projectService.setNextStatus(projectId);
