@@ -28,7 +28,7 @@ public class LabellingProjectService extends ProjectService {
 
         for(MultipartFile f : labellingDataList) {
             String fileName = f.getOriginalFilename();
-            File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+            File destinationFile = new File("/Users/sooyeon/Desktop/data/" + fileName);
             f.transferTo(destinationFile);
 
             String objectName = objectStorageApiClient.putObject(bucketName, destinationFile);

@@ -20,7 +20,7 @@ public class CollectionWorkService extends WorkService {
     private String uploadData(MultipartFile file, String bucketName) throws Exception {
         String fileName = file.getOriginalFilename();
         // 수정 포인트
-        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+        File destinationFile = new File("/Users/sooyeon/Desktop/data/" + fileName);
         file.transferTo(destinationFile);
 
         return objectStorageApiClient.putObject(bucketName, destinationFile);
@@ -33,7 +33,7 @@ public class CollectionWorkService extends WorkService {
         Optional<ProblemEntity> problemEntityWrapper =
                 problemRepository.findFirstByProjectIdAndValidationStatus(projectId, "작업전");
 
-        if(problemEntityWrapper.isEmpty()) {
+        if(!problemEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("프로젝트 아이디로 작업전 문제를 찾을 수 없음");
             return -1;

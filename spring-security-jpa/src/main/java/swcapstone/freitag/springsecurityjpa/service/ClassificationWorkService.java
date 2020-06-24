@@ -23,7 +23,7 @@ public class ClassificationWorkService extends WorkService {
         Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper =
                 labellingWorkHistoryRepository.findTopByOrderByIdDesc();
 
-        if (labellingWorkHistoryEntityWrapper.isEmpty())
+        if (!labellingWorkHistoryEntityWrapper.isPresent())
             return 1;
 
         return labellingWorkHistoryEntityWrapper.get().getHistoryId() + 1;
@@ -32,7 +32,7 @@ public class ClassificationWorkService extends WorkService {
     protected int getBoxIdTurn() {
         Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findTopByOrderByIdDesc();
 
-        if (boundingBoxEntityWrapper.isEmpty())
+        if (!boundingBoxEntityWrapper.isPresent())
             return 1;
 
         return boundingBoxEntityWrapper.get().getBoxId() + 1;
@@ -145,7 +145,7 @@ public class ClassificationWorkService extends WorkService {
     protected void updateValidationStatus(int historyId, int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntityWrapper.isEmpty()) {
+        if (!problemEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("문제를 찾을 수 없음");
             return;
@@ -235,7 +235,7 @@ public class ClassificationWorkService extends WorkService {
         // 교차검증 대상 문제
         Optional<ProblemEntity> originalProblem = problemRepository.findByProblemId(referenceId);
 
-        if (originalProblem.isEmpty()) {
+        if (!originalProblem.isPresent()) {
             System.out.println("========================");
             System.out.println("교차검증 대상인 문제를 찾을 수 없음");
             return;
@@ -266,7 +266,7 @@ public class ClassificationWorkService extends WorkService {
         Optional<ProjectEntity> projectEntityWrapper
                 = projectRepository.findByProjectId(projectId);
 
-        if (projectEntityWrapper.isEmpty()) {
+        if (!projectEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("DB 에러 - 프로젝트 찾을 수 없음");
             return;

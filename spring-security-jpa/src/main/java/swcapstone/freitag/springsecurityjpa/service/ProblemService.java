@@ -55,7 +55,7 @@ public class ProblemService extends WorkService {
         // 만들어진 사용자검증 문제의 problemId로 찾아
         Optional<ProblemEntity> userValidationProblem = problemRepository.findByProblemId(uvProblemId);
 
-        if(userValidationProblem.isEmpty()) {
+        if(!userValidationProblem.isPresent()) {
             System.out.println("========================");
             System.out.println("생성한 사용자검증 문제를 찾을 수 없음");
             return;

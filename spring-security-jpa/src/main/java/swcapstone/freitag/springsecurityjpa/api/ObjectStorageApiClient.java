@@ -21,8 +21,8 @@ public class ObjectStorageApiClient {
     private static final String REGION_NAME = "kr-standard";
     private static final String ENDPOINT = "https://kr.object.ncloudstorage.com";
 
-    private static final String ACCESS_KEY = "sQG5BeaHcnvvqK4FI01A";
-    private static final String SECRET_KEY = "mvNVjSac240XvnrK4qF39HpoMvvtMQMzUnnNHaRV";
+    private static final String ACCESS_KEY = "bADdb2HelATZt2ZfCZUV";
+    private static final String SECRET_KEY = "WByLzY9TQnHqsqVmqFh00p5YYXSVMAOCjWoMw0pB";
 
 
     // S3 client

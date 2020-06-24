@@ -51,7 +51,7 @@ public class WorkService {
             int projectId = p.getProjectId();
 
             Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
-            if (projectEntityWrapper.isEmpty()) {
+            if (!projectEntityWrapper.isPresent()) {
                 System.out.println("========================");
                 System.out.println("projectEntityWrapper.isEmpty()");
                 return null;
@@ -73,7 +73,7 @@ public class WorkService {
     protected boolean saveAnswer(int problemId, String answer, String userId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if(problemEntityWrapper.isEmpty()) {
+        if(!problemEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("problemEntityWrapper.isEmpty()");
             return false;
@@ -119,7 +119,7 @@ public class WorkService {
 
         Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
 
-        if(projectEntity.isEmpty())
+        if(!projectEntity.isPresent())
             return null;
 
         String dataType = projectEntity.get().getDataType();
@@ -159,7 +159,7 @@ public class WorkService {
 
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntityWrapper.isEmpty()) {
+        if (!problemEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("해당 문제의 교차검증 문제를 만들 수 없음");
             return;

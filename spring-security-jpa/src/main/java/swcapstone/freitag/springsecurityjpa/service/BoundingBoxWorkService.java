@@ -23,7 +23,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
         int projectId = requestService.getProjectIdH(request);
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if (projectEntityWrapper.isEmpty()) {
+        if (!projectEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("해당 프로젝트를 찾을 수 없음");
             response.setHeader("problems", "fail");
@@ -85,7 +85,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
 
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if (projectEntityWrapper.isEmpty()) {
+        if (!projectEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("해당 프로젝트를 찾을 수 없음");
             response.setHeader("project", "fail");
@@ -178,7 +178,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
     protected void updateValidationStatus(int historyId, int problemId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntityWrapper.isEmpty()) {
+        if (!problemEntityWrapper.isPresent()) {
             System.out.println("========================");
             System.out.println("문제를 찾을 수 없음");
             return;

@@ -53,7 +53,7 @@ public class ProjectService {
     private int getProjectIdTurn() {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findTopByOrderByProjectIdDesc();
 
-        if (projectEntityWrapper.isEmpty())
+        if (!projectEntityWrapper.isPresent())
             return 1;
 
         return projectEntityWrapper.get().getProjectId() + 1;
@@ -63,7 +63,7 @@ public class ProjectService {
     protected int getProblemIdTurn() {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findTopByOrderByProblemIdDesc();
 
-        if (problemEntityWrapper.isEmpty())
+        if (!problemEntityWrapper.isPresent())
             return 1;
 
         return problemEntityWrapper.get().getProblemId() + 1;
@@ -137,7 +137,7 @@ public class ProjectService {
         String fileName = file.getOriginalFilename();
         String bucketName = requestService.getBucketNameH(request);
 
-        File destinationFile = new File("/Users/woneyhoney/Desktop/files/" + fileName);
+        File destinationFile = new File("/Users/sooyeon/Desktop/data/" + fileName);
         // MultipartFile.transferTo() : 요청 시점의 임시 파일을 로컬 파일 시스템에 영구적으로 복사하는 역할을 수행
         file.transferTo(destinationFile);
 
@@ -363,7 +363,7 @@ public class ProjectService {
     protected void setProgressData(int projectId, int numbOfProb) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        if (projectEntityWrapper.isEmpty())
+        if (!projectEntityWrapper.isPresent())
             return;
 
         projectEntityWrapper.ifPresent(selectProject -> {
