@@ -7,6 +7,6 @@ import java.io.IOException;
 public class SMSClientTest {
     @Test
     public void sendSMS() throws IOException {
-        new SMSClient().sendSMS("01027540421", "test");
+        new SMSClient().sendSMS("wodnd999999", "test");
     }
 }

@@ -2,6 +2,10 @@ package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
@@ -11,6 +15,9 @@ import swcapstone.freitag.springsecurityjpa.service.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -106,9 +113,9 @@ public class ProjectController {
 
             int cost = projectService.getCost(projectId);
 
-            if(userService.accountPayment(userId, cost, response)) {
+            if(userService.accountPayment(userId, "프로젝트 생성", cost, response)) {
 
-                projectService.setStatus(projectId, response);
+                projectService.setNextStatus(projectId);
 
                 if(projectService.isCollection(projectId)) {
                     projectService.createProblem(projectId, response);
@@ -135,7 +142,7 @@ public class ProjectController {
 
             if(userService.pointPayment(userId, cost, response)) {
 
-                projectService.setStatus(projectId, response);
+                projectService.setNextStatus(projectId);
 
                 if(projectService.isCollection(projectId)) {
                     projectService.createProblem(projectId, response);
@@ -173,6 +180,83 @@ public class ProjectController {
         }
 
         response.setHeader("login", "fail");
+        return null;
+    }
+
+    // 프로젝트 종료 - 최종 금액 확인
+    @RequestMapping(value = "/api/project/terminate")
+    public void terminateProject(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
+            if(finalCost == null) {
+                response.setHeader("project", "fail");
+            } else {
+                response.setHeader("project", "success");
+                response.setHeader("finalCost", finalCost.toString());
+            }
+        }
+    }
+
+    // 프로젝트 종료 - 계좌로 결제 또는 환급
+    @RequestMapping(value = "/api/project/terminate/account")
+    public void terminateProjectByAccount(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
+            if(finalCost == null) {
+                response.setHeader("payment", "fail");
+            } else {
+                if(userService.accountPayment(userId, "프로젝트 종료", finalCost, response)) {
+                    projectService.setNextStatus(projectId);
+                    projectService.zipProject(userId, projectId);
+                }
+            }
+        }
+    }
+
+    // 프로젝트 종료 - 포인트로 결제 또는 환급
+    @RequestMapping(value = "/api/project/terminate/point")
+    public void terminateProjectByPoint(HttpServletRequest request, HttpServletResponse response) {
+        if(authorizationService.isAuthorized(request)) {
+
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            Integer finalCost = projectService.calculateFinalCost(userId, projectId, response);
+            if(finalCost == null) {
+                response.setHeader("payment", "fail");
+            } else {
+                if(userService.pointPayment(userId, finalCost, response)) {
+                    projectService.setNextStatus(projectId);
+                    projectService.zipProject(userId, projectId);
+                }
+            }
+        }
+    }
+
+    // 프로젝트 다운로드
+    @RequestMapping(value = "/api/project/download", method = RequestMethod.GET)
+    public ResponseEntity<Resource> downloadProject(HttpServletRequest request, HttpServletResponse response) throws FileNotFoundException {
+        if(authorizationService.isAuthorized(request)) {
+            String userId = authorizationService.getUserId(request);
+            int projectId = requestService.getProjectIdP(request);
+
+            File zipFile = projectService.downloadProject(userId, projectId, response);
+            if(zipFile != null) {
+                InputStreamResource resource = new InputStreamResource(new FileInputStream(zipFile));
+                return ResponseEntity.ok()
+                        .contentLength(zipFile.length())
+                        .contentType(MediaType.parseMediaType("application/octet-stream"))
+                        .body(resource);
+            }
+        }
         return null;
     }
 

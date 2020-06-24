@@ -1,14 +1,18 @@
 package swcapstone.freitag.springsecurityjpa.service;
 
+import com.amazonaws.services.s3.model.S3ObjectInputStream;
+import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
+import swcapstone.freitag.springsecurityjpa.api.SMSClient;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ClassDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
@@ -22,11 +26,13 @@ import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Service
 public class ProjectService {
@@ -43,6 +49,8 @@ public class ProjectService {
     ObjectStorageApiClient objectStorageApiClient;
     @Autowired
     ProblemRepository problemRepository;
+    @Autowired
+    SMSClient smsClient;
     @Autowired
     BoundingBoxRepository boundingBoxRepository;
 
@@ -218,20 +226,29 @@ public class ProjectService {
         return false;
     }
 
-    // 결제 후 프로젝트 상태 없음 -> 진행중 변경
+    // 결제 후 프로젝트 상태 없음 -> 진행중, 검증대기, 검증완료 -> 결제완료 -> 수령전 -> 수령완료 변경
     @Transactional
-    public void setStatus(int projectId, HttpServletResponse response) {
+    public void setNextStatus(int projectId) {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-        // status 없음 아니라면 종료
-        if (!projectEntityWrapper.get().getStatus().equals("없음"))
-            return;
-
         projectEntityWrapper.ifPresent(selectProject -> {
-            selectProject.setStatus("진행중");
-
+            switch (selectProject.getStatus()) {
+                case "없음":
+                    selectProject.setStatus("진행중");
+                    break;
+                case "진행중":
+                case "검증대기":
+                case "검증완료":
+                    selectProject.setStatus("결제완료");
+                    break;
+                case "결제완료":
+                    selectProject.setStatus("수령전");
+                    break;
+                case "수령전":
+                    selectProject.setStatus("수령완료");
+                    break;
+            }
             projectRepository.save(selectProject);
-            response.setHeader("status", "진행중");
         });
     }
 
@@ -358,6 +375,46 @@ public class ProjectService {
     }
 
 
+    // 프로젝트 종료
+    public Integer calculateFinalCost(String userId, int projectId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
+
+        if (projectEntity.isEmpty()) {
+            return null;
+        }
+
+        String projectStatus = projectEntity.get().getStatus();
+        if(!(projectStatus.equals("진행중") || projectStatus.equals("검증대기") || projectStatus.equals("검증완료"))) {
+            return null;
+        }
+
+        if (projectEntity.get().getUserId().equals(userId)) {
+            // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
+            int cost = projectEntity.get().getCost();
+            // 난이도
+            int difficulty = (int)(projectEntity.get().getDifficulty() / projectEntity.get().getValidatedData());
+            difficulty = 6 - (difficulty * 5);
+
+            int finalCost = projectEntity.get().getValidatedData();
+            switch (difficulty) {
+                case 4:
+                    finalCost *= 100;
+                    break;
+                case 3:
+                    finalCost *= 75;
+                    break;
+                default:
+                    finalCost *= 50;
+                    break;
+            }
+            finalCost -= cost;
+            return finalCost;
+        } else {
+            return null;
+        }
+    }
+
+
     // work service only
     @Transactional
     protected void setProgressData(int projectId, int numbOfProb) {
@@ -388,6 +445,126 @@ public class ProjectService {
         return limit;
     }
 
+    @Async
+    public void zipProject(String userId, int projectId) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+        String projectWorkType = projectEntityWrapper.get().getWorkType();
+        String projectBucketName = projectEntityWrapper.get().getBucketName();
+
+        boolean result = false;
+        try {
+            if (projectWorkType.equals("collection")) {
+                result = zipCollectionData(projectId, projectBucketName);
+            } else if (projectWorkType.equals("labelling")) {
+                result = zipLabellingData(projectId, projectBucketName);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if(result) {
+            setNextStatus(projectId);
+            try {
+                smsClient.sendSMS(userId, "[방구석 수집가]\n결과물 다운로드가 준비 완료되었습니다.");
+            } catch (IOException e) {
+                e.printStackTrace();
+                // 관리자에게 문의하세용...
+            }
+        } else {
+            // 관리자에게 문의하세용...
+        }
+    }
+
+    public File downloadProject(String userId, int projectId, HttpServletResponse response) {
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+        String projectBucketName = projectEntityWrapper.get().getBucketName();
+
+        // 의뢰자가 맞는지
+        if(!projectEntityWrapper.get().getUserId().equals(userId)) {
+            return null;
+        }
+
+        // 수령 가능한 상태가 맞는지
+        if(!projectEntityWrapper.get().getStatus().equals("수령전")) {
+            return null;
+        }
+
+        // 파일이 정상적으로 존재하는지
+        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        File zipFile = new File(zipPath);
+        if(zipFile.exists()) {
+            setNextStatus(projectId);
+            return zipFile;
+        }
+
+        return null;
+    }
+
+    private boolean zipLabellingData(int projectId, String projectBucketName) throws Exception {
+        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+        List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
+
+        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
+        for(ProblemEntity problemEntity : problemEntityList) {
+            if((problemEntity.getValidationStatus().equals("검증완료")) && (problemEntity.getReferenceId() == -1)) {
+                String objectName = problemEntity.getObjectName();
+                S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
+                zipOutputStream.putNextEntry(new ZipEntry(objectName + ".json"));
+
+                HashMap<String, Object> problem = new HashMap<>();
+                problem.put("object_name", objectName);
+                if(projectEntityWrapper.get().getDataType().equals("classification")) {
+                    problem.put("label", problemEntity.getFinalAnswer());
+                } else {
+                    problem.put("boundingBox", getBoundingBox(problemEntity));
+                }
+                JSONObject problemJSON = new JSONObject(problem);
+                zipOutputStream.write(problemJSON.toString().getBytes());
+
+                zipOutputStream.closeEntry();
+                s3ObjectInputStream.close();
+            }
+        }
+        zipOutputStream.close();
+        return true;
+    }
+
+    private List<HashMap<String, Object>> getBoundingBox(ProblemEntity problemEntity) {
+        List<HashMap<String, Object>> boundingBoxList = new ArrayList<>();
+        for (String boxId : problemEntity.getFinalAnswer().split(" ")) {
+            Optional<BoundingBoxEntity> boundingBoxEntityWrapper = boundingBoxRepository.findByBoxId(Integer.parseInt(boxId));
+            HashMap<String, Object> boundingBox = new HashMap<>();
+            boundingBox.put("label", boundingBoxEntityWrapper.get().getClassName());
+            boundingBox.put("coordinates", boundingBoxEntityWrapper.get().getCoordinates());
+            boundingBoxList.add(boundingBox);
+        }
+        return boundingBoxList;
+    }
+
+    private boolean zipCollectionData(int projectId, String projectBucketName) throws Exception {
+        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
+
+        byte[] buf = new byte[4096];
+        ZipOutputStream zipOutputStream = new ZipOutputStream(new FileOutputStream(zipPath));
+        for(ProblemEntity problemEntity : problemEntityList) {
+            if((problemEntity.getValidationStatus().equals("검증완료")) && (problemEntity.getReferenceId() == -1)) {
+                String objectName = problemEntity.getObjectName();
+                S3ObjectInputStream s3ObjectInputStream = objectStorageApiClient.getObject(projectBucketName, objectName);
+                zipOutputStream.putNextEntry(new ZipEntry(objectName));
+                int length = 0;
+                while (((length = s3ObjectInputStream.read(buf)) > 0)) {
+                    zipOutputStream.write(buf, 0, length);
+                }
+                zipOutputStream.closeEntry();
+                s3ObjectInputStream.close();
+            }
+        }
+        zipOutputStream.close();
+        return true;
+    }
 
     // 검증 완료 문제 주기
     public JSONObject getCrossValidationDetails(HttpServletRequest request, HttpServletResponse response) {
