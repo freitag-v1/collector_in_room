@@ -491,7 +491,7 @@ public class ProjectService {
         }
 
         // 파일이 정상적으로 존재하는지
-        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        String zipPath = "/Users/woneyhoney/Desktop/files/" + projectBucketName + ".zip";
         File zipFile = new File(zipPath);
         if(zipFile.exists()) {
             setNextStatus(projectId);
@@ -502,7 +502,7 @@ public class ProjectService {
     }
 
     private boolean zipLabellingData(int projectId, String projectBucketName) throws Exception {
-        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        String zipPath = "/Users/woneyhoney/Desktop/files/" + projectBucketName + ".zip";
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
         List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
 
@@ -544,7 +544,7 @@ public class ProjectService {
     }
 
     private boolean zipCollectionData(int projectId, String projectBucketName) throws Exception {
-        String zipPath = "/Users/choejaeung/Desktop/" + projectBucketName + ".zip";
+        String zipPath = "/Users/woneyhoney/Desktop/files/" + projectBucketName + ".zip";
         List<ProblemEntity> problemEntityList = problemRepository.findAllByProjectId(projectId);
 
         byte[] buf = new byte[4096];
@@ -635,4 +635,7 @@ public class ProjectService {
         return jsonObject;
     }
 
+    public void deleteNotWorkedProblem(int projectId) {
+        problemRepository.deleteAllInTerminatedProject(projectId);
+    }
 }
