@@ -46,6 +46,10 @@ public class ProblemEntity {
     @Column(name = "right_answer")
     private boolean rightAnswer;
 
+    public boolean getRightAnswer() {
+        return this.rightAnswer;
+    }
+
     @Builder
     public ProblemEntity(int problemId, int projectId, int referenceId, String bucketName, String objectName,
                          String answer, String finalAnswer, String validationStatus, String userId, String level) {

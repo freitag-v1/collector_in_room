@@ -413,25 +413,46 @@ public class WorkService {
     @Transactional
     protected void payPoints(int problemId, String userId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
-        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
 
         problemEntityWrapper.ifPresent(selectProblem -> {
             String validationStatus = selectProblem.getValidationStatus();
 
             // 작업 기본 비용 지급 - 10원?
             if (validationStatus.equals("작업후") || validationStatus.equals("교차검증후")) {
-                userEntityWrapper.ifPresent(selectUser -> {
-                    int point = selectUser.getPoint();
-                    int totalPoint = selectUser.getTotalPoint();
-
-                    selectUser.setPoint(point + 10);
-                    selectUser.setTotalPoint(totalPoint + 10);
-
-                    userRepository.save(selectUser);
-                });
+                payPointsToUser(userId, 5);
             } else if (validationStatus.equals("검증완료")) {
                 // 포인트 차등 지급 ??
+                // 답을 맞춘다면
+                if (selectProblem.getRightAnswer()) {
+                    // 슈퍼 작업자나 상 작업자에겐 5 포인트 추가 지급
+                    if (selectProblem.getLevel().equals("상") || selectProblem.getLevel().equals("슈퍼작업자")) {
+                        payPointsToUser(userId, 5);
+                    }
+                    // 중 작업자에겐 3 포인트 추가 지급
+                    else if (selectProblem.getLevel().equals("중")) {
+                        payPointsToUser(userId, 3);
+                    }
+                    // 하 작업자에겐 2 포인트 추가 지급
+                    else if (selectProblem.getLevel().equals("하")) {
+                        payPointsToUser(userId, 2);
+                    }
+                }
             }
+        });
+    }
+
+    @Transactional
+    protected void payPointsToUser(String userId, int gainedPoint) {
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        userEntityWrapper.ifPresent(selectUser -> {
+            int point = selectUser.getPoint();
+            int totalPoint = selectUser.getTotalPoint();
+
+            selectUser.setPoint(point + gainedPoint);
+            selectUser.setTotalPoint(totalPoint + gainedPoint);
+
+            userRepository.save(selectUser);
         });
     }
 }
