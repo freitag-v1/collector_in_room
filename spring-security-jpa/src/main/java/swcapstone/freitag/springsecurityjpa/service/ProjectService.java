@@ -334,6 +334,25 @@ public class ProjectService {
     }
 
 
+    // 슈퍼 작업자 문제 생성
+    @Transactional
+    protected void createProblemForSuperWorker(int targetProblemId) {
+
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(targetProblemId);
+
+        problemEntityWrapper.ifPresent(selectProblem -> {
+            problemIdTurn = getProblemIdTurn();
+            int problemId = this.problemIdTurn;
+            int projectId = selectProblem.getProjectId();
+            String bucketName = selectProblem.getBucketName();
+            String objectName = selectProblem.getObjectName();
+
+            ProblemDto problemDto = new ProblemDto(problemId, projectId, targetProblemId
+                    , bucketName, objectName, "", "", "교차검증전", "", "슈퍼작업자");
+            problemRepository.save(problemDto.toEntity());
+        });
+    }
+
     // problem_table에 결제 완료된 project_id에 해당하는 문제가 만들어졌니?
     @Transactional
     public void createProblem(int projectId, HttpServletResponse response) {
@@ -574,6 +593,7 @@ public class ProjectService {
         return jsonObject;
     }
 
+    // 완료한 작업 목록
     @Transactional
     protected JSONObject findValidatedData(int projectId) {
         // 의뢰자가 만든 검증완료된 문제들(원본) 가져오기

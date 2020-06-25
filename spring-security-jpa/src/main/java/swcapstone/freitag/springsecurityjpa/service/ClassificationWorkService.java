@@ -8,6 +8,7 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.BoundingBoxEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.LabellingWorkHistoryEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.utils.ObjectMapperUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -128,6 +129,8 @@ public class ClassificationWorkService extends WorkService {
             if(saveAnswer(problemId, answer, userId)) {
                 // 답이 제대로 저장이 되면 problem_table에서 해당 problem의 validation_status 변경
                 updateValidationStatus(historyId, problemId);
+                // 포인트 지급
+                payPoints(problemId, userId);
             } else {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
                 labellingWorkHistoryRepository.deleteByHistoryId(historyId);
@@ -144,12 +147,12 @@ public class ClassificationWorkService extends WorkService {
 
     @Transactional
     protected void updateValidationStatus(int historyId, int problemId) {
+
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
         if (problemEntityWrapper.isEmpty()) {
             System.out.println("========================");
             System.out.println("문제를 찾을 수 없음");
-            return;
         }
 
         // problemId를 통해 이 문제가 userValidation인지 crossValidation인지 labellingProblem인지 알아내야 함
@@ -161,7 +164,7 @@ public class ClassificationWorkService extends WorkService {
             });
         }
 
-        // crossValidation - 교차검증전, 교차검증중, 교차검증후, 검증완료
+        // crossValidation - 교차검증전, 교차검증중, 교차검증후, (검증대기), 검증완료
         else if(isCrossValidation(historyId, problemId)) {
             problemEntityWrapper.ifPresent(selectProblem -> {
                 selectProblem.setValidationStatus("교차검증후");   // 교차검증중 -> 교차검증후
@@ -220,19 +223,6 @@ public class ClassificationWorkService extends WorkService {
     @Transactional
     protected void crossValidateProblem(int referenceId) {
 
-        List<ProblemEntity> crossValidationProblems
-                = problemRepository.findAllByReferenceIdAndValidationStatus(referenceId, "교차검증후");
-
-        if (crossValidationProblems.isEmpty()) {
-            System.out.println("========================");
-            System.out.println("아무도 교차검증에 참여하지 않음");
-            return;
-        } else if (crossValidationProblems.size() < 4) {
-            System.out.println("========================");
-            System.out.println("교차검증에 참여한 작업자 수 미달");
-            return;
-        }
-
         // 교차검증 대상 문제
         Optional<ProblemEntity> originalProblem = problemRepository.findByProblemId(referenceId);
 
@@ -243,49 +233,163 @@ public class ClassificationWorkService extends WorkService {
         }
 
         int projectId = originalProblem.get().getProjectId();
-        int size = crossValidationProblems.size() + 1;
+        String validationStatus = originalProblem.get().getValidationStatus();
 
-        String answers[] = new String[size];
-        String workers[] = new String[size];
+        int numOfRightAnswers = 0;
+        int size = 0;
 
-        for (int i = 0; i < size; i++) {
-            if(i == 0) {
-                answers[i] = originalProblem.get().getAnswer();
-                workers[i] = originalProblem.get().getUserId();
+        if (validationStatus.equals("작업후")) {
+            // 교차검증 하기
+            List<ProblemEntity> crossValidationProblems
+                    = problemRepository.findAllByReferenceIdAndValidationStatus(referenceId, "교차검증후");
+
+            if (crossValidationProblems.isEmpty()) {
+                System.out.println("========================");
+                System.out.println("아무도 교차검증에 참여하지 않음");
+                return;
+            } else if (crossValidationProblems.size() < 4) {
+                System.out.println("========================");
+                System.out.println("교차검증에 참여한 작업자 수 미달");
+                return;
+            }
+
+            size = crossValidationProblems.size() + 1;
+
+            String answers[] = new String[size];
+            String workers[] = new String[size];
+            String levelList[] = new String[size];
+
+            for (int i = 0; i < size; i++) {
+                if(i == 0) {
+                    answers[i] = originalProblem.get().getAnswer();
+                    workers[i] = originalProblem.get().getUserId();
+                    levelList[i] = originalProblem.get().getLevel();
+                } else {
+                    answers[i] = crossValidationProblems.get(i - 1).getAnswer();
+                    workers[i] = crossValidationProblems.get(i - 1).getUserId();
+                    levelList[i] = crossValidationProblems.get(i - 1).getLevel();
+                }
+            }
+
+            String finalAnswer = findFinalAnswer(answers, levelList);
+
+            // Voting을 할 수 없는 경우 -> 5개의 문제 validationStatus를 검증대기로 바꾸고
+            // 슈퍼작업자를 위한 문제 1개 생성
+            if (finalAnswer == null) {
+                int originalProblemId = originalProblem.get().getProblemId();
+                // Super 작업자를 위한 문제 생성
+                projectService.createProblemForSuperWorker(originalProblemId);
+
+                originalProblem.ifPresent(selectProblem -> {
+                    selectProblem.setValidationStatus("검증대기");  // 작업후 -> 검증대기
+                    problemRepository.save(selectProblem);
+                });
+
+                for (ProblemEntity p : crossValidationProblems) {
+                    int problemId = p.getProblemId();
+
+                    Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+                    problemEntityWrapper.ifPresent(selectProblem ->
+                    {
+                        selectProblem.setValidationStatus("검증대기");  // 교차검증후 -> 검증대기
+                        problemRepository.save(selectProblem);
+                    });
+                }
+
+                return;
             } else {
-                answers[i] = crossValidationProblems.get(i - 1).getAnswer();
-                workers[i] = crossValidationProblems.get(i - 1).getUserId();
+                // Voting을 통해 최종 답이 나온 경우
+                numOfRightAnswers = setFinalAnswerAfterCrossValidtion(referenceId, finalAnswer);
             }
         }
+        // 원본 문제의 validatonStatus가 검증대기 라면
+        // 슈퍼작업자가 최종 결정을 내려야 함!
+        else if (validationStatus.equals("검증대기")) {
+            // 슈퍼작업자의 문제를 가져옴
+            Optional<ProblemEntity> superUserProblem =
+                    problemRepository.findByReferenceIdAndValidationStatusAndLevel(referenceId, "교차검증후", "슈퍼작업자");
 
-        String levelList[] = new String[size];
+            if (superUserProblem.isEmpty()) {
+                System.out.println("========================");
+                System.out.println("아직 슈퍼작업자가 문제를 풀지 않았음");
+                return;
+            }
 
-        for (int i = 0; i < size; i++) {
-            levelList[i] = getLevel(workers[i]);
+            // 슈퍼작업자의 답을 가져와서
+            String superUserAnswer = superUserProblem.get().getAnswer();
+            // 이것을 최종 답으로 낸다!
+            numOfRightAnswers = setFinalAnswerAfterCrossValidtion(referenceId, superUserAnswer);
+            size = (int) (problemRepository.countByReferenceIdAndValidationStatus(referenceId, "검증완료") + 1);
+
         }
 
-        Optional<ProjectEntity> projectEntityWrapper
-                = projectRepository.findByProjectId(projectId);
-
-        if (projectEntityWrapper.isEmpty()) {
+        else {
             System.out.println("========================");
-            System.out.println("DB 에러 - 프로젝트 찾을 수 없음");
+            System.out.println("DB 에러 - 교차검증할 필요가 없음");
             return;
         }
 
-        String finalAnswer = findFinalAnswer(answers, levelList);
+        // 난이도 계산
+        float difficulty = numOfRightAnswers / size;
+        calculateDifficulty(projectId, difficulty);
+    }
 
-        // Voting을 할 수 없는 경우
-        if (finalAnswer == null) {
-            // Super 작업자 선정해야 하는데 ..
+    // 난이도 계산하기
+    @Transactional
+    protected void calculateDifficulty(int projectId, float difficulty) {
+        // validatedData++
+        Optional<ProjectEntity> targetProject = projectRepository.findByProjectId(projectId);
+        targetProject.ifPresent(selectProject -> {
+            int validatedData = selectProject.getValidatedData();
+            validatedData += 1;
+            selectProject.setValidatedData(validatedData);
 
-            return;
-        } else {    // Voting을 통해 최종 답이 나온 경우
-            AtomicInteger numOfRightAnswers = new AtomicInteger();
+            float currDifficulty = selectProject.getDifficulty();
+            selectProject.setDifficulty(currDifficulty + difficulty);
 
-            originalProblem.ifPresent(selectProblem -> {
+            projectRepository.save(selectProject);
+        });
+    }
+
+
+    // 교차검증후 finalAnswer 설정
+    @Transactional
+    protected int setFinalAnswerAfterCrossValidtion(int referenceId, String finalAnswer) {
+
+        // 교차검증 대상 문제
+        Optional<ProblemEntity> originalProblem = problemRepository.findByProblemId(referenceId);
+        // 난이도 계산을 위해 맞춘 문제 개수를 셈
+        AtomicInteger numOfRightAnswers = new AtomicInteger();
+
+        originalProblem.ifPresent(selectProblem -> {
+            selectProblem.setFinalAnswer(finalAnswer);
+            selectProblem.setValidationStatus("검증완료");  // 작업후/검증대기 -> 검증완료
+
+            if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer())) {
+                selectProblem.setRightAnswer(true);
+                numOfRightAnswers.getAndIncrement();
+            }
+            problemRepository.save(selectProblem);
+        });
+
+        // 교차검증후, 검증대기 인 문제들 싹 다 가져와
+        List<ProblemEntity> crossValidationProblems = problemRepository.findAllByReferenceId(referenceId);
+
+        if (crossValidationProblems.isEmpty()) {
+            System.out.println("========================");
+            System.out.println("DB 에러 - 문제를 찾을 수 없음");
+            return -1;
+        }
+
+        for (ProblemEntity p : crossValidationProblems) {
+            int problemId = p.getProblemId();
+
+            Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+
+            problemEntityWrapper.ifPresent(selectProblem ->
+            {
                 selectProblem.setFinalAnswer(finalAnswer);
-                selectProblem.setValidationStatus("검증완료");  // 작업후 -> 검증완료
+                selectProblem.setValidationStatus("검증완료");  // 교차검증후 -> 검증완료
 
                 if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer())) {
                     selectProblem.setRightAnswer(true);
@@ -294,44 +398,11 @@ public class ClassificationWorkService extends WorkService {
 
                 problemRepository.save(selectProblem);
             });
-
-            for (ProblemEntity p : crossValidationProblems) {
-                int problemId = p.getProblemId();
-
-                Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
-
-                problemEntityWrapper.ifPresent(selectProblem ->
-                {
-                    selectProblem.setFinalAnswer(finalAnswer);
-                    selectProblem.setValidationStatus("검증완료");  // 교차검증후 -> 검증완료
-
-                    if (selectProblem.getAnswer().equals(selectProblem.getFinalAnswer())) {
-                        selectProblem.setRightAnswer(true);
-                        numOfRightAnswers.getAndIncrement();
-                    }
-
-                    problemRepository.save(selectProblem);
-                });
-            }
-
-            // validatedData++
-            Optional<ProjectEntity> targetProject = projectRepository.findByProjectId(projectId);
-
-            // 난이도 계산
-            float difficulty = numOfRightAnswers.get() / size;
-
-            targetProject.ifPresent(selectProject -> {
-                int validatedData = selectProject.getValidatedData();
-                validatedData += 1;
-                selectProject.setValidatedData(validatedData);
-
-                float currDifficulty = selectProject.getDifficulty();
-                selectProject.setDifficulty(currDifficulty + difficulty);
-
-                projectRepository.save(selectProject);
-            });
         }
+
+        return numOfRightAnswers.get();
     }
+
 
     // Voting!
     private static String findFinalAnswer(String[] answers, String[] levelList) {
@@ -423,5 +494,6 @@ public class ClassificationWorkService extends WorkService {
         }
         return num;
     }
+
 
 }
