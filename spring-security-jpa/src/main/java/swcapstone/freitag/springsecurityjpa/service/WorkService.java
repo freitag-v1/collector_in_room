@@ -150,18 +150,34 @@ public class WorkService {
 
         if (numOfProblems == 1) {
             // ex) 하나는 슈퍼작업자, 하나는 상
-            crossValidationProblems.addAll(problemRepositoryImpl.crossValidations("교차검증전", level, 1));
+            crossValidationProblems.add(problemRepositoryImpl.crossValidations("교차검증전", level, 1).get(0));
 
-            Optional<ProblemEntity> problemEntityWrapper = problemRepository.findOneByValidationStatus("교차검증전");
-            if (problemEntityWrapper.isPresent()) {
-                crossValidationProblems.add(problemEntityWrapper.get());
-            } else {
+            if (level.equals("슈퍼작업자")) {
+                level = level.replaceAll(level, "상");
                 System.out.println("========================");
-                System.out.println("problemEntityWrapper.isEmpty()");
+                System.out.println("슈퍼작업자 -> " + level);
+            }
+            else if (level.equals("상")) {
+                level = level.replaceAll(level, "중");
+            }
+            else if (level.equals("중")) {
+                level = level.replaceAll(level, "하");
+            }
+            else {
+                System.out.println("========================");
+                System.out.println("띠용!");
                 return;
             }
 
+            System.out.println("========================");
+            System.out.println("[교차검증문제1개선택후] level : " + level);
+
+            crossValidationProblems.add(problemRepositoryImpl.crossValidations("교차검증전", level, 1).get(0));
+
         } else {
+            level = level.replaceAll(level, "상");
+            System.out.println("========================");
+            System.out.println("슈퍼작업자 -> " + level);
             crossValidationProblems.addAll(problemRepositoryImpl.crossValidations("교차검증전", level, 2));
         }
 

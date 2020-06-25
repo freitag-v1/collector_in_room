@@ -593,6 +593,7 @@ public class ProjectService {
         return jsonObject;
     }
 
+    // 완료한 작업 목록
     @Transactional
     protected JSONObject findValidatedData(int projectId) {
         // 의뢰자가 만든 검증완료된 문제들(원본) 가져오기

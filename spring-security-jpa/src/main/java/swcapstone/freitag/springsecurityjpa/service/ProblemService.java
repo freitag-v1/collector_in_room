@@ -127,20 +127,23 @@ public class ProblemService extends WorkService {
 
         String level = getLevel(userId);
 
-        // System.out.println("========================");
-        // System.out.println("userId : " + userId + " level : " + level);
+        System.out.println("========================");
+        System.out.println("userId : " + userId + " level : " + level);
 
         List<ProblemEntity> selectedProblems = new ArrayList<>();
 
         // 50개 랜덤으로 뽑음 - 테스트는 5개만 뽑을거임
         // 10개 (테스트 1개) = userValidation(검증완료)
         userValidationProblem(selectedProblems);
+
         // 20개 (테스트 2개) = crossValidation(작업후)
         crossValidationProblems(selectedProblems, level);
 
         if (level.equals("슈퍼작업자")) {
-            // 슈퍼작업자라면 분류 문제 가져올 때는 상으로 격하 
-            level.replace(level, "상");
+            // 슈퍼작업자라면 분류 문제 가져올 때는 상으로 격하
+            level = level.replaceAll(level, "상");
+            System.out.println("========================");
+            System.out.println("[교차검증문제선택후] userId : " + userId + " level : " + level);
         }
 
         // 20개 (테스트 2개) = labellingProblems(작업전)
