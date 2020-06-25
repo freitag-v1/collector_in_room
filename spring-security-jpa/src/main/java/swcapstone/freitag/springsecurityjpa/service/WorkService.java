@@ -368,26 +368,20 @@ public class WorkService {
             int projectId = problemEntityWrapper.get().getProjectId();
             Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
-            String projectRequester = "";
-            String projectName = "";
-            String projectWorkType = "";
-            String projectDataType = "";
-
             if (projectEntityWrapper.isPresent()) {
-                projectRequester += projectEntityWrapper.get().getUserId();
-                projectName += projectEntityWrapper.get().getProjectName();
-                projectWorkType += projectEntityWrapper.get().getWorkType();
-                projectDataType += projectEntityWrapper.get().getDataType();
+                String projectRequester = projectEntityWrapper.get().getUserId();
+                String projectName = projectEntityWrapper.get().getProjectName();
+                String projectWorkType = projectEntityWrapper.get().getWorkType();
+                String projectDataType = projectEntityWrapper.get().getDataType();
+                String problemStatus = mappingStatus(validationStatus);
+
+                WorkHistoryDto workHistoryDto = new WorkHistoryDto(projectRequester, projectName, projectWorkType,
+                        projectDataType, problemStatus, problemId);
+
+                return workHistoryDto;
             } else {
                 return null;
             }
-
-            String problemStatus = mappingStatus(validationStatus);
-
-            WorkHistoryDto workHistoryDto = new WorkHistoryDto(projectRequester, projectName, projectWorkType,
-                    projectDataType, problemStatus, problemId);
-
-            return workHistoryDto;
         }
 
         return null;
