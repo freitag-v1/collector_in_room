@@ -175,9 +175,6 @@ public class WorkService {
             crossValidationProblems.add(problemRepositoryImpl.crossValidations("교차검증전", level, 1).get(0));
 
         } else {
-            level = level.replaceAll(level, "상");
-            System.out.println("========================");
-            System.out.println("슈퍼작업자 -> " + level);
             crossValidationProblems.addAll(problemRepositoryImpl.crossValidations("교차검증전", level, 2));
         }
 
@@ -404,7 +401,6 @@ public class WorkService {
     }
 
     // 포인트 지급
-    @Transactional
     protected void payPoints(int problemId, String userId) {
         Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
@@ -416,6 +412,7 @@ public class WorkService {
                 payPointsToUser(userId, 5);
             } else if (validationStatus.equals("검증완료")) {
                 // 포인트 차등 지급 ??
+
                 // 답을 맞춘다면
                 if (selectProblem.getRightAnswer()) {
                     // 슈퍼 작업자나 상 작업자에겐 5 포인트 추가 지급
@@ -429,6 +426,10 @@ public class WorkService {
                     // 하 작업자에겐 2 포인트 추가 지급
                     else if (selectProblem.getLevel().equals("하")) {
                         payPointsToUser(userId, 2);
+                    }
+                    // 사용자검증문제는 제외
+                    else {
+                        return;
                     }
                 }
             }
