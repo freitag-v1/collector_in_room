@@ -144,8 +144,42 @@ public class WorkService {
     @Transactional
     protected void crossValidationProblems(List<ProblemEntity> selectedProblems, String level) {
 
-        List<ProblemEntity> crossValidationProblems =
-                problemRepositoryImpl.crossValidations("교차검증전", level, 2);
+        List<ProblemEntity> crossValidationProblems = new ArrayList<>();
+        // 이 level의 작업자가 참여할 수 있는 교차검증 문제 개수
+        int numOfProblems = (int) problemRepository.countByValidationStatusAndLevel("교차검증전", level);
+
+        if (numOfProblems == 1) {
+            // ex) 하나는 슈퍼작업자, 하나는 상
+            crossValidationProblems.add(problemRepositoryImpl.crossValidations("교차검증전", level, 1).get(0));
+
+            if (level.equals("슈퍼작업자")) {
+                level = level.replaceAll(level, "상");
+                System.out.println("========================");
+                System.out.println("슈퍼작업자 -> " + level);
+            }
+            else if (level.equals("상")) {
+                level = level.replaceAll(level, "중");
+            }
+            else if (level.equals("중")) {
+                level = level.replaceAll(level, "하");
+            }
+            else {
+                System.out.println("========================");
+                System.out.println("띠용!");
+                return;
+            }
+
+            System.out.println("========================");
+            System.out.println("[교차검증문제1개선택후] level : " + level);
+
+            crossValidationProblems.add(problemRepositoryImpl.crossValidations("교차검증전", level, 1).get(0));
+
+        } else {
+            level = level.replaceAll(level, "상");
+            System.out.println("========================");
+            System.out.println("슈퍼작업자 -> " + level);
+            crossValidationProblems.addAll(problemRepositoryImpl.crossValidations("교차검증전", level, 2));
+        }
 
         for (ProblemEntity p : crossValidationProblems) {
             p.setValidationStatus("교차검증중");
@@ -222,6 +256,10 @@ public class WorkService {
             userRepository.save(selectUser);
         });
 
+        // 정확도가 100%이면서 맞춘 문제가 10개 이상이면 슈퍼작업자
+        if (userAccuracy == 1 && solvedProblems >= 10)
+            return 1.1;
+
         return userAccuracy;
     }
 
@@ -230,9 +268,11 @@ public class WorkService {
 
         double userAccuracy = calculateAccuracy(userId);
 
-        if (userAccuracy > 0.9)
+        if (userAccuracy == 1.1)
+            return "슈퍼작업자";
+        else if (userAccuracy >= 0.9)
             return "상";
-        else if (userAccuracy > 0.8)
+        else if (userAccuracy >= 0.8)
             return "중";
         else
             return "하";
@@ -260,7 +300,7 @@ public class WorkService {
         getCollectionWorkList(userId, workList);
         getLabellingWorkList(userId, workList);
 
-        if(workList == null) {
+        if(workList.isEmpty()) {
             response.setHeader("workList", "fail");
             return null;
         }
@@ -319,27 +359,100 @@ public class WorkService {
 
     // problemId -> workHistoryDto 생성
     private WorkHistoryDto createWorkHistoryDto(int problemId) {
-        Optional<ProblemEntity> problemEntity = problemRepository.findByProblemId(problemId);
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
 
-        if (problemEntity.get() == null)
-            return null;
+        if (problemEntityWrapper.isPresent()) {
 
-        int projectId = problemEntity.get().getProjectId();
-        Optional<ProjectEntity> projectEntity = projectRepository.findByProjectId(projectId);
+            String validationStatus = problemEntityWrapper.get().getValidationStatus();
 
-        if (projectEntity.isPresent()) {
-            String projectRequester = projectEntity.get().getUserId();
-            String projectName = projectEntity.get().getProjectName();
-            String projectWorkType = projectEntity.get().getWorkType();
-            String projectDataType = projectEntity.get().getDataType();
-            String projectStatus = projectEntity.get().getStatus();
+            int projectId = problemEntityWrapper.get().getProjectId();
+            Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
+
+            String projectRequester = "";
+            String projectName = "";
+            String projectWorkType = "";
+            String projectDataType = "";
+
+            if (projectEntityWrapper.isPresent()) {
+                projectRequester += projectEntityWrapper.get().getUserId();
+                projectName += projectEntityWrapper.get().getProjectName();
+                projectWorkType += projectEntityWrapper.get().getWorkType();
+                projectDataType += projectEntityWrapper.get().getDataType();
+            } else {
+                return null;
+            }
+
+            String problemStatus = mappingStatus(validationStatus);
 
             WorkHistoryDto workHistoryDto = new WorkHistoryDto(projectRequester, projectName, projectWorkType,
-                    projectDataType, projectStatus, problemId);
+                    projectDataType, problemStatus, problemId);
 
             return workHistoryDto;
         }
 
         return null;
+    }
+
+    private String mappingStatus(String validationStatus) {
+
+        if (validationStatus.isEmpty())
+            return null;
+
+        if (validationStatus.equals("검증완료")) {
+            return "포인트지급 완료";
+        } else if (validationStatus.equals("작업후") ||
+                validationStatus.equals("교차검증후") ||
+                validationStatus.equals("검증대기")) {
+            return "포인트지급 대기";
+        } else {
+            return "";
+        }
+    }
+
+    // 포인트 지급
+    @Transactional
+    protected void payPoints(int problemId, String userId) {
+        Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+
+        problemEntityWrapper.ifPresent(selectProblem -> {
+            String validationStatus = selectProblem.getValidationStatus();
+
+            // 작업 기본 비용 지급 - 10원?
+            if (validationStatus.equals("작업후") || validationStatus.equals("교차검증후")) {
+                payPointsToUser(userId, 5);
+            } else if (validationStatus.equals("검증완료")) {
+                // 포인트 차등 지급 ??
+                // 답을 맞춘다면
+                if (selectProblem.getRightAnswer()) {
+                    // 슈퍼 작업자나 상 작업자에겐 5 포인트 추가 지급
+                    if (selectProblem.getLevel().equals("상") || selectProblem.getLevel().equals("슈퍼작업자")) {
+                        payPointsToUser(userId, 5);
+                    }
+                    // 중 작업자에겐 3 포인트 추가 지급
+                    else if (selectProblem.getLevel().equals("중")) {
+                        payPointsToUser(userId, 3);
+                    }
+                    // 하 작업자에겐 2 포인트 추가 지급
+                    else if (selectProblem.getLevel().equals("하")) {
+                        payPointsToUser(userId, 2);
+                    }
+                }
+            }
+        });
+    }
+
+    @Transactional
+    protected void payPointsToUser(String userId, int gainedPoint) {
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+
+        userEntityWrapper.ifPresent(selectUser -> {
+            int point = selectUser.getPoint();
+            int totalPoint = selectUser.getTotalPoint();
+
+            selectUser.setPoint(point + gainedPoint);
+            selectUser.setTotalPoint(totalPoint + gainedPoint);
+
+            userRepository.save(selectUser);
+        });
     }
 }
