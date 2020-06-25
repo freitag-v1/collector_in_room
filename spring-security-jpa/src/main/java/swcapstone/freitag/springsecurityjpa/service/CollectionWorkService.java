@@ -88,7 +88,7 @@ public class CollectionWorkService extends WorkService {
                 if(objectName == null) {
                     System.out.println("========================");
                     System.out.println("Object Storage에 데이터 업로드 실패");
-                    response.setHeader("upload", "fail to upload data to Object Storage");
+                    response.setHeader("upload", "fail");
                     return false;
                 }
 
@@ -107,7 +107,7 @@ public class CollectionWorkService extends WorkService {
                         continue;
                     }
                 } else {
-                    response.setHeader("upload", "fail to find problems");
+                    response.setHeader("upload", "fail");
                     return false;
                 }
             }
@@ -116,7 +116,7 @@ public class CollectionWorkService extends WorkService {
             return true;
         }
 
-        response.setHeader("upload", "fail - number of data exceeds limit");
+        response.setHeader("upload", "fail");
         return false;
     }
 }
