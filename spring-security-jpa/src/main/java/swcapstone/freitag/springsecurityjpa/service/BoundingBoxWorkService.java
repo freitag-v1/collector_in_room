@@ -87,6 +87,7 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         if (projectEntityWrapper.isEmpty()) {
+            cancelLabellingWork(historyId);
             System.out.println("========================");
             System.out.println("해당 프로젝트를 찾을 수 없음");
             response.setHeader("answer", "fail");
