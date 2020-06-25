@@ -97,14 +97,7 @@ public class UserController {
             String userId = authorizationService.getUserId(request);
             int amount = request.getIntHeader("amount");
 
-            Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
-            userEntityWrapper.ifPresent(selectUser -> {
-                if(amount <= selectUser.getPoint()) {
-                    if(OpenBankingClient.getInstance().deposit(selectUser.getUserOpenBankingAccessToken(), selectUser.getUserOpenBankingNum(), "테스트", amount)) {
-                        selectUser.setPoint(selectUser.getPoint() - amount);
-                    }
-                }
-            });
+            userService.pointExchange(userId, amount, response);
         }
     }
 
