@@ -105,10 +105,10 @@ public class ClassificationWorkService extends WorkService {
 
         if(parameterMap.size() != 5) {
             // 답이 제대로 안오면 labellingWorkHistory 삭제 추가 ***
-            labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+            cancelLabellingWork(historyId);
             System.out.println("========================");
             System.out.println("문제의 답이 5개가 아님. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
-            response.setHeader("answer", "send answers again");
+            response.setHeader("answer", "fail");
             return false;
         }
 
@@ -133,10 +133,10 @@ public class ClassificationWorkService extends WorkService {
                 payPoints(problemId, userId);
             } else {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
-                labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+                cancelLabellingWork(historyId);
                 System.out.println("========================");
                 System.out.println("문제의 답을 저장할 수가 없음. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
-                response.setHeader("answer", "fail - 작업 다시 시작");
+                response.setHeader("answer", "fail");
                 return false;
             }
 

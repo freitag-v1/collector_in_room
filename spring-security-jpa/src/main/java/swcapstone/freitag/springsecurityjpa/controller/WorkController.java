@@ -54,7 +54,10 @@ public class WorkController {
     // 그러면 이 때 만들어진 사용자 검증 문제와 작업 기록을 지워야 되는 요청을 클라이언트에서 날려줘야함!
     @RequestMapping(value = "/api/work/cancel")
     public void deleteWork(HttpServletRequest request, HttpServletResponse response) {
-
+        if (authorizationService.isAuthorized(request)) {
+            int historyId = request.getIntHeader("workHistory");
+            workService.cancelLabellingWork(historyId);
+        }
     }
 
     // 라벨링 분류 작업 문제 50개 주기 - 테스트용에서는 5개를 준다고 가정
@@ -122,7 +125,7 @@ public class WorkController {
             return workService.getWorkList(userId, response);
         }
 
-        response.setHeader("login", "fail");
+        response.setHeader("workList", "fail");
         return null;
     }
 }

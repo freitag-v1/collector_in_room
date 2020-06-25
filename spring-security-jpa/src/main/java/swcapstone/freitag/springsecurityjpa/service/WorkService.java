@@ -450,4 +450,35 @@ public class WorkService {
             userRepository.save(selectUser);
         });
     }
+
+    @Transactional
+    public void cancelLabellingWork(int historyId) {
+        Optional<LabellingWorkHistoryEntity> labellingWorkHistoryEntityWrapper = labellingWorkHistoryRepository.findByHistoryId(historyId);
+        List<Integer> cancelList = new ArrayList<>();
+        cancelList.add(labellingWorkHistoryEntityWrapper.get().getUv1());
+        cancelList.add(labellingWorkHistoryEntityWrapper.get().getCv1());
+        cancelList.add(labellingWorkHistoryEntityWrapper.get().getCv2());
+        cancelList.add(labellingWorkHistoryEntityWrapper.get().getLp1());
+        cancelList.add(labellingWorkHistoryEntityWrapper.get().getLp2());
+
+        for (Integer problemId : cancelList) {
+            Optional<ProblemEntity> problemEntityWrapper = problemRepository.findByProblemId(problemId);
+            problemEntityWrapper.ifPresent(selectedProblem -> {
+                switch (selectedProblem.getValidationStatus()) {
+                    case "작업중":
+                        selectedProblem.setValidationStatus("작업전");
+                        problemRepository.save(selectedProblem);
+                        break;
+                    case "교차검증중":
+                        selectedProblem.setValidationStatus("교차검증전");
+                        problemRepository.save(selectedProblem);
+                        break;
+                    case "사용자검증중":
+                        problemRepository.delete(selectedProblem);
+                        break;
+                }
+            });
+        }
+        labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+    }
 }

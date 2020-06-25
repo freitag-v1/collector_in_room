@@ -40,13 +40,6 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             return null;
         }
 
-        String level = getLevel(userId);
-        for (ProblemEntity p : selectedProblems) {
-            p.setValidationStatus("작업중");   // 작업전 -> 작업중
-            p.setLevel(level);  // level 설정
-            problemRepository.save(p);
-        }
-
         List<ProblemDto> problemSet = ObjectMapperUtils.mapAll(selectedProblems, ProblemDto.class);
 
         // 클래스 정보도 함께 주기 위해서 ProblemDto -> ProblemDtoWithClassDto 변환
@@ -57,6 +50,13 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
             System.out.println("바운딩박스 문제 한 세트(5개)를 만들 수가 없음");
             response.setHeader("problems", "fail");
             return null;
+        }
+
+        String level = getLevel(userId);
+        for (ProblemEntity p : selectedProblems) {
+            p.setValidationStatus("작업중");   // 작업전 -> 작업중
+            p.setLevel(level);  // level 설정
+            problemRepository.save(p);
         }
 
         int historyId = saveLabellingWorkHistory(userId, "boundingBox", problemSet);
@@ -72,23 +72,25 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
     public boolean boundingBoxWork(String userId, LinkedHashMap<String, Object> parameterMap,
                                    HttpServletRequest request, HttpServletResponse response) {
 
-        if (parameterMap.isEmpty()) {
-            System.out.println("========================");
-            System.out.println("아무것도 오지 않았음");
-            response.setHeader("map", "fail");
-            return false;
-        }
-
         int projectId = requestService.getProjectIdH(request);
         int historyId = requestService.getHistoryIdH(request);
         int problemId = requestService.getProblemIdP(request);
 
+        if (parameterMap.isEmpty()) {
+            cancelLabellingWork(historyId);
+            System.out.println("========================");
+            System.out.println("아무것도 오지 않았음");
+            response.setHeader("answer", "fail");
+            return false;
+        }
+
         Optional<ProjectEntity> projectEntityWrapper = projectRepository.findByProjectId(projectId);
 
         if (projectEntityWrapper.isEmpty()) {
+            cancelLabellingWork(historyId);
             System.out.println("========================");
             System.out.println("해당 프로젝트를 찾을 수 없음");
-            response.setHeader("project", "fail");
+            response.setHeader("answer", "fail");
             return false;
         }
 
@@ -108,10 +110,10 @@ public class BoundingBoxWorkService extends ClassificationWorkService {
                 updateValidationStatus(historyId, problemId);
             } else {
                 // 답이 제대로 저장이 안되면 labellingWorkHistory 삭제 추가 ***
-                labellingWorkHistoryRepository.deleteByHistoryId(historyId);
+                cancelLabellingWork(historyId);
                 System.out.println("========================");
                 System.out.println("문제의 답을 저장할 수가 없음. 라벨링 작업 기록 삭제되었으니 작업 재시작 요망");
-                response.setHeader("answer", "fail - 작업 다시 시작");
+                response.setHeader("answer", "fail");
                 return false;
             }
         }
