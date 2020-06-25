@@ -412,6 +412,9 @@ public class WorkService {
                 payPointsToUser(userId, 5);
             } else if (validationStatus.equals("검증완료")) {
                 // 포인트 차등 지급 ??
+                if (selectProblem.getLevel() == null) {
+                    return;
+                }
 
                 // 답을 맞춘다면
                 if (selectProblem.getRightAnswer()) {
