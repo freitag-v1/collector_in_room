@@ -1,39 +1,36 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
-import sun.nio.ch.Util;
-import swcapstone.freitag.springsecurityjpa.utils.JwtProperties;
-import swcapstone.freitag.springsecurityjpa.utils.Utils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
+import swcapstone.freitag.springsecurityjpa.utils.Utils;
 
 import java.net.URI;
 import java.sql.Timestamp;
-import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
-import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @Transactional
+@Sql(value = "UserControllerFixture.sql")
 class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;

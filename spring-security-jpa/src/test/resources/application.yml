@@ -1,7 +1,7 @@
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/springsecurity?serverTimezone=UTC&characterEncoding=UTF-8
+    url: jdbc:mysql://wodnd999999.iptime.org:3306/springsecurity?serverTimezone=UTC&characterEncoding=UTF-8
     username: freitag
     password: Skql2159!
 
