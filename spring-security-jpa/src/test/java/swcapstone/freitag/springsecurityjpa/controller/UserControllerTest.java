@@ -502,10 +502,34 @@ class UserControllerTest {
     }
 
     @Test
-    public void top5RichUser() {
+    public void top5RichUser() throws Exception {
+        // Exercise SUT
+        ResultActions result = performRankingByPoint();
+
+        // Verify Outcome
+        result.andExpect(header().string("ranking", "success"));
+        // more...?
+    }
+
+    private ResultActions performRankingByPoint() throws Exception {
+        URI uri = new URIBuilder("/api/ranking/point")
+                .build();
+        return mockMvc.perform(MockMvcRequestBuilders.put(uri));
     }
 
     @Test
-    public void top5SmartUser() {
+    public void top5SmartUser() throws Exception {
+        // Exercise SUT
+        ResultActions result = performRankingByAccuracy();
+
+        // Verify Outcome
+        result.andExpect(header().string("ranking", "success"));
+        // more...?
+    }
+
+    private ResultActions performRankingByAccuracy() throws Exception {
+        URI uri = new URIBuilder("/api/ranking/accuracy")
+                .build();
+        return mockMvc.perform(MockMvcRequestBuilders.put(uri));
     }
 }
