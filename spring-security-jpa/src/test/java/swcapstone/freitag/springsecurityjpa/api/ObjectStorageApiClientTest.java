@@ -1,7 +1,8 @@
 package swcapstone.freitag.springsecurityjpa.api;
 
-import org.junit.Ignore;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.File;
 
@@ -11,7 +12,7 @@ class ObjectStorageApiClientTest {
 
     private ObjectStorageApiClient objectStorageApiClient = new ObjectStorageApiClient();
 
-    @Ignore
+    @Disabled("테스트 환경마다 달라서 임시로 disable")
     @Test
     public void uploadTest() throws Exception {
         File data = new File("/Users/choejaeung/Desktop/cat.jpg");
