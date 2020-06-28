@@ -30,7 +30,7 @@ public class SMSClient {
     private final String sphone2 = "2754";
     private final String sphone3 = "0421";
     private final String smsType = "S";
-    private String testflag = "N";
+    private String testflag = "Y";
 
     private String nullCheck(String str) {
         String result;

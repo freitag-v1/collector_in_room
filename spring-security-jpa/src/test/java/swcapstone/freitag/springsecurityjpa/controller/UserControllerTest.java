@@ -11,8 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import sun.nio.ch.Util;
 import swcapstone.freitag.springsecurityjpa.utils.JwtProperties;
 import swcapstone.freitag.springsecurityjpa.utils.Utils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
@@ -22,6 +24,7 @@ import java.net.URI;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.get;
@@ -266,23 +269,236 @@ class UserControllerTest {
     }
 
     @Test
-    public void mypageUpdate() {
+    public void mypageUpdate() throws Exception {
+        // Setup Fixture
+        String authorization = Utils.makeAuthorizationToken(userId);
+        String userName = "개명함";
+        String userPhone = "01099991111";
+        String userEmail = "ung27540421@outlook.com";
+        String userAffiliation = "Korea";
+
+        // Exercise SUT
+        ResultActions result = performMypageUpdate(authorization, userName, userPhone, userEmail, userAffiliation);
+
+        // Verify Outcome
+        result.andExpect(header().string("update", "success"));
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("userName이 다르게 저장됨", userName, userEntity.getUserName());
+            assertEquals("userPhone이 다르게 저장됨", userPhone, userEntity.getUserPhone());
+            assertEquals("userEmail이 다르게 저장됨", userEmail, userEntity.getUserEmail());
+            assertEquals("userAffiliation이 다르게 저장됨", userAffiliation, userEntity.getUserAffiliation());
+        });
     }
 
     @Test
-    public void successfulExchangePoint() {
+    public void mypageUpdateWithoutLogin() throws Exception {
+        // Setup Fixture
+        String authorization = null;
+        String userName = "개명함";
+        String userPhone = "01099991111";
+        String userEmail = "ung27540421@outlook.com";
+        String userAffiliation = "Korea";
+
+        // Exercise SUT
+        ResultActions result = performMypageUpdate(authorization, userName, userPhone, userEmail, userAffiliation);
+
+        // Verify Outcome
+        result.andExpect(header().string("update", "fail"));
     }
 
     @Test
-    public void exchangePointWithoutRegisteringOpenBanking() {
+    public void mypageUpdateWithExpiredAuthorizationToken() throws Exception {
+        // Setup Fixture
+        String authorization = Utils.makeExpiredAuthorizationToken(userId);
+        String userName = "개명함";
+        String userPhone = "01099991111";
+        String userEmail = "ung27540421@outlook.com";
+        String userAffiliation = "Korea";
+
+        // Exercise SUT
+        ResultActions result = performMypageUpdate(authorization, userName, userPhone, userEmail, userAffiliation);
+
+        // Verify Outcome
+        result.andExpect(header().string("update", "fail"));
+    }
+
+    private ResultActions performMypageUpdate(String authorization, String userName, String userPhone, String userEmail, String userAffiliation) throws Exception {
+        URI uri = new URIBuilder("/api/mypage/update")
+                .addParameter("userName", userName)
+                .addParameter("userPhone", userPhone)
+                .addParameter("userEmail", userEmail)
+                .addParameter("userAffiliation", userAffiliation)
+                .build();
+        if(authorization == null) {
+            return mockMvc.perform(MockMvcRequestBuilders.put(uri));
+        } else {
+            return mockMvc.perform(MockMvcRequestBuilders.put(uri)
+                    .header("Authorization", authorization));
+        }
     }
 
     @Test
-    public void exchangePointImpossible() {
+    public void successfulExchangePoint() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = Utils.makeAuthorizationToken(userId);
+        int amount = 10000;
+        int point = userEntityWrapper.get().getPoint();
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, amount);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "success"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("userPoint가 잘못 계산됨", point - amount, userEntity.getPoint());
+        });
     }
 
     @Test
-    public void exchangePointWithoutLogin() {
+    public void exchangePointWithoutRegisteringOpenBanking() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = Utils.makeAuthorizationToken(userId);
+        int amount = 10000;
+        int point = userEntityWrapper.get().getPoint();
+        userEntityWrapper.ifPresent(userEntity -> {
+            userEntity.setUserOpenBankingAccessToken(UUID.randomUUID().toString().replace("-", ""));
+            userEntity.setUserOpenBankingNum(0);
+            userRepository.save(userEntity);
+        });
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, amount);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "fail"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("변동되지 말아야 할 userPoint가 변동됨", point, userEntity.getPoint());
+        });
+    }
+
+    @Test
+    public void exchangePointMoreThanHaving() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = Utils.makeAuthorizationToken(userId);
+        int amount = 1000000;
+        int point = userEntityWrapper.get().getPoint();
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, amount);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "fail"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("변동되지 말아야 할 userPoint가 변동됨", point, userEntity.getPoint());
+        });
+    }
+
+    @Test
+    public void exchangePointButOpenBankingError() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = Utils.makeAuthorizationToken(userId);
+        int amount = 10000;
+        int point = userEntityWrapper.get().getPoint();
+        userEntityWrapper.ifPresent(userEntity -> {
+            userEntity.setUserOpenBankingAccessToken(Utils.makeExpiredAuthorizationToken(userId));
+        });
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, amount);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "fail"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("변동되지 말아야 할 userPoint가 변동됨", point, userEntity.getPoint());
+        });
+    }
+
+    @Test
+    public void exchangePointWithoutLogin() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = null;
+        int amount = 10000;
+        int point = userEntityWrapper.get().getPoint();
+        userEntityWrapper.ifPresent(userEntity -> {
+            userEntity.setUserOpenBankingAccessToken(Utils.makeExpiredAuthorizationToken(userId));
+        });
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, amount);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "fail"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("변동되지 말아야 할 userPoint가 변동됨", point, userEntity.getPoint());
+        });
+    }
+
+    @Test
+    public void exchangePointWithExpiredAuthorizationToken() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = Utils.makeExpiredAuthorizationToken(userId);
+        int amount = 10000;
+        int point = userEntityWrapper.get().getPoint();
+        userEntityWrapper.ifPresent(userEntity -> {
+            userEntity.setUserOpenBankingAccessToken(Utils.makeExpiredAuthorizationToken(userId));
+        });
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, amount);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "fail"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("변동되지 말아야 할 userPoint가 변동됨", point, userEntity.getPoint());
+        });
+    }
+
+    @Test
+    public void exchangePointWithoutAmount() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        String authorization = null;
+        int point = userEntityWrapper.get().getPoint();
+        userEntityWrapper.ifPresent(userEntity -> {
+            userEntity.setUserOpenBankingAccessToken(Utils.makeExpiredAuthorizationToken(userId));
+        });
+
+        // Exercise SUT
+        ResultActions result = performExchangePoint(authorization, null);
+
+        // Verify Outcome
+        result.andExpect(header().string("exchange", "fail"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("변동되지 말아야 할 userPoint가 변동됨", point, userEntity.getPoint());
+        });
+    }
+
+    private ResultActions performExchangePoint(String authorization, Integer amount) throws Exception {
+        URI uri = new URIBuilder("/api/mypage/exchange")
+                .build();
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put(uri);
+        if(authorization != null) {
+            request.header("authorization", authorization);
+        }
+        if(amount != null) {
+            request.header("amount", amount);
+        }
+
+        return mockMvc.perform(request);
     }
 
     @Test
