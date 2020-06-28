@@ -1,5 +1,7 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -11,16 +13,19 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.utils.JwtProperties;
 import swcapstone.freitag.springsecurityjpa.utils.Utils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import java.net.URI;
 import java.sql.Timestamp;
+import java.util.Date;
 import java.util.Optional;
 
 import static org.junit.Assert.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.mock.http.server.reactive.MockServerHttpRequest.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
@@ -212,11 +217,60 @@ class UserControllerTest {
     }
 
     @Test
-    public void successfulMypage() {
+    public void successfulMypage() throws Exception {
+        // Setup Fixture
+        int oneDay = 24 * 3600 * 1000;
+        String authorization = JWT.create()
+                .withSubject(userId)
+                .withExpiresAt(new Date(System.currentTimeMillis() + oneDay))
+                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+
+        // Exercise SUT
+        ResultActions result = performMypage(authorization);
+
+        // Verify Outcome
+        String content = result.andReturn().getResponse().getContentAsString();
+        assertNotEquals("", content);
     }
 
     @Test
-    public void mypageWithoutLogin() {
+    public void mypageWithoutAuthorizationToken() throws Exception {
+        // Setup Fixture
+        String authorization = null;
+
+        // Exercise SUT
+        ResultActions result = performMypage(authorization);
+
+        // Verify Outcome
+        String content = result.andReturn().getResponse().getContentAsString();
+        assertEquals("", content);
+    }
+
+    @Test
+    public void mypageWithExpiredAuthorizationToken() throws Exception {
+        // Setup Fixture
+        String authorization = JWT.create()
+                .withSubject(userId)
+                .withExpiresAt(new Date(0))
+                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+
+        // Exercise SUT
+        ResultActions result = performMypage(authorization);
+
+        // Verify Outcome
+        String content = result.andReturn().getResponse().getContentAsString();
+        assertEquals("", content);
+    }
+
+    private ResultActions performMypage(String authorization) throws Exception {
+        URI uri = new URIBuilder("/api/mypage")
+                .build();
+        if(authorization == null) {
+            return mockMvc.perform(MockMvcRequestBuilders.get(uri));
+        } else {
+            return mockMvc.perform(MockMvcRequestBuilders.get(uri)
+                    .header("Authorization", authorization));
+        }
     }
 
     @Test

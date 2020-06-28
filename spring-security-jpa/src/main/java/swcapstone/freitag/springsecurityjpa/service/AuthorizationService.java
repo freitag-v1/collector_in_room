@@ -66,25 +66,27 @@ public class AuthorizationService extends BasicAuthenticationFilter {
         String token = request.getHeader(JwtProperties.HEADER_STRING);
 
         if(token != null) {
-            // 토큰을 파싱해서 Decode!
-            String userId = JWT.require(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()))
-                    .build()
-                    .verify(token.replace(JwtProperties.TOKEN_PREFIX, ""))
-                    .getSubject();
+            try {
+                // 토큰을 파싱해서 Decode!
+                String userId = JWT.require(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()))
+                        .build()
+                        .verify(token.replace(JwtProperties.TOKEN_PREFIX, ""))
+                        .getSubject();
 
-            // 토큰 subject에서 userId를 찾았다면 DB에서 정보를 확인!
-            if (userId != null) {
+                // 토큰 subject에서 userId를 찾았다면 DB에서 정보를 확인!
+                if (userId != null) {
+                    CustomUser customUser = (CustomUser) userService.loadUserByUsername(userId);
+                    User user = customUser.getUser();
 
-                CustomUser customUser = (CustomUser) userService.loadUserByUsername(userId);
-                User user = customUser.getUser();
+                    // 찾았다면 UserDetails를 통해 username, pass, authorities로 인증 토큰 생성!
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getUsername(), "null", user.getAuthorities());
+                    return authToken;
 
-                // 찾았다면 UserDetails를 통해 username, pass, authorities로 인증 토큰 생성!
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(user.getUsername(), "null", user.getAuthorities());
-                return authToken;
-
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
             }
-
-            return null;
         }
 
         return null;
