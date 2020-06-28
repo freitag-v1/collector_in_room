@@ -1,7 +1,11 @@
 package swcapstone.freitag.springsecurityjpa.utils;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 
 public class Utils {
     public static String SHA256(String str){
@@ -19,5 +23,20 @@ public class Utils {
             e.printStackTrace();
         }
         return SHA;
+    }
+
+    public static String makeAuthorizationToken(String userId) {
+        int oneDay = 24 * 3600 * 1000;
+        return JWT.create()
+                .withSubject(userId)
+                .withExpiresAt(new Date(System.currentTimeMillis() + oneDay))
+                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+    }
+
+    public static String makeExpiredAuthorizationToken(String userId) {
+        return JWT.create()
+                .withSubject(userId)
+                .withExpiresAt(new Date(0))
+                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
     }
 }

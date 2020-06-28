@@ -37,7 +37,7 @@ class UserControllerTest {
     @Autowired
     private UserRepository userRepository;
 
-    private final String userId = "some_user";
+    private final String userId = "normal_user";
     private final String userPassword = Utils.SHA256("freitag123!");
 
     @Test
@@ -190,7 +190,6 @@ class UserControllerTest {
     @Test
     public void signUpWithUserIdInUse() throws Exception {
         // Setup Fixture
-        String userId = "some_user";
         String userPassword = Utils.SHA256("freitag321#");
         String userName = "최재웅";
         String userPhone = "01027540421";
@@ -219,11 +218,7 @@ class UserControllerTest {
     @Test
     public void successfulMypage() throws Exception {
         // Setup Fixture
-        int oneDay = 24 * 3600 * 1000;
-        String authorization = JWT.create()
-                .withSubject(userId)
-                .withExpiresAt(new Date(System.currentTimeMillis() + oneDay))
-                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+        String authorization = Utils.makeAuthorizationToken(userId);
 
         // Exercise SUT
         ResultActions result = performMypage(authorization);
@@ -249,10 +244,7 @@ class UserControllerTest {
     @Test
     public void mypageWithExpiredAuthorizationToken() throws Exception {
         // Setup Fixture
-        String authorization = JWT.create()
-                .withSubject(userId)
-                .withExpiresAt(new Date(0))
-                .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+        String authorization = Utils.makeExpiredAuthorizationToken(userId);
 
         // Exercise SUT
         ResultActions result = performMypage(authorization);
