@@ -1,86 +1,75 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
+import org.apache.http.client.utils.URIBuilder;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.utils.Utils;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
+import java.net.URI;
 import java.sql.Timestamp;
 import java.util.Optional;
 
 import static org.junit.Assert.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@AutoConfigureMockMvc
+@Transactional
 class UserControllerTest {
     @Autowired
-    private WebTestClient webTestClient;
+    private MockMvc mockMvc;
     @Autowired
     private UserRepository userRepository;
 
+    private final String baseURI = "/api/login";
+    private final String userId = "some_user";
+    private final String userPassword = Utils.SHA256("freitag123!");
+
     @Test
-    public void successfulLogin() {
-        String baseURI = "/api/login";
-        String userId = "normal_user";
-        String userPassword = Utils.SHA256("freitag123!");
-
+    public void successfulLogin() throws Exception {
         // Exercise SUT
-        webTestClient.post().uri(uriBuilder ->
-            uriBuilder.path(baseURI)
-                    .queryParam("userId", userId)
-                    .queryParam("userPassword", userPassword)
-                    .build())
-                .exchange()
+        ResultActions result = performLogin(userId, userPassword);
 
-                // Verify Outcome
-                .expectHeader().exists("Authorization");
+        // Verify Outcome
+        result.andExpect(header().exists("Authorization"));
     }
 
     @Test
-    public void loginWithNotSignedUpId() {
-        String baseURI = "/api/login";
+    public void loginWithNotSignedUpId() throws Exception {
+        // Setup Fixture
         String userId = "not_signed_up_user";
-        String userPassword = Utils.SHA256("freitag123!");
 
         // Exercise SUT
-        webTestClient.post().uri(uriBuilder ->
-                uriBuilder.path(baseURI)
-                        .queryParam("userId", userId)
-                        .queryParam("userPassword", userPassword)
-                        .build())
-                .exchange()
+        ResultActions result = performLogin(userId, userPassword);
 
-                // Verify Outcome
-                .expectHeader().doesNotExist("Authorization");
+        // Verify Outcome
+        result.andExpect(header().doesNotExist("Authorization"));
     }
 
     @Test
-    public void loginWithWrongPassword() {
-        String baseURI = "/api/login";
-        String userId = "normal_user";
+    public void loginWithWrongPassword() throws Exception {
         String userPassword = Utils.SHA256("1234");
 
         // Exercise SUT
-        webTestClient.post().uri(uriBuilder ->
-                uriBuilder.path(baseURI)
-                        .queryParam("userId", userId)
-                        .queryParam("userPassword", userPassword)
-                        .build())
-                .exchange()
-                .expectHeader().doesNotExist("Authorization");
+        ResultActions result = performLogin(userId, userPassword);
+
+        // Verify Outcome
+        result.andExpect(header().doesNotExist("Authorization"));
     }
 
     @Test
-    public void loginAndGetReward() {
-        String baseURI = "/api/login";
-        String userId = "newbie_user";
-        String userPassword = Utils.SHA256("freitag123!");
-
+    public void loginAndGetReward() throws Exception {
         // Setup Fixture
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
         int totalPoint = userEntityWrapper.get().getTotalPoint();
@@ -92,16 +81,11 @@ class UserControllerTest {
         });
 
         // Exercise SUT
-        webTestClient.post().uri(uriBuilder ->
-                uriBuilder.path(baseURI)
-                        .queryParam("userId", userId)
-                        .queryParam("userPassword", userPassword)
-                        .build())
-                .exchange()
+        ResultActions result = performLogin(userId, userPassword);
 
-                // Verify Outcome
-                .expectHeader().exists("Authorization")
-                .expectHeader().valueEquals("reward", "true");
+        // Verify Outcome
+        result.andExpect(header().exists("Authorization"))
+                .andExpect(header().stringValues("reward", "true"));
         userEntityWrapper = userRepository.findByUserId(userId);
         userEntityWrapper.ifPresent(userEntity -> {
             assertEquals("총 획득 포인트가 제대로 변경되지 않음", totalPoint + 100, userEntity.getTotalPoint());
@@ -112,11 +96,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void loginButNotGetReward() {
-        String baseURI = "/api/login";
-        String userId = "oldbie_user";
-        String userPassword = Utils.SHA256("freitag123!");
-
+    public void loginButNotGetReward() throws Exception {
         // Setup Fixture
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
         int totalPoint = userEntityWrapper.get().getTotalPoint();
@@ -128,20 +108,24 @@ class UserControllerTest {
         });
 
         // Exercise SUT
-        webTestClient.post().uri(uriBuilder ->
-                uriBuilder.path(baseURI)
-                        .queryParam("userId", userId)
-                        .queryParam("userPassword", userPassword)
-                        .build())
-                .exchange()
+        ResultActions result = performLogin(userId, userPassword);
 
-                // Verify Outcome
-                .expectHeader().exists("Authorization");
+        // Verify Outcome
+        result.andExpect(header().exists("Authorization"))
+                .andExpect(header().doesNotExist("reward"));
         userEntityWrapper = userRepository.findByUserId(userId);
         userEntityWrapper.ifPresent(userEntity -> {
             assertEquals("총 획득 포인트가 변경됨", totalPoint, userEntity.getTotalPoint());
             assertEquals("현재 포인트가 변경됨", point, userEntity.getPoint());
         });
+    }
+
+    private ResultActions performLogin(String userId, String userPassword) throws Exception {
+        URI uri = new URIBuilder(baseURI)
+                .setParameter("userId", userId)
+                .setParameter("userPassword", userPassword)
+                .build();
+        return mockMvc.perform(MockMvcRequestBuilders.post(uri));
     }
 
     @Test
