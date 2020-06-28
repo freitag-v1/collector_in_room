@@ -32,7 +32,6 @@ class UserControllerTest {
     @Autowired
     private UserRepository userRepository;
 
-    private final String baseURI = "/api/login";
     private final String userId = "some_user";
     private final String userPassword = Utils.SHA256("freitag123!");
 
@@ -69,7 +68,7 @@ class UserControllerTest {
     }
 
     @Test
-    public void loginAndGetReward() throws Exception {
+    public void loginAndGetReward1() throws Exception {
         // Setup Fixture
         Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
         int totalPoint = userEntityWrapper.get().getTotalPoint();
@@ -91,6 +90,33 @@ class UserControllerTest {
             assertEquals("총 획득 포인트가 제대로 변경되지 않음", totalPoint + 100, userEntity.getTotalPoint());
             assertEquals("현재 포인트가 제대로 변경되지 않음", point + 100, userEntity.getPoint());
             assertEquals("방문 일수가 제대로 변경되지 않음", 1, userEntity.getUserVisit());
+            assertNotEquals("마지막 방문일이 제대로 변경되지 않음", new Timestamp(0), userEntity.getUserLastVisit());
+        });
+    }
+
+    @Test
+    public void loginAndGetReward2() throws Exception {
+        // Setup Fixture
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        int totalPoint = userEntityWrapper.get().getTotalPoint();
+        int point = userEntityWrapper.get().getPoint();
+        userEntityWrapper.ifPresent(userEntity -> {
+            userEntity.setUserVisit(29);
+            userEntity.setUserLastVisit(new Timestamp(0));
+            userRepository.save(userEntity);
+        });
+
+        // Exercise SUT
+        ResultActions result = performLogin(userId, userPassword);
+
+        // Verify Outcome
+        result.andExpect(header().exists("Authorization"))
+                .andExpect(header().stringValues("reward", "true"));
+        userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("총 획득 포인트가 제대로 변경되지 않음", totalPoint + 100, userEntity.getTotalPoint());
+            assertEquals("현재 포인트가 제대로 변경되지 않음", point + 100, userEntity.getPoint());
+            assertEquals("방문 일수가 제대로 변경되지 않음", 30, userEntity.getUserVisit());
             assertNotEquals("마지막 방문일이 제대로 변경되지 않음", new Timestamp(0), userEntity.getUserLastVisit());
         });
     }
@@ -121,7 +147,7 @@ class UserControllerTest {
     }
 
     private ResultActions performLogin(String userId, String userPassword) throws Exception {
-        URI uri = new URIBuilder(baseURI)
+        URI uri = new URIBuilder("/api/login")
                 .setParameter("userId", userId)
                 .setParameter("userPassword", userPassword)
                 .build();
@@ -129,11 +155,60 @@ class UserControllerTest {
     }
 
     @Test
-    public void successfulSignUp() {
+    public void successfulSignUp() throws Exception {
+        // Setup Fixture
+        String userId = "other_user";
+        String userPassword = Utils.SHA256("freitag321#");
+        String userName = "최재웅";
+        String userPhone = "01027540421";
+        String userEmail = "wodnd999999@ajou.ac.kr";
+        String userAffiliation = "AjouSW";
+
+        // Exercise SUT
+        ResultActions result = performSignUp(userId, userPassword, userName, userPhone, userEmail, userAffiliation);
+
+        // Verify Outcome
+        result.andExpect(header().string("signup", "success"))
+                .andExpect(header().exists("state"));
+        String state = result.andReturn().getResponse().getHeader("state");
+        Optional<UserEntity> userEntityWrapper = userRepository.findByUserId(userId);
+        userEntityWrapper.ifPresent(userEntity -> {
+            assertEquals("userId가 다르게 저장됨", userId, userEntity.getUserId());
+            assertEquals("userName이 다르게 저장됨", userName, userEntity.getUserName());
+            assertEquals("userPhone이 다르게 저장됨", userPhone, userEntity.getUserPhone());
+            assertEquals("userEmail이 다르게 저장됨", userEmail, userEntity.getUserEmail());
+            assertEquals("userAffiliation이 다르게 저장됨", userAffiliation, userEntity.getUserAffiliation());
+            assertEquals("받은 state가 DB와 다름", state, userEntity.getUserOpenBankingAccessToken());
+        });
     }
 
     @Test
-    public void signUpWithUserIdInUse() {
+    public void signUpWithUserIdInUse() throws Exception {
+        // Setup Fixture
+        String userId = "some_user";
+        String userPassword = Utils.SHA256("freitag321#");
+        String userName = "최재웅";
+        String userPhone = "01027540421";
+        String userEmail = "wodnd999999@ajou.ac.kr";
+        String userAffiliation = "AjouSW";
+
+        // Exercise SUT
+        ResultActions result = performSignUp(userId, userPassword, userName, userPhone, userEmail, userAffiliation);
+
+        // Verify Outcome
+        result.andExpect(header().string("signup", "fail"));
+    }
+
+    private ResultActions performSignUp(String userId, String userPassword, String userName, String userPhone, String userEmail, String userAffiliation) throws Exception {
+        URI uri = new URIBuilder("/api/signup")
+                .setParameter("userId", userId)
+                .setParameter("userPassword", userPassword)
+                .setParameter("userName", userName)
+                .setParameter("userPhone", userPhone)
+                .setParameter("userEmail", userEmail)
+                .setParameter("userAffiliation", userAffiliation)
+                .build();
+        return mockMvc.perform(MockMvcRequestBuilders.put(uri));
     }
 
     @Test
