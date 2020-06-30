@@ -29,7 +29,8 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static swcapstone.freitag.springsecurityjpa.utils.Common.*;
+import static swcapstone.freitag.springsecurityjpa.utils.Common.makeValidAuthorizationToken;
+import static swcapstone.freitag.springsecurityjpa.utils.Fixture.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)

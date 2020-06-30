@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static swcapstone.freitag.springsecurityjpa.utils.Common.copyUserEntity;
+import static swcapstone.freitag.springsecurityjpa.utils.Fixture.copyUserEntity;
 
 @Service
 public class Repositories {

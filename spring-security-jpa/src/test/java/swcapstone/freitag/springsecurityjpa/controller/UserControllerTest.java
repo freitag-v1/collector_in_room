@@ -21,7 +21,6 @@ import swcapstone.freitag.springsecurityjpa.utils.Common;
 import swcapstone.freitag.springsecurityjpa.utils.Repositories;
 
 import javax.sql.DataSource;
-import java.net.URI;
 import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -32,7 +31,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static swcapstone.freitag.springsecurityjpa.utils.Common.*;
+import static swcapstone.freitag.springsecurityjpa.utils.Common.makeExpiredAuthorizationToken;
+import static swcapstone.freitag.springsecurityjpa.utils.Common.makeValidAuthorizationToken;
+import static swcapstone.freitag.springsecurityjpa.utils.Fixture.copyUserEntity;
+import static swcapstone.freitag.springsecurityjpa.utils.Fixture.makeEmptyUserEntity;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
