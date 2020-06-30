@@ -1,12 +1,14 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.jdbc.Sql;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -17,7 +19,10 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 import swcapstone.freitag.springsecurityjpa.utils.Utils;
 
+import javax.sql.DataSource;
 import java.net.URI;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,7 +35,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @Transactional
-@Sql(value = "UserControllerFixture.sql")
 class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -39,6 +43,16 @@ class UserControllerTest {
 
     private final String userId = "normal_user";
     private final String userPassword = Utils.SHA256("freitag123!");
+
+    @BeforeAll
+    static void setupSharedFixture(@Autowired DataSource dataSource) {
+        try (Connection conn = dataSource.getConnection()) {
+            ScriptUtils.executeSqlScript(conn, new ClassPathResource("UserControllerSharedFixture.sql"));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.exit(-1);
+        }
+    }
 
     @Test
     public void successfulLogin() throws Exception {
