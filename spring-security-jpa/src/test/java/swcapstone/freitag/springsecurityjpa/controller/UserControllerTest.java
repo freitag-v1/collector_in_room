@@ -49,7 +49,7 @@ class UserControllerTest {
     @BeforeAll
     static void setupSharedFixture(@Autowired DataSource dataSource) {
         try (Connection conn = dataSource.getConnection()) {
-            ScriptUtils.executeSqlScript(conn, new ClassPathResource("UserControllerSharedFixture.sql"));
+            ScriptUtils.executeSqlScript(conn, new ClassPathResource("UserControllerPrebuiltFixture.sql"));
         } catch (SQLException e) {
             e.printStackTrace();
             System.exit(-1);
@@ -98,12 +98,12 @@ class UserControllerTest {
     @Test
     public void loginAndGetReward1() throws Exception {
         // Setup Fixture
-        UserEntity fixtureUserEntity = repositories.getUserEntity(userId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserVisit(0);
         fixtureUserEntity.setUserLastVisit(new Timestamp(0));
         repositories.saveUserEntity(fixtureUserEntity);
 
-        UserEntity expectedUserEntity = makeEmptyUserEntity();
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
         expectedUserEntity.setTotalPoint(fixtureUserEntity.getTotalPoint() + 100);
         expectedUserEntity.setPoint(fixtureUserEntity.getTotalPoint() + 100);
         expectedUserEntity.setUserVisit(fixtureUserEntity.getUserVisit() + 1);
@@ -124,12 +124,12 @@ class UserControllerTest {
     @Test
     public void loginAndGetReward2() throws Exception {
         // Setup Fixture
-        UserEntity fixtureUserEntity = repositories.getUserEntity(userId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserVisit(29);
         fixtureUserEntity.setUserLastVisit(new Timestamp(0));
         repositories.saveUserEntity(fixtureUserEntity);
 
-        UserEntity expectedUserEntity = makeEmptyUserEntity();
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
         expectedUserEntity.setTotalPoint(fixtureUserEntity.getTotalPoint() + 100);
         expectedUserEntity.setPoint(fixtureUserEntity.getTotalPoint() + 100);
         expectedUserEntity.setUserVisit(fixtureUserEntity.getUserVisit() + 1);
@@ -150,7 +150,7 @@ class UserControllerTest {
     @Test
     public void loginButNotGetReward() throws Exception {
         // Setup Fixture
-        UserEntity fixtureUserEntity = repositories.getUserEntity(userId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserVisit(30);
         repositories.saveUserEntity(fixtureUserEntity);
 
@@ -188,12 +188,12 @@ class UserControllerTest {
         // Verify Outcome
         result.andExpect(header().string("signup", "success"))
                 .andExpect(header().exists("state"));
-        String expectedState = result.andReturn().getResponse().getHeader("state");
+        String receivedState = result.andReturn().getResponse().getHeader("state");
 
         UserEntity actualUserEntity = repositories.getUserEntity(userId);
 
         assertUserInfoEquals(expectedUserEntity, actualUserEntity);
-        assertEquals(expectedState, actualUserEntity.getUserOpenBankingAccessToken());
+        assertEquals(receivedState, actualUserEntity.getUserOpenBankingAccessToken());
     }
 
     @Test
@@ -207,7 +207,7 @@ class UserControllerTest {
         fixtureUserEntity.setUserEmail("wodnd999999@ajou.ac.kr");
         fixtureUserEntity.setUserAffiliation("AjouSW");
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performSignUp(fixtureUserEntity);
@@ -263,8 +263,7 @@ class UserControllerTest {
     public void mypageUpdate() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(userId);
-        UserEntity fixtureUserEntity = makeEmptyUserEntity();
-        fixtureUserEntity.setUserId(userId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserName("개명함");
         fixtureUserEntity.setUserPhone("01099991111");
         fixtureUserEntity.setUserEmail("ung27540421@outlook.com");
@@ -287,13 +286,13 @@ class UserControllerTest {
     public void mypageUpdateWithoutLogin() throws Exception {
         // Setup Fixture
         String authorization = null;
-        UserEntity fixtureUserEntity = makeEmptyUserEntity();
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserName("개명함");
         fixtureUserEntity.setUserPhone("01099991111");
         fixtureUserEntity.setUserEmail("ung27540421@outlook.com");
         fixtureUserEntity.setUserAffiliation("Korea");
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performMypageUpdate(authorization, fixtureUserEntity);
@@ -310,13 +309,13 @@ class UserControllerTest {
     public void mypageUpdateWithExpiredAuthorizationToken() throws Exception {
         // Setup Fixture
         String authorization = makeExpiredAuthorizationToken(userId);
-        UserEntity fixtureUserEntity = makeEmptyUserEntity();
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserName("개명함");
         fixtureUserEntity.setUserPhone("01099991111");
         fixtureUserEntity.setUserEmail("ung27540421@outlook.com");
         fixtureUserEntity.setUserAffiliation("Korea");
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performMypageUpdate(authorization, fixtureUserEntity);
@@ -335,7 +334,7 @@ class UserControllerTest {
         String authorization = makeValidAuthorizationToken(userId);
         Integer amount = 10000;
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
         expectedUserEntity.setPoint(expectedUserEntity.getPoint() - amount);
 
         // Exercise SUT
@@ -355,12 +354,12 @@ class UserControllerTest {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(userId);
         Integer amount = 10000;
-        UserEntity fixtureUserEntity = repositories.getUserEntity(userId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserOpenBankingAccessToken(UUID.randomUUID().toString().replace("-", ""));
         fixtureUserEntity.setUserOpenBankingNum(0);
         repositories.saveUserEntity(fixtureUserEntity);
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
 
         // Exercise SUT
         ResultActions result = performExchangePoint(authorization, amount);
@@ -379,7 +378,7 @@ class UserControllerTest {
         String authorization = makeValidAuthorizationToken(userId);
         Integer amount = 1000000;
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performExchangePoint(authorization, amount);
@@ -397,11 +396,11 @@ class UserControllerTest {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(userId);
         Integer amount = 10000;
-        UserEntity fixtureUserEntity = repositories.getUserEntity(userId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(userId);
         fixtureUserEntity.setUserOpenBankingAccessToken(makeExpiredAuthorizationToken(userId));
         repositories.saveUserEntity(fixtureUserEntity);
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
 
         // Exercise SUT
         ResultActions result = performExchangePoint(authorization, amount);
@@ -420,7 +419,7 @@ class UserControllerTest {
         String authorization = null;
         Integer amount = 10000;
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performExchangePoint(authorization, amount);
@@ -439,7 +438,7 @@ class UserControllerTest {
         String authorization = makeExpiredAuthorizationToken(userId);
         Integer amount = 10000;
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performExchangePoint(authorization, amount);
@@ -458,7 +457,7 @@ class UserControllerTest {
         String authorization = makeValidAuthorizationToken(userId);
         Integer amount = null;
 
-        UserEntity expectedUserEntity = copyUserEntity(repositories.getUserEntity(userId));
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(userId);
 
         // Exercise SUT
         ResultActions result = performExchangePoint(authorization, amount);

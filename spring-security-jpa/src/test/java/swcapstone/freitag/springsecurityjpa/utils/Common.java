@@ -29,17 +29,19 @@ public class Common {
 
     public static String makeValidAuthorizationToken(String userId) {
         int oneDay = 24 * 3600 * 1000;
-        return JWT.create()
+        String jwtToken = JWT.create()
                 .withSubject(userId)
                 .withExpiresAt(new Date(System.currentTimeMillis() + oneDay))
                 .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+        return JwtProperties.TOKEN_PREFIX + jwtToken;
     }
 
     public static String makeExpiredAuthorizationToken(String userId) {
-        return JWT.create()
+        String jwtToken = JWT.create()
                 .withSubject(userId)
                 .withExpiresAt(new Date(0))
                 .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+        return JwtProperties.TOKEN_PREFIX + jwtToken;
     }
 
     public static UserEntity makeEmptyUserEntity() {
@@ -48,15 +50,19 @@ public class Common {
 
     public static UserEntity copyUserEntity(UserEntity originalUserEntity) {
         UserEntity copiedUserEntity = makeEmptyUserEntity();
+        copiedUserEntity.setId(originalUserEntity.getId());
         copiedUserEntity.setUserId(originalUserEntity.getUserId());
+        copiedUserEntity.setUserPassword(originalUserEntity.getUserPassword());
         copiedUserEntity.setUserName(originalUserEntity.getUserName());
         copiedUserEntity.setUserPhone(originalUserEntity.getUserPhone());
         copiedUserEntity.setUserEmail(originalUserEntity.getUserEmail());
         copiedUserEntity.setUserAffiliation(originalUserEntity.getUserAffiliation());
-        copiedUserEntity.setTotalPoint(originalUserEntity.getTotalPoint());
-        copiedUserEntity.setPoint(originalUserEntity.getPoint());
         copiedUserEntity.setUserVisit(originalUserEntity.getUserVisit());
         copiedUserEntity.setUserLastVisit(originalUserEntity.getUserLastVisit());
+        copiedUserEntity.setTotalPoint(originalUserEntity.getTotalPoint());
+        copiedUserEntity.setPoint(originalUserEntity.getPoint());
+        copiedUserEntity.setUserOpenBankingAccessToken(originalUserEntity.getUserOpenBankingAccessToken());
+        copiedUserEntity.setUserOpenBankingNum(originalUserEntity.getUserOpenBankingNum());
         return copiedUserEntity;
     }
 }
