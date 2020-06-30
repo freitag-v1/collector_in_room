@@ -9,7 +9,9 @@ import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class Common {
     public static String SHA256(String str){
@@ -70,6 +72,37 @@ public class Common {
 
     public static ProjectEntity makeEmptyProjectEntity() {
         return new ProjectDto().toEntity();
+    }
+
+    public static ProjectEntity getFixtureCollectionProjectEntity() {
+        ProjectEntity fixtureProjectEntity = makeEmptyProjectEntity();
+        fixtureProjectEntity.setProjectName("동물 사진 수집");
+        fixtureProjectEntity.setWorkType("collection");
+        fixtureProjectEntity.setDataType("image");
+        fixtureProjectEntity.setSubject("동물");
+        fixtureProjectEntity.setWayContent("같은 종류의 동물만 있는 사진을 올려주세요.");
+        fixtureProjectEntity.setConditionContent("다음 중 해당하는 동물이 무엇인지 선택해주세요. 한 사진에 여러 동물이 있으면 없음을 선택해주세요.");
+        fixtureProjectEntity.setDescription("야생 동물 경보기 제작을 위한 프로젝트입니다.");
+        fixtureProjectEntity.setTotalData(10);
+        return fixtureProjectEntity;
+    }
+
+    public static void expectedAfterProjectCreation(String requesterUserId, ProjectEntity expectedProejctEntity) {
+        expectedProejctEntity.setUserId(requesterUserId);
+        expectedProejctEntity.setStatus("없음");
+        expectedProejctEntity.setDifficulty(0);
+        expectedProejctEntity.setExampleContent("없음");
+        expectedProejctEntity.setProgressData(0);
+        expectedProejctEntity.setValidatedData(0);
+        expectedProejctEntity.setCost(0);
+    }
+
+    public static List<String> getFixtureClassList() {
+        List<String> fixtureClassList = new ArrayList<>();
+        fixtureClassList.add("까치");
+        fixtureClassList.add("고양이");
+        fixtureClassList.add("강아지");
+        return fixtureClassList;
     }
 
     public static ProjectEntity copyProjectEntity(ProjectEntity originalProjectEntity) {

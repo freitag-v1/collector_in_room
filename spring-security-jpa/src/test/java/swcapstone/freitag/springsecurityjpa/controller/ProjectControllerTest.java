@@ -1,7 +1,6 @@
 package swcapstone.freitag.springsecurityjpa.controller;
 
 import org.apache.http.client.utils.URIBuilder;
-import org.junit.Before;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
@@ -16,20 +15,19 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
-import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.utils.Repositories;
 
 import javax.sql.DataSource;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.*;
 
@@ -60,24 +58,10 @@ class ProjectControllerTest {
     public void successfulProjectCreation() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(requesterUserId);
-        ProjectEntity fixtureProjectEntity = makeEmptyProjectEntity();
-        fixtureProjectEntity.setProjectName("동물 사진 수집");
-        fixtureProjectEntity.setWorkType("collection");
-        fixtureProjectEntity.setDataType("image");
-        fixtureProjectEntity.setSubject("동물");
-        fixtureProjectEntity.setWayContent("같은 종류의 동물만 있는 사진을 올려주세요.");
-        fixtureProjectEntity.setConditionContent("다음 중 해당하는 동물이 무엇인지 선택해주세요. 한 사진에 여러 동물이 있으면 없음을 선택해주세요.");
-        fixtureProjectEntity.setDescription("야생 동물 경보기 제작을 위한 프로젝트입니다.");
-        fixtureProjectEntity.setTotalData(10);
+        ProjectEntity fixtureProjectEntity = getFixtureCollectionProjectEntity();
 
-        ProjectEntity expectedProejctEntity = copyProjectEntity(fixtureProjectEntity);
-        expectedProejctEntity.setUserId(requesterUserId);
-        expectedProejctEntity.setStatus("없음");
-        expectedProejctEntity.setDifficulty(0);
-        expectedProejctEntity.setExampleContent("없음");
-        expectedProejctEntity.setProgressData(0);
-        expectedProejctEntity.setValidatedData(0);
-        expectedProejctEntity.setCost(0);
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        expectedAfterProjectCreation(requesterUserId, expectedProjectEntity);
 
         // Exercise SUT
         ResultActions result = performCreateProject(authorization, fixtureProjectEntity);
@@ -90,7 +74,77 @@ class ProjectControllerTest {
 
         ProjectEntity actualProjectEntity = repositories.getProjectEntity(receivedProjectId);
 
-        assertProjectEquals(expectedProejctEntity, actualProjectEntity);
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void projectCreationWithoutLogin() throws Exception {
+        // Setup Fixture
+        String authorization = null;
+        ProjectEntity fixtureProjectEntity = getFixtureCollectionProjectEntity();
+
+        // Exercise SUT
+        ResultActions result = performCreateProject(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().doesNotExist("create"))
+                .andExpect(header().doesNotExist("projectId"));
+    }
+
+    @Test
+    public void successfulClassCreation() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureCollectionProjectEntity();
+        expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
+        fixtureProjectEntity.setProjectId(1);
+        fixtureProjectEntity.setBucketName("test");
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllClass();
+        List<String> fixtureClassList = getFixtureClassList();
+
+        List<String> expectedClassList = fixtureClassList;
+
+        // Exercise SUT
+        ResultActions result = performCreateClass(authorization, fixtureClassList);
+
+        // Verify Outcome
+        result.andExpect(header().string("class", "success"))
+                .andExpect(header().exists("bucketName"));
+
+        List<ClassEntity> actualClassEntityList = repositories.getClassEntityList(fixtureProjectEntity.getProjectId());
+
+        assertClassListEquals(expectedClassList, actualClassEntityList);
+    }
+
+    @Test
+    public void classCreationWithoutInput() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureCollectionProjectEntity();
+        expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
+        fixtureProjectEntity.setProjectId(1);
+        fixtureProjectEntity.setBucketName("test");
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllClass();
+        List<String> fixtureClassList = new ArrayList<>();
+
+        // Exercise SUT
+        ResultActions result = performCreateClass(authorization, fixtureClassList);
+
+        // Verify Outcome
+        result.andExpect(header().string("class", "fail"))
+                .andExpect(header().doesNotExist("bucketName"));
+
+        List<ClassEntity> actualClassEntityList = repositories.getClassEntityList(fixtureProjectEntity.getProjectId());
+
+        assertTrue(actualClassEntityList.isEmpty());
     }
 
     private ResultActions performCreateProject(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
@@ -105,7 +159,21 @@ class ProjectControllerTest {
                 .addParameter("totalData", String.valueOf(fixtureProjectEntity.getTotalData()))
                 .build().toString();
         uri = URLDecoder.decode(uri, "UTF-8");
-        System.err.println(uri);
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private ResultActions performCreateClass(String authorization, List<String> fixtureClassList) throws Exception {
+        URIBuilder uriBuilder = new URIBuilder("/api/project/class");
+        for(String fixtureClass : fixtureClassList) {
+            uriBuilder.addParameter("className", fixtureClass);
+        }
+        uriBuilder.addParameter("projectId", "1");
+        String uri = uriBuilder.build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(uri);
         if(authorization != null) {
             request.header("Authorization", authorization);
@@ -129,5 +197,11 @@ class ProjectControllerTest {
         assertEquals(expectedProejctEntity.getProgressData(), actualProjectEntity.getProgressData());
         assertEquals(expectedProejctEntity.getValidatedData(), actualProjectEntity.getValidatedData());
         assertEquals(expectedProejctEntity.getCost(), actualProjectEntity.getCost());
+    }
+
+    private void assertClassListEquals(List<String> expectedClassList, List<ClassEntity> actualClassEntityList) {
+        for(ClassEntity classEntity : actualClassEntityList) {
+            assertTrue(expectedClassList.contains(classEntity.getClassName()));
+        }
     }
 }

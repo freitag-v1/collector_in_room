@@ -2,12 +2,15 @@ package swcapstone.freitag.springsecurityjpa.utils;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
+import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -21,6 +24,8 @@ public class Repositories {
     private Map<String, UserEntity> fixtureUserEntity = new HashMap<>();
     @Autowired
     private ProjectRepository projectRepository;
+    @Autowired
+    private ClassRepository classRepository;
 
     public UserEntity getFixtureUserEntity(String userId) {
         if(!fixtureUserEntity.containsKey(userId)) {
@@ -45,5 +50,21 @@ public class Repositories {
         Optional<ProjectEntity> ProejctEntityOptional = projectRepository.findByProjectId(projectId);
         assertTrue(ProejctEntityOptional.isPresent());
         return ProejctEntityOptional.get();
+    }
+
+    public void saveProjectEntity(ProjectEntity projectEntity) {
+        projectRepository.save(projectEntity);
+    }
+
+    public void deletaAllProject() {
+        projectRepository.deleteAllInBatch();
+    }
+
+    public List<ClassEntity> getClassEntityList(int projectId) {
+        return classRepository.findAllByProjectId(projectId);
+    }
+
+    public void deletaAllClass() {
+        classRepository.deleteAllInBatch();
     }
 }
