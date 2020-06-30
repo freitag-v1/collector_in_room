@@ -2,7 +2,9 @@ package swcapstone.freitag.springsecurityjpa.utils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
 import java.security.MessageDigest;
@@ -64,5 +66,32 @@ public class Common {
         copiedUserEntity.setUserOpenBankingAccessToken(originalUserEntity.getUserOpenBankingAccessToken());
         copiedUserEntity.setUserOpenBankingNum(originalUserEntity.getUserOpenBankingNum());
         return copiedUserEntity;
+    }
+
+    public static ProjectEntity makeEmptyProjectEntity() {
+        return new ProjectDto().toEntity();
+    }
+
+    public static ProjectEntity copyProjectEntity(ProjectEntity originalProjectEntity) {
+        ProjectEntity copiedProjectEntity = makeEmptyProjectEntity();
+        copiedProjectEntity.setId(originalProjectEntity.getId());
+        copiedProjectEntity.setProjectId(originalProjectEntity.getProjectId());
+        copiedProjectEntity.setUserId(originalProjectEntity.getUserId());
+        copiedProjectEntity.setProjectName(originalProjectEntity.getProjectName());
+        copiedProjectEntity.setBucketName(originalProjectEntity.getBucketName());
+        copiedProjectEntity.setStatus(originalProjectEntity.getStatus());
+        copiedProjectEntity.setWorkType(originalProjectEntity.getWorkType());
+        copiedProjectEntity.setDataType(originalProjectEntity.getDataType());
+        copiedProjectEntity.setSubject(originalProjectEntity.getSubject());
+        copiedProjectEntity.setDifficulty(originalProjectEntity.getDifficulty());
+        copiedProjectEntity.setWayContent(originalProjectEntity.getWayContent());
+        copiedProjectEntity.setConditionContent(originalProjectEntity.getConditionContent());
+        copiedProjectEntity.setExampleContent(originalProjectEntity.getExampleContent());
+        copiedProjectEntity.setDescription(originalProjectEntity.getDescription());
+        copiedProjectEntity.setTotalData(originalProjectEntity.getTotalData());
+        copiedProjectEntity.setProgressData(originalProjectEntity.getProgressData());
+        copiedProjectEntity.setValidatedData(originalProjectEntity.getValidatedData());
+        copiedProjectEntity.setCost(originalProjectEntity.getCost());
+        return copiedProjectEntity;
     }
 }

@@ -22,6 +22,7 @@ import swcapstone.freitag.springsecurityjpa.utils.Repositories;
 
 import javax.sql.DataSource;
 import java.net.URI;
+import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -491,28 +492,31 @@ class UserControllerTest {
     }
 
     private ResultActions performLogin(String userId, String userPassword) throws Exception {
-        URI uri = new URIBuilder("/api/login")
+        String uri = new URIBuilder("/api/login")
                 .setParameter("userId", userId)
                 .setParameter("userPassword", userPassword)
-                .build();
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         return mockMvc.perform(MockMvcRequestBuilders.post(uri));
     }
 
     private ResultActions performSignUp(UserEntity fixtureUserEntity) throws Exception {
-        URI uri = new URIBuilder("/api/signup")
+        String uri = new URIBuilder("/api/signup")
                 .setParameter("userId", fixtureUserEntity.getUserId())
                 .setParameter("userPassword", fixtureUserEntity.getUserPassword())
                 .setParameter("userName", fixtureUserEntity.getUserName())
                 .setParameter("userPhone", fixtureUserEntity.getUserPhone())
                 .setParameter("userEmail", fixtureUserEntity.getUserEmail())
                 .setParameter("userAffiliation", fixtureUserEntity.getUserAffiliation())
-                .build();
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         return mockMvc.perform(MockMvcRequestBuilders.put(uri));
     }
 
     private ResultActions performMypage(String authorization) throws Exception {
-        URI uri = new URIBuilder("/api/mypage")
-                .build();
+        String uri = new URIBuilder("/api/mypage")
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get(uri);
         if(authorization != null) {
             request.header("Authorization", authorization);
@@ -521,12 +525,13 @@ class UserControllerTest {
     }
 
     private ResultActions performMypageUpdate(String authorization, UserEntity fixtureUserEntity) throws Exception {
-        URI uri = new URIBuilder("/api/mypage/update")
+        String uri = new URIBuilder("/api/mypage/update")
                 .addParameter("userName", fixtureUserEntity.getUserName())
                 .addParameter("userPhone", fixtureUserEntity.getUserPhone())
                 .addParameter("userEmail", fixtureUserEntity.getUserEmail())
                 .addParameter("userAffiliation", fixtureUserEntity.getUserAffiliation())
-                .build();
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put(uri);
         if(authorization != null) {
             request.header("Authorization", authorization);
@@ -535,8 +540,9 @@ class UserControllerTest {
     }
 
     private ResultActions performExchangePoint(String authorization, Integer amount) throws Exception {
-        URI uri = new URIBuilder("/api/mypage/exchange")
-                .build();
+        String uri = new URIBuilder("/api/mypage/exchange")
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders.put(uri);
         if(authorization != null) {
             request.header("authorization", authorization);
@@ -549,14 +555,16 @@ class UserControllerTest {
     }
 
     private ResultActions performRankingByPoint() throws Exception {
-        URI uri = new URIBuilder("/api/ranking/point")
-                .build();
+        String uri = new URIBuilder("/api/ranking/point")
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         return mockMvc.perform(MockMvcRequestBuilders.put(uri));
     }
 
     private ResultActions performRankingByAccuracy() throws Exception {
-        URI uri = new URIBuilder("/api/ranking/accuracy")
-                .build();
+        String uri = new URIBuilder("/api/ranking/accuracy")
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
         return mockMvc.perform(MockMvcRequestBuilders.put(uri));
     }
 
