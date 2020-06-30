@@ -2,12 +2,14 @@ package swcapstone.freitag.springsecurityjpa.utils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
 
-public class Utils {
+public class Common {
     public static String SHA256(String str){
         String SHA = "";
         try{
@@ -25,7 +27,7 @@ public class Utils {
         return SHA;
     }
 
-    public static String makeAuthorizationToken(String userId) {
+    public static String makeValidAuthorizationToken(String userId) {
         int oneDay = 24 * 3600 * 1000;
         return JWT.create()
                 .withSubject(userId)
@@ -38,5 +40,23 @@ public class Utils {
                 .withSubject(userId)
                 .withExpiresAt(new Date(0))
                 .sign(Algorithm.HMAC512(JwtProperties.SECRET.getBytes()));
+    }
+
+    public static UserEntity makeEmptyUserEntity() {
+        return new UserDto().toEntity();
+    }
+
+    public static UserEntity copyUserEntity(UserEntity originalUserEntity) {
+        UserEntity copiedUserEntity = makeEmptyUserEntity();
+        copiedUserEntity.setUserId(originalUserEntity.getUserId());
+        copiedUserEntity.setUserName(originalUserEntity.getUserName());
+        copiedUserEntity.setUserPhone(originalUserEntity.getUserPhone());
+        copiedUserEntity.setUserEmail(originalUserEntity.getUserEmail());
+        copiedUserEntity.setUserAffiliation(originalUserEntity.getUserAffiliation());
+        copiedUserEntity.setTotalPoint(originalUserEntity.getTotalPoint());
+        copiedUserEntity.setPoint(originalUserEntity.getPoint());
+        copiedUserEntity.setUserVisit(originalUserEntity.getUserVisit());
+        copiedUserEntity.setUserLastVisit(originalUserEntity.getUserLastVisit());
+        return copiedUserEntity;
     }
 }
