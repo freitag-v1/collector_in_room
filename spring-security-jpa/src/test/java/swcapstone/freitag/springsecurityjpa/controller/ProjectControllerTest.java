@@ -16,6 +16,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
@@ -31,7 +32,9 @@ import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -55,6 +58,8 @@ class ProjectControllerTest {
     private final int projectId = 1;
     private final String bucketName = "freitag-test";
     private final String exampleFile = "example.jpg";
+    private final String labellingData = "LabellingData";
+    private final int COST_PER_DATA = 50;
 
     @BeforeAll
     static void setupSharedFixture(@Autowired DataSource dataSource) {
@@ -179,9 +184,8 @@ class ProjectControllerTest {
         File fixtureExampleFile = new ClassPathResource(exampleFile).getFile();
 
         FileInputStream expectedExampleFile = new FileInputStream(fixtureExampleFile);
-        int expectedCost = fixtureProjectEntity.getTotalData() * 50;
         ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
-        expectedProjectEntity.setCost(expectedCost);
+        expectedProjectEntity.setCost(fixtureProjectEntity.getTotalData() * COST_PER_DATA);
         expectedProjectEntity.setExampleContent(fixtureExampleFile.getName());
 
         // Exercise SUT
@@ -197,7 +201,6 @@ class ProjectControllerTest {
         ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
 
         assertFileEquals(expectedExampleFile, actualExampleFile);
-        assertEquals(expectedCost, actualProjectEntity.getCost());
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
     }
 
@@ -232,6 +235,48 @@ class ProjectControllerTest {
         ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
 
         assertFileEquals(expectedExampleFile, actualExampleFile);
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void successfulClassificationLabellingDataUpload() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
+        expectedAfterImageClassificationProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        File[] fixtureLabellingFilesList = new ClassPathResource(labellingData).getFile().listFiles();
+
+        Map<String, FileInputStream> expectedLabellingFilesList = new HashMap<>();
+        for (File fixtureLabellingFile : fixtureLabellingFilesList) {
+             expectedLabellingFilesList.put(fixtureLabellingFile.getName(), new FileInputStream(fixtureLabellingFile));
+        }
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        expectedProjectEntity.setTotalData(fixtureLabellingFilesList.length);
+        expectedProjectEntity.setCost(fixtureLabellingFilesList.length * COST_PER_DATA);
+
+        // Exercise SUT
+        ResultActions result = performUploadLabellingData(authorization, fixtureProjectEntity, fixtureLabellingFilesList);
+
+        // Verify Outcome
+        result.andExpect(header().string("upload", "success"))
+                .andExpect(header().exists("cost"));
+
+        List<String> objectList = objectStorageApiClient.listObjects(bucketName);
+        objectList.remove(exampleFile);
+        Map<String, S3ObjectInputStream> actualLabellingDataList = new HashMap<>();
+        for (String objectName : objectList) {
+            actualLabellingDataList.put(objectName, objectStorageApiClient.getObject(bucketName, objectName));
+        }
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedLabellingFilesList.size(), actualLabellingDataList.size());
+        for (String objectName : expectedLabellingFilesList.keySet()) {
+            assertFileEquals(expectedLabellingFilesList.get(objectName), actualLabellingDataList.get(objectName));
+        }
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
     }
 
@@ -275,6 +320,22 @@ class ProjectControllerTest {
         uri = URLDecoder.decode(uri, "UTF-8");
         MockMultipartFile mockMultipartFile = new MockMultipartFile("file", fixtureExampleFile.getName(), "", new FileInputStream(fixtureExampleFile));
         MockHttpServletRequestBuilder request = MockMvcRequestBuilders.multipart(uri).file(mockMultipartFile);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        request.header("bucketName", fixtureProjectEntity.getBucketName());
+        return mockMvc.perform(request);
+    }
+
+    private ResultActions performUploadLabellingData(String authorization, ProjectEntity fixtureProjectEntity, File[] fixtureLabellingFilesList) throws Exception {
+        String uri = new URIBuilder("/api/project/upload/labelling")
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockMultipartHttpServletRequestBuilder request = MockMvcRequestBuilders.multipart(uri);
+        for (File fixtureLabellingFile : fixtureLabellingFilesList) {
+            MockMultipartFile mockMultipartFile = new MockMultipartFile("files", fixtureLabellingFile.getName(), "", new FileInputStream(fixtureLabellingFile));
+            request.file(mockMultipartFile);
+        }
         if(authorization != null) {
             request.header("Authorization", authorization);
         }

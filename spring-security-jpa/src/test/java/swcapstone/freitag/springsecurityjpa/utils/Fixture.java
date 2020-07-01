@@ -95,6 +95,13 @@ public class Fixture {
         expectedProejctEntity.setCost(0);
     }
 
+    public static void expectedAfterImageClassificationProjectExampleUpload(String requesterUserId, int projectId, String bucketName, String exampleFile, ProjectEntity fixtureProjectEntity) {
+        expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
+        fixtureProjectEntity.setProjectId(projectId);
+        fixtureProjectEntity.setBucketName(bucketName);
+        fixtureProjectEntity.setExampleContent(exampleFile);
+    }
+
     public static List<String> getFixtureClassList() {
         List<String> fixtureClassList = new ArrayList<>();
         fixtureClassList.add("까치");
