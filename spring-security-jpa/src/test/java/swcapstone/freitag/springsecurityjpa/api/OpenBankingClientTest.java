@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class OpenBankingClientTest {
 
-    private String accessToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxMTAwNzU4NDkxIiwic2NvcGUiOlsiaW5xdWlyeSIsImxvZ2luIiwidHJhbnNmZXIiXSwiaXNzIjoiaHR0cHM6Ly93d3cub3BlbmJhbmtpbmcub3Iua3IiLCJleHAiOjE2MDExMzMwODUsImp0aSI6ImFkMzA4MTRlLTk5OTEtNDU3MS1hM2UzLTM2N2FlYzI0OWVhZCJ9.aUDEha4sc1bUFTH3vqmentPGrg6l3DlPEZ8GNmQ5Zd8";
+    private String accessToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiIxMTAwNzU4NDkxIiwic2NvcGUiOlsiaW5xdWlyeSIsImxvZ2luIiwidHJhbnNmZXIiXSwiaXNzIjoiaHR0cHM6Ly93d3cub3BlbmJhbmtpbmcub3Iua3IiLCJleHAiOjE2MDEzOTIyNTUsImp0aSI6ImExZGRiMDk4LTQ3ZTEtNDZiNy05OGZlLThhMzE2ZDQ2OTAyNSJ9.9lk6_-nmb84O_Gl2xx5tPLH7bQWfzmE2VRamOGHTnjQ";
     private String userSeqNo = "1100758491";
 
     @Test

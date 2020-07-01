@@ -56,6 +56,15 @@ public class Repositories {
         return ProejctEntityOptional.get();
     }
 
+    public Map<Integer, ProjectEntity> getProjectEntityList(String userId) {
+        Map<Integer, ProjectEntity> projectEntityList = new HashMap<>();
+        List<ProjectEntity> fixtureProjectEntityList = projectRepository.findAllByUserId(userId);
+        for (ProjectEntity projectEntity : fixtureProjectEntityList) {
+            projectEntityList.put(projectEntity.getProjectId(), projectEntity);
+        }
+        return projectEntityList;
+    }
+
     public void saveProjectEntity(ProjectEntity projectEntity) {
         projectRepository.save(projectEntity);
     }

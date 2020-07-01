@@ -2,6 +2,8 @@ package swcapstone.freitag.springsecurityjpa.controller;
 
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import org.apache.http.client.utils.URIBuilder;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -18,6 +21,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
@@ -31,12 +35,14 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.makeExpiredAuthorizationToken;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.makeValidAuthorizationToken;
 import static swcapstone.freitag.springsecurityjpa.utils.Fixture.*;
@@ -56,6 +62,7 @@ class ProjectControllerTest {
 
     private final String requesterUserId = "requester";
     private final String workerUserId = "worker";
+    private final String admin = "admin";
     private final int projectId = 1;
     private final String bucketName = "freitag-test";
     private final String prebuiltBucketName = "freitag-test-prebuilt";
@@ -516,6 +523,63 @@ class ProjectControllerTest {
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
     }
 
+    @Test
+    public void successfulGetMyProjectList() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+
+        Map<Integer, ProjectEntity> expectedProjectEntityList = repositories.getProjectEntityList(admin);
+        Map<Integer, List<ClassEntity>> expectedClassEntityList = new HashMap<>();
+        for (Integer projectId : expectedProjectEntityList.keySet()) {
+            expectedClassEntityList.put(projectId, repositories.getClassEntityList(projectId));
+        }
+
+        // Exercise SUT
+        ResultActions result = performGetMyProjectList(authorization);
+
+        // Verify Outcome
+        byte[] contentAsByteArray = result.andReturn().getResponse().getContentAsByteArray();
+        String contentAsString = new String(contentAsByteArray, "UTF-8");
+        JSONArray actualProjectEntityList = new JSONArray(contentAsString);
+
+        for (Object projectDtoWithClassDto : actualProjectEntityList) {
+            JSONObject JSONProjectDtoWithClassDto = (JSONObject)projectDtoWithClassDto;
+            JSONObject actualJSONProjectDto = JSONProjectDtoWithClassDto.getJSONObject("projectDto");
+            JSONArray actualJSONClassNameList = JSONProjectDtoWithClassDto.getJSONArray("classNameList");
+            int projectId = actualJSONProjectDto.getInt("projectId");
+
+            assertProjectEquals(expectedProjectEntityList.get(projectId), actualJSONProjectDto);
+            assertClassListEquals(expectedClassEntityList.get(projectId), actualJSONClassNameList);
+        }
+
+    }
+
+    @Test
+    public void getMyProjectListButEmpty() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(workerUserId);
+
+        int expectedProjectEntityListSize = 0;
+
+        // Exercise SUT
+        ResultActions result = performGetMyProjectList(authorization);
+
+        // Verify Outcome
+        result.andExpect(header().string("list", "none"));
+    }
+
+    @Test
+    public void getMyProjectListWithoutLogin() throws Exception {
+        // Setup Fixture
+        String authorization = null;
+
+        // Exercise SUT
+        ResultActions result = performGetMyProjectList(authorization);
+
+        // Verify Outcome
+        result.andExpect(header().string("login", "fail"));
+    }
+
     private ResultActions performCreateProject(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
         String uri = new URIBuilder("/api/project/create")
                 .addParameter("projectName", fixtureProjectEntity.getProjectName())
@@ -603,6 +667,17 @@ class ProjectControllerTest {
         return mockMvc.perform(request);
     }
 
+    private ResultActions performGetMyProjectList(String authorization) throws Exception {
+        String uri = new URIBuilder("/api/project/all")
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
     private void assertProjectEquals(ProjectEntity expectedProejctEntity, ProjectEntity actualProjectEntity) {
         assertEquals(expectedProejctEntity.getUserId(), actualProjectEntity.getUserId());
         assertEquals(expectedProejctEntity.getProjectName(), actualProjectEntity.getProjectName());
@@ -621,9 +696,38 @@ class ProjectControllerTest {
         assertEquals(expectedProejctEntity.getCost(), actualProjectEntity.getCost());
     }
 
+    private void assertProjectEquals(ProjectEntity expectedProejctEntity, JSONObject actualJSONProjectEntity) {
+        assertEquals(expectedProejctEntity.getUserId(), actualJSONProjectEntity.getString("userId"));
+        assertEquals(expectedProejctEntity.getProjectName(), actualJSONProjectEntity.getString("projectName"));
+        assertEquals(expectedProejctEntity.getStatus(), actualJSONProjectEntity.getString("status"));
+        assertEquals(expectedProejctEntity.getWorkType(), actualJSONProjectEntity.getString("workType"));
+        assertEquals(expectedProejctEntity.getDataType(), actualJSONProjectEntity.getString("dataType"));
+        assertEquals(expectedProejctEntity.getSubject(), actualJSONProjectEntity.getString("subject"));
+        // 실수이므로 오차 감안
+        assertTrue(0.01 > Math.abs(expectedProejctEntity.getDifficulty() - actualJSONProjectEntity.getDouble("difficulty")));
+        assertEquals(expectedProejctEntity.getWayContent(), actualJSONProjectEntity.getString("wayContent"));
+        assertEquals(expectedProejctEntity.getConditionContent(), actualJSONProjectEntity.getString("conditionContent"));
+        assertEquals(expectedProejctEntity.getExampleContent(), actualJSONProjectEntity.getString("exampleContent"));
+        assertEquals(expectedProejctEntity.getDescription(), actualJSONProjectEntity.getString("description"));
+        assertEquals(expectedProejctEntity.getTotalData(), actualJSONProjectEntity.getInt("totalData"));
+        assertEquals(expectedProejctEntity.getProgressData(), actualJSONProjectEntity.getInt("progressData"));
+        assertEquals(expectedProejctEntity.getValidatedData(), actualJSONProjectEntity.getInt("validatedData"));
+        assertEquals(expectedProejctEntity.getCost(), actualJSONProjectEntity.getInt("cost"));
+    }
+
     private void assertClassListEquals(List<String> expectedClassList, List<ClassEntity> actualClassEntityList) {
         for(ClassEntity classEntity : actualClassEntityList) {
             assertTrue(expectedClassList.contains(classEntity.getClassName()));
+        }
+    }
+
+    private void assertClassListEquals(List<ClassEntity> expectedClassEntityList, JSONArray actualJSONClassNameList) {
+        List<String> expectedClassList = new ArrayList<>();
+        for (ClassEntity classEntity : expectedClassEntityList) {
+            expectedClassList.add(classEntity.getClassName());
+        }
+        for(Object JSONClassEntity : actualJSONClassNameList) {
+            assertTrue(expectedClassList.contains(((JSONObject)JSONClassEntity).getString("className")));
         }
     }
 
