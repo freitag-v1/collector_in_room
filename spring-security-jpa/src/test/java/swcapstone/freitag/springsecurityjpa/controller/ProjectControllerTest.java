@@ -37,6 +37,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.makeExpiredAuthorizationToken;
@@ -667,7 +668,7 @@ class ProjectControllerTest {
         result.andExpect(header().string("project", "success"))
                 .andExpect(header().exists("finalCost"));
 
-        float actualFinalCost = Float.parseFloat(result.andReturn().getResponse().getHeader("finalCost"));
+        int actualFinalCost = Integer.parseInt(result.andReturn().getResponse().getHeader("finalCost"));
 
         assertEquals(expectedFinalCost, actualFinalCost);
     }
@@ -691,7 +692,7 @@ class ProjectControllerTest {
         result.andExpect(header().string("project", "success"))
                 .andExpect(header().exists("finalCost"));
 
-        float actualFinalCost = Float.parseFloat(result.andReturn().getResponse().getHeader("finalCost"));
+        int actualFinalCost = Integer.parseInt(result.andReturn().getResponse().getHeader("finalCost"));
 
         assertEquals(expectedFinalCost, actualFinalCost);
     }
@@ -715,7 +716,7 @@ class ProjectControllerTest {
         result.andExpect(header().string("project", "success"))
                 .andExpect(header().exists("finalCost"));
 
-        float actualFinalCost = Float.parseFloat(result.andReturn().getResponse().getHeader("finalCost"));
+        int actualFinalCost = Integer.parseInt(result.andReturn().getResponse().getHeader("finalCost"));
 
         assertEquals(expectedFinalCost, actualFinalCost);
     }
@@ -747,6 +748,188 @@ class ProjectControllerTest {
 
         // Verify Outcome
         result.andExpect(header().string("project", "fail"));
+    }
+
+    @Test
+    public void successfulTerminateProjectByAccountWithClassification() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 6;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyHardest(projectId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
+
+        int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDEST - fixtureProjectEntity.getCost();
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
+        expectedUserEntity.setPoint(expectedUserEntity.getPoint() - expectedFinalCost);
+
+        // Exercise SUT
+        ResultActions result = performTerminateByAccount(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+    }
+
+    @Test
+    public void successfulTerminateProjectByAccountAndRefundWithBoundingBox() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 4;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyHardest(projectId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
+
+        int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDEST - fixtureProjectEntity.getCost();
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
+        expectedUserEntity.setPoint(expectedUserEntity.getPoint() - expectedFinalCost);
+
+        // Exercise SUT
+        ResultActions result = performTerminateByAccount(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+    }
+
+    @Test
+    public void terminateProjectByAccountButAlreadyTerminated() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setStatus("결제완료");
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
+
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
+
+        // Exercise SUT
+        ResultActions result = performTerminateByAccount(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+    }
+
+    @Test
+    public void terminateProjectByAccountWithoutRegisteringOpenBanking() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
+        fixtureUserEntity.setUserOpenBankingAccessToken(UUID.randomUUID().toString().replace("-", " "));
+        fixtureUserEntity.setUserOpenBankingNum(0);
+        repositories.saveUserEntity(fixtureUserEntity);
+
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
+        ProjectEntity expectedProjectEntity = copyProjectEntity(repositories.getProjectEntity(projectId));
+
+        // Exercise SUT
+        ResultActions result = performTerminateByAccount(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"))
+                .andExpect(header().exists("state"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void successfulTerminateProjectByPointWithCollection() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 1;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyNormal(projectId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
+
+        int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_NORMAL - fixtureProjectEntity.getCost();
+        UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
+        expectedUserEntity.setPoint(expectedUserEntity.getPoint() - expectedFinalCost);
+
+        // Exercise SUT
+        ResultActions result = performTerminateByPoint(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+    }
+
+    @Test
+    public void terminateProjectByPointButAlreadyTerminated() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setStatus("결제대기");
+
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(admin);
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+
+        // Exercise SUT
+        ResultActions result = performTerminateByPoint(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void terminateProjectByPointButNotEnoughPoint() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 6;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyHardest(projectId);
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
+        fixtureUserEntity.setPoint(0);
+
+        UserEntity expectedUserEntity = repositories.getFixtureUserEntity(admin);
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+
+        // Exercise SUT
+        ResultActions result = performTerminateByPoint(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"));
+
+        UserEntity actualUserEntity = repositories.getUserEntity(admin);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertUserPointEquals(expectedUserEntity, actualUserEntity);
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
     }
 
     private ResultActions performCreateProject(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
@@ -871,6 +1054,30 @@ class ProjectControllerTest {
         return mockMvc.perform(request);
     }
 
+    private ResultActions performTerminateByAccount(String authorization, int projectId) throws Exception {
+        String uri = new URIBuilder("/api/project/terminate/account")
+                .addParameter("projectId", String.valueOf(projectId))
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private ResultActions performTerminateByPoint(String authorization, int projectId) throws Exception {
+        String uri = new URIBuilder("/api/project/terminate/point")
+                .addParameter("projectId", String.valueOf(projectId))
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
     private void assertProjectEquals(ProjectEntity expectedProejctEntity, ProjectEntity actualProjectEntity) {
         assertEquals(expectedProejctEntity.getUserId(), actualProjectEntity.getUserId());
         assertEquals(expectedProejctEntity.getProjectName(), actualProjectEntity.getProjectName());
@@ -878,7 +1085,7 @@ class ProjectControllerTest {
         assertEquals(expectedProejctEntity.getWorkType(), actualProjectEntity.getWorkType());
         assertEquals(expectedProejctEntity.getDataType(), actualProjectEntity.getDataType());
         assertEquals(expectedProejctEntity.getSubject(), actualProjectEntity.getSubject());
-        assertEquals(expectedProejctEntity.getDifficulty(), actualProjectEntity.getDifficulty());
+        assertEquals(expectedProejctEntity.getDifficulty(), actualProjectEntity.getDifficulty(), 0.01);
         assertEquals(expectedProejctEntity.getWayContent(), actualProjectEntity.getWayContent());
         assertEquals(expectedProejctEntity.getConditionContent(), actualProjectEntity.getConditionContent());
         assertEquals(expectedProejctEntity.getExampleContent(), actualProjectEntity.getExampleContent());
@@ -947,6 +1154,14 @@ class ProjectControllerTest {
         assertEquals(expectedProblemEntity.getBucketName(), actualProblemEntity.getBucketName());
         assertEquals(expectedProblemEntity.getObjectName(), actualProblemEntity.getObjectName());
         assertEquals(expectedProblemEntity.getValidationStatus(), actualProblemEntity.getValidationStatus());
+    }
+
+    private void assertUserPointEquals(UserEntity expectedUserEntity, UserEntity actualUserEntity) {
+        assertEquals(expectedUserEntity.getTotalPoint(), actualUserEntity.getTotalPoint());
+        assertEquals(expectedUserEntity.getPoint(), actualUserEntity.getPoint());
+        assertEquals(expectedUserEntity.getUserVisit(), actualUserEntity.getUserVisit());
+        // 오차 10초 허용
+        assertTrue(10 * 1000 >= Math.abs(expectedUserEntity.getUserLastVisit().getTime() - actualUserEntity.getUserLastVisit().getTime()));
     }
 
     private Map<String, ProblemEntity> expectedLabellingProblemList(ProjectEntity fixtureProjectEntity) {
