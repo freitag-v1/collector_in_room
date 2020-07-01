@@ -70,6 +70,13 @@ public class ObjectStorageApiClient {
         }
     }
 
+    public void deleteAllInBucket(String bucketName) {
+        List<String> objectList = listObjects(bucketName);
+        for (String objectName : objectList) {
+            s3.deleteObject(bucketName, objectName);
+        }
+    }
+
     public boolean putBucket(String bucketName) {
 
         if (s3.doesBucketExistV2(bucketName)) {
