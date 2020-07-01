@@ -411,8 +411,7 @@ public class ProjectService {
             // 의뢰자가 작업 의뢰할 때 처음에 낸 비용
             int cost = projectEntity.get().getCost();
             // 난이도
-            int difficulty = (int)(projectEntity.get().getDifficulty() / projectEntity.get().getValidatedData());
-            difficulty = 6 - (difficulty * 5);
+            int difficulty = (int)(6 - (projectEntity.get().getDifficulty() / projectEntity.get().getValidatedData()) * 5);
 
             int finalCost = projectEntity.get().getValidatedData();
             switch (difficulty) {

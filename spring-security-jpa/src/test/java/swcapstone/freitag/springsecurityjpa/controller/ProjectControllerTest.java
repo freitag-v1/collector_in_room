@@ -66,6 +66,9 @@ class ProjectControllerTest {
     private final String exampleFile = "example.jpg";
     private final String labellingData = "LabellingData";
     public static final int COST_PER_DATA = 50;
+    public static final int COST_PER_DATA_NORMAL = 50;
+    public static final int COST_PER_DATA_HARDER = 75;
+    private static final int COST_PER_DATA_HARDEST = 100;
 
     @BeforeAll
     static void setupSharedFixture(@Autowired DataSource dataSource) {
@@ -636,13 +639,114 @@ class ProjectControllerTest {
     public void getCrossValidationDetailWithoutLogin() throws Exception {
         // Setup Fixture
         String authorization = null;
-        int projectId = 25;
+        int projectId = 2;
 
         // Exercise SUT
         ResultActions result = performGetValidationDetail(authorization, projectId);
 
         // Verify Outcome
         result.andExpect(header().string("login", "fail"));
+    }
+
+    @Test
+    public void successfulTerminateProjectWithHardestClassification() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyHardest(projectId);
+
+        int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDEST - fixtureProjectEntity.getCost();
+
+        // Exercise SUT
+        ResultActions result = performTerminateProject(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("project", "success"))
+                .andExpect(header().exists("finalCost"));
+
+        float actualFinalCost = Float.parseFloat(result.andReturn().getResponse().getHeader("finalCost"));
+
+        assertEquals(expectedFinalCost, actualFinalCost);
+    }
+
+    @Test
+    public void successfulTerminateProjectWithHarderClassification() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyHarder(projectId);
+
+        int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDER - fixtureProjectEntity.getCost();
+
+        // Exercise SUT
+        ResultActions result = performTerminateProject(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("project", "success"))
+                .andExpect(header().exists("finalCost"));
+
+        float actualFinalCost = Float.parseFloat(result.andReturn().getResponse().getHeader("finalCost"));
+
+        assertEquals(expectedFinalCost, actualFinalCost);
+    }
+
+    @Test
+    public void successfulTerminateProjectWithNormalBoundingBox() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 4;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        makeWorkedProblemsValidated(projectId);
+        makeProjectDifficultyNormal(projectId);
+
+        int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_NORMAL - fixtureProjectEntity.getCost();
+
+        // Exercise SUT
+        ResultActions result = performTerminateProject(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("project", "success"))
+                .andExpect(header().exists("finalCost"));
+
+        float actualFinalCost = Float.parseFloat(result.andReturn().getResponse().getHeader("finalCost"));
+
+        assertEquals(expectedFinalCost, actualFinalCost);
+    }
+
+    @Test
+    public void terminateProjectButAlreadyTerminated() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 4;
+
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setStatus("결제완료");
+
+        // Exercise SUT
+        ResultActions result = performTerminateProject(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("project", "fail"));
+    }
+
+    @Test
+    public void terminateProjectByOther() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(workerUserId);
+        int projectId = 4;
+
+        // Exercise SUT
+        ResultActions result = performTerminateProject(authorization, projectId);
+
+        // Verify Outcome
+        result.andExpect(header().string("project", "fail"));
     }
 
     private ResultActions performCreateProject(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
@@ -745,6 +849,18 @@ class ProjectControllerTest {
 
     private ResultActions performGetValidationDetail(String authorization, int projectId) throws Exception {
         String uri = new URIBuilder("/api/project/crossvalidation")
+                .addParameter("projectId", String.valueOf(projectId))
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private ResultActions performTerminateProject(String authorization, int projectId) throws Exception {
+        String uri = new URIBuilder("/api/project/terminate")
                 .addParameter("projectId", String.valueOf(projectId))
                 .build().toString();
         uri = URLDecoder.decode(uri, "UTF-8");
@@ -866,5 +982,28 @@ class ProjectControllerTest {
         ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
         fixtureProjectEntity.setValidatedData(fixtureValidateData);
         repositories.saveProjectEntity(fixtureProjectEntity);
+    }
+
+    private void makeProjectDifficultyHardest(int projectId) {
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setDifficulty(getDifficulty(fixtureProjectEntity, 4.5f));
+        repositories.saveProjectEntity(fixtureProjectEntity);
+    }
+
+    private void makeProjectDifficultyHarder(int projectId) {
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setDifficulty(getDifficulty(fixtureProjectEntity, 3.5f));
+        repositories.saveProjectEntity(fixtureProjectEntity);
+    }
+
+    private void makeProjectDifficultyNormal(int projectId) {
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setDifficulty(getDifficulty(fixtureProjectEntity, 2));
+        repositories.saveProjectEntity(fixtureProjectEntity);
+    }
+
+    private float getDifficulty(ProjectEntity fixtureProjectEntity, float target) {
+        int validationData = fixtureProjectEntity.getValidatedData();
+        return (6 - target) * validationData / 5;
     }
 }
