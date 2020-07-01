@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.http.MediaType;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -21,7 +20,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
@@ -35,14 +33,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLDecoder;
-import java.nio.charset.Charset;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.makeExpiredAuthorizationToken;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.makeValidAuthorizationToken;
 import static swcapstone.freitag.springsecurityjpa.utils.Fixture.*;
@@ -559,8 +555,6 @@ class ProjectControllerTest {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(workerUserId);
 
-        int expectedProjectEntityListSize = 0;
-
         // Exercise SUT
         ResultActions result = performGetMyProjectList(authorization);
 
@@ -575,6 +569,77 @@ class ProjectControllerTest {
 
         // Exercise SUT
         ResultActions result = performGetMyProjectList(authorization);
+
+        // Verify Outcome
+        result.andExpect(header().string("login", "fail"));
+    }
+
+    @Test
+    public void successfulGetCrossValidationDetailWithClassification() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        makeWorkedProblemsValidated(projectId);
+
+        int expectedValidationDetailListSize = 3;
+
+        // Exercise SUT
+        ResultActions result = performGetValidationDetail(authorization, projectId);
+
+        // Verify Outcome
+        String contentAsString = result.andReturn().getResponse().getContentAsString();
+
+        JSONArray actualValidationDetailList = new JSONObject(contentAsString).getJSONArray("problems");
+        assertEquals(expectedValidationDetailListSize, actualValidationDetailList.length());
+    }
+
+    @Test
+    public void getCrossValidationDetailWithClassificationButEmpty() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 2;
+
+        int expectedValidationDetailListSize = 0;
+
+        // Exercise SUT
+        ResultActions result = performGetValidationDetail(authorization, projectId);
+
+        // Verify Outcome
+        String contentAsString = result.andReturn().getResponse().getContentAsString();
+
+        JSONArray actualValidationDetailList = new JSONObject(contentAsString).getJSONArray("problems");
+        assertEquals(expectedValidationDetailListSize, actualValidationDetailList.length());
+    }
+
+    @Test
+    public void successfulGetCrossValidationDetailWithBoundingBox() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(admin);
+        int projectId = 4;
+
+        makeWorkedProblemsValidated(projectId);
+
+        int expectedValidationDetailListSize = 5;
+
+        // Exercise SUT
+        ResultActions result = performGetValidationDetail(authorization, projectId);
+
+        // Verify Outcome
+        String contentAsString = result.andReturn().getResponse().getContentAsString();
+
+        JSONArray actualValidationDetailList = new JSONObject(contentAsString).getJSONArray("problems");
+        assertEquals(expectedValidationDetailListSize, actualValidationDetailList.length());
+    }
+
+    @Test
+    public void getCrossValidationDetailWithoutLogin() throws Exception {
+        // Setup Fixture
+        String authorization = null;
+        int projectId = 25;
+
+        // Exercise SUT
+        ResultActions result = performGetValidationDetail(authorization, projectId);
 
         // Verify Outcome
         result.andExpect(header().string("login", "fail"));
@@ -678,6 +743,18 @@ class ProjectControllerTest {
         return mockMvc.perform(request);
     }
 
+    private ResultActions performGetValidationDetail(String authorization, int projectId) throws Exception {
+        String uri = new URIBuilder("/api/project/crossvalidation")
+                .addParameter("projectId", String.valueOf(projectId))
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.get(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
     private void assertProjectEquals(ProjectEntity expectedProejctEntity, ProjectEntity actualProjectEntity) {
         assertEquals(expectedProejctEntity.getUserId(), actualProjectEntity.getUserId());
         assertEquals(expectedProejctEntity.getProjectName(), actualProjectEntity.getProjectName());
@@ -771,5 +848,23 @@ class ProjectControllerTest {
             }
         }
         return expectedProblemEntityList;
+    }
+
+    private void makeWorkedProblemsValidated(int projectId) {
+        int fixtureValidateData = 0;
+        List<ProblemEntity> fixtureProblemEntityList = repositories.getProblemEntityList(projectId);
+        for (ProblemEntity fixtureProblemEntity : fixtureProblemEntityList) {
+            if(fixtureProblemEntity.getReferenceId() == -1 && fixtureProblemEntity.getValidationStatus().equals("작업후")) {
+                fixtureValidateData++;
+                fixtureProblemEntity.setFinalAnswer(fixtureProblemEntity.getAnswer());
+                fixtureProblemEntity.setValidationStatus("검증완료");
+                repositories.saveProblemEntity(fixtureProblemEntity);
+            } else if(fixtureProblemEntity.getValidationStatus().equals("검증완료")) {
+                fixtureValidateData++;
+            }
+        }
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        fixtureProjectEntity.setValidatedData(fixtureValidateData);
+        repositories.saveProjectEntity(fixtureProjectEntity);
     }
 }

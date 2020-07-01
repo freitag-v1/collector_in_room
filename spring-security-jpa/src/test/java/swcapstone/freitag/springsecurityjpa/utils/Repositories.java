@@ -88,4 +88,8 @@ public class Repositories {
     public void deletaAllProblem() {
         problemRepository.deleteAllInBatch();
     }
+
+    public void saveProblemEntity(ProblemEntity fixtureProblemEntity) {
+        problemRepository.save(fixtureProblemEntity);
+    }
 }
