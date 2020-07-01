@@ -585,7 +585,7 @@ class ProjectControllerTest {
 
         makeWorkedProblemsValidated(projectId);
 
-        int expectedValidationDetailListSize = 3;
+        int expectedValidationDetailListSize = 4;
 
         // Exercise SUT
         ResultActions result = performGetValidationDetail(authorization, projectId);
@@ -598,10 +598,10 @@ class ProjectControllerTest {
     }
 
     @Test
-    public void getCrossValidationDetailWithClassificationButEmpty() throws Exception {
+    public void getCrossValidationDetailWithBoundingBoxButEmpty() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
+        int projectId = 4;
 
         int expectedValidationDetailListSize = 0;
 
