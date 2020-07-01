@@ -418,6 +418,104 @@ class ProjectControllerTest {
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
     }
 
+    @Test
+    public void successfulImageCollectionProjectPaymentByPoint() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        expectedProjectEntity.setStatus("진행중");
+        int expectedProblemListSize = fixtureProjectEntity.getTotalData();
+        ProblemEntity expectedProblemEntity = expectedCollectionProblem(fixtureProjectEntity);
+
+        // Exercise SUT
+        ResultActions result = performPayByPoint(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
+        for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
+            assertProblemEntityEquals(expectedProblemEntity, actualProblemEntity);
+        }
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void successfulImageClassificationProjectPaymentByPoint() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
+        expectedAfterImageClassificationProjectLabellingUpload(requesterUserId, projectId, prebuiltBucketName, prebuiltBucketSize, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        expectedProjectEntity.setStatus("진행중");
+        int expectedProblemListSize = fixtureProjectEntity.getTotalData();
+        Map<String, ProblemEntity> expectedProblemEntityList = expectedLabellingProblemList(fixtureProjectEntity);
+
+        // Exercise SUT
+        ResultActions result = performPayByPoint(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
+        for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
+            assertProblemEntityEquals(expectedProblemEntityList.get(actualProblemEntity.getObjectName()), actualProblemEntity);
+        }
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void imageCollectionProjectPaymentByPointButNotEnoughPoint() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(requesterUserId);
+        fixtureUserEntity.setPoint(0);
+        repositories.saveUserEntity(fixtureUserEntity);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        int expectedProblemListSize = 0;
+
+        // Exercise SUT
+        ResultActions result = performPayByPoint(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
     private ResultActions performCreateProject(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
         String uri = new URIBuilder("/api/project/create")
                 .addParameter("projectName", fixtureProjectEntity.getProjectName())
@@ -483,6 +581,18 @@ class ProjectControllerTest {
 
     private ResultActions performPayByAccount(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
         String uri = new URIBuilder("/api/project/account/payment")
+                .addParameter("projectId", String.valueOf(fixtureProjectEntity.getProjectId()))
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
+    private ResultActions performPayByPoint(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
+        String uri = new URIBuilder("/api/project/point/payment")
                 .addParameter("projectId", String.valueOf(fixtureProjectEntity.getProjectId()))
                 .build().toString();
         uri = URLDecoder.decode(uri, "UTF-8");
