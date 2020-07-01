@@ -74,7 +74,7 @@ class ProjectControllerTest {
     @BeforeAll
     static void setupSharedFixture(@Autowired DataSource dataSource) {
         try (Connection conn = dataSource.getConnection()) {
-            ScriptUtils.executeSqlScript(conn, new ClassPathResource("ProjectControllerPrebuiltFixture.sql"));
+            ScriptUtils.executeSqlScript(conn, new ClassPathResource("ProjectAndWorkControllerPrebuiltFixture.sql"));
         } catch (SQLException e) {
             e.printStackTrace();
             System.exit(-1);
