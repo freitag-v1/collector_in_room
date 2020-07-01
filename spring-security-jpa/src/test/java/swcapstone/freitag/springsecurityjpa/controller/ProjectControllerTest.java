@@ -48,8 +48,7 @@ import static swcapstone.freitag.springsecurityjpa.utils.Fixture.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @Transactional
-public
-class ProjectControllerTest {
+public class ProjectControllerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired
@@ -60,15 +59,22 @@ class ProjectControllerTest {
     private final String requesterUserId = "requester";
     private final String workerUserId = "worker";
     private final String admin = "admin";
-    private final int projectId = 1;
+
+    private final int classificationProjectId = 2;
+    private final int boundingBoxProjectId = 4;
+    private final int hardestClassificationProjectId = 6;
+    private final int collectionProjectId = 1;
+
     private final String bucketName = "freitag-test";
     private final String prebuiltBucketName = "freitag-test-prebuilt";
     private final int prebuiltBucketSize = 15;
+
     private final String exampleFile = "example.jpg";
-    private final String labellingData = "LabellingData";
+    private final String labellingData = "data";
+
     public static final int COST_PER_DATA = 50;
-    public static final int COST_PER_DATA_NORMAL = 50;
-    public static final int COST_PER_DATA_HARDER = 75;
+    private static final int COST_PER_DATA_NORMAL = 50;
+    private static final int COST_PER_DATA_HARDER = 75;
     private static final int COST_PER_DATA_HARDEST = 100;
 
     @BeforeAll
@@ -131,7 +137,7 @@ class ProjectControllerTest {
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
         expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
-        fixtureProjectEntity.setProjectId(projectId);
+        fixtureProjectEntity.setProjectId(collectionProjectId);
         fixtureProjectEntity.setBucketName(bucketName);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
@@ -160,7 +166,7 @@ class ProjectControllerTest {
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
         expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
-        fixtureProjectEntity.setProjectId(projectId);
+        fixtureProjectEntity.setProjectId(collectionProjectId);
         fixtureProjectEntity.setBucketName(bucketName);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
@@ -187,7 +193,7 @@ class ProjectControllerTest {
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
         expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
-        fixtureProjectEntity.setProjectId(projectId);
+        fixtureProjectEntity.setProjectId(collectionProjectId);
         fixtureProjectEntity.setBucketName(bucketName);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
@@ -208,7 +214,7 @@ class ProjectControllerTest {
                 .andExpect(header().doesNotExist("bucketName"));
 
         S3ObjectInputStream actualExampleFile = objectStorageApiClient.getObject(bucketName, fixtureExampleFile.getName());
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertFileEquals(expectedExampleFile, actualExampleFile);
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -222,7 +228,7 @@ class ProjectControllerTest {
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
         expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
-        fixtureProjectEntity.setProjectId(projectId);
+        fixtureProjectEntity.setProjectId(collectionProjectId);
         fixtureProjectEntity.setBucketName(bucketName);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
@@ -242,7 +248,7 @@ class ProjectControllerTest {
                 .andExpect(header().exists("bucketName"));
 
         S3ObjectInputStream actualExampleFile = objectStorageApiClient.getObject(bucketName, fixtureExampleFile.getName());
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertFileEquals(expectedExampleFile, actualExampleFile);
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -255,7 +261,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
-        expectedAfterImageClassificationProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        expectedAfterImageClassificationProjectExampleUpload(requesterUserId, collectionProjectId, bucketName, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         File[] fixtureLabellingFilesList = new ClassPathResource(labellingData).getFile().listFiles();
@@ -281,7 +287,7 @@ class ProjectControllerTest {
         for (String objectName : objectList) {
             actualLabellingDataList.put(objectName, objectStorageApiClient.getObject(bucketName, objectName));
         }
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedLabellingFilesList.size(), actualLabellingDataList.size());
         for (String objectName : expectedLabellingFilesList.keySet()) {
@@ -297,7 +303,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
-        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, collectionProjectId, bucketName, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -314,8 +320,8 @@ class ProjectControllerTest {
         result.andExpect(header().string("payment", "success"))
                 .andExpect(header().doesNotExist("state"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
@@ -331,7 +337,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
-        expectedAfterImageClassificationProjectLabellingUpload(requesterUserId, projectId, prebuiltBucketName, prebuiltBucketSize, exampleFile, fixtureProjectEntity);
+        expectedAfterImageClassificationProjectLabellingUpload(requesterUserId, collectionProjectId, prebuiltBucketName, prebuiltBucketSize, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -348,8 +354,8 @@ class ProjectControllerTest {
         result.andExpect(header().string("payment", "success"))
                 .andExpect(header().doesNotExist("state"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
@@ -370,7 +376,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
-        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, collectionProjectId, bucketName, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -385,8 +391,8 @@ class ProjectControllerTest {
         result.andExpect(header().string("payment", "fail"))
                 .andExpect(header().exists("state"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -403,7 +409,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
-        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, collectionProjectId, bucketName, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -418,8 +424,8 @@ class ProjectControllerTest {
         result.andExpect(header().string("payment", "fail"))
                 .andExpect(header().doesNotExist("state"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -432,7 +438,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
-        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, collectionProjectId, bucketName, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -448,8 +454,8 @@ class ProjectControllerTest {
         // Verify Outcome
         result.andExpect(header().string("payment", "success"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
@@ -465,7 +471,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
-        expectedAfterImageClassificationProjectLabellingUpload(requesterUserId, projectId, prebuiltBucketName, prebuiltBucketSize, exampleFile, fixtureProjectEntity);
+        expectedAfterImageClassificationProjectLabellingUpload(requesterUserId, collectionProjectId, prebuiltBucketName, prebuiltBucketSize, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -481,8 +487,8 @@ class ProjectControllerTest {
         // Verify Outcome
         result.andExpect(header().string("payment", "success"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
@@ -502,7 +508,7 @@ class ProjectControllerTest {
 
         repositories.deletaAllProject();
         ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
-        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, collectionProjectId, bucketName, exampleFile, fixtureProjectEntity);
         repositories.saveProjectEntity(fixtureProjectEntity);
 
         repositories.deletaAllProblem();
@@ -516,8 +522,8 @@ class ProjectControllerTest {
         // Verify Outcome
         result.andExpect(header().string("payment", "fail"));
 
-        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(collectionProjectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(collectionProjectId);
 
         assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -582,14 +588,13 @@ class ProjectControllerTest {
     public void successfulGetCrossValidationDetailWithClassification() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
 
-        makeWorkedProblemsValidated(projectId);
+        makeWorkedProblemsValidated(classificationProjectId);
 
-        int expectedValidationDetailListSize = 4;
+        int expectedValidationDetailListSize = boundingBoxProjectId;
 
         // Exercise SUT
-        ResultActions result = performGetValidationDetail(authorization, projectId);
+        ResultActions result = performGetValidationDetail(authorization, classificationProjectId);
 
         // Verify Outcome
         String contentAsString = result.andReturn().getResponse().getContentAsString();
@@ -602,12 +607,11 @@ class ProjectControllerTest {
     public void getCrossValidationDetailWithBoundingBoxButEmpty() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 4;
 
         int expectedValidationDetailListSize = 0;
 
         // Exercise SUT
-        ResultActions result = performGetValidationDetail(authorization, projectId);
+        ResultActions result = performGetValidationDetail(authorization, boundingBoxProjectId);
 
         // Verify Outcome
         String contentAsString = result.andReturn().getResponse().getContentAsString();
@@ -620,14 +624,13 @@ class ProjectControllerTest {
     public void successfulGetCrossValidationDetailWithBoundingBox() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 4;
 
-        makeWorkedProblemsValidated(projectId);
+        makeWorkedProblemsValidated(boundingBoxProjectId);
 
         int expectedValidationDetailListSize = 5;
 
         // Exercise SUT
-        ResultActions result = performGetValidationDetail(authorization, projectId);
+        ResultActions result = performGetValidationDetail(authorization, boundingBoxProjectId);
 
         // Verify Outcome
         String contentAsString = result.andReturn().getResponse().getContentAsString();
@@ -640,10 +643,9 @@ class ProjectControllerTest {
     public void getCrossValidationDetailWithoutLogin() throws Exception {
         // Setup Fixture
         String authorization = null;
-        int projectId = 2;
 
         // Exercise SUT
-        ResultActions result = performGetValidationDetail(authorization, projectId);
+        ResultActions result = performGetValidationDetail(authorization, classificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("login", "fail"));
@@ -653,16 +655,15 @@ class ProjectControllerTest {
     public void successfulTerminateProjectWithHardestClassification() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyHardest(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(classificationProjectId);
+        makeWorkedProblemsValidated(classificationProjectId);
+        makeProjectDifficultyHardest(classificationProjectId);
 
         int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDEST - fixtureProjectEntity.getCost();
 
         // Exercise SUT
-        ResultActions result = performTerminateProject(authorization, projectId);
+        ResultActions result = performTerminateProject(authorization, classificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("project", "success"))
@@ -677,16 +678,15 @@ class ProjectControllerTest {
     public void successfulTerminateProjectWithHarderClassification() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyHarder(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(classificationProjectId);
+        makeWorkedProblemsValidated(classificationProjectId);
+        makeProjectDifficultyHarder(classificationProjectId);
 
         int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDER - fixtureProjectEntity.getCost();
 
         // Exercise SUT
-        ResultActions result = performTerminateProject(authorization, projectId);
+        ResultActions result = performTerminateProject(authorization, classificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("project", "success"))
@@ -701,16 +701,15 @@ class ProjectControllerTest {
     public void successfulTerminateProjectWithNormalBoundingBox() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 4;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyNormal(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(boundingBoxProjectId);
+        makeWorkedProblemsValidated(boundingBoxProjectId);
+        makeProjectDifficultyNormal(boundingBoxProjectId);
 
         int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_NORMAL - fixtureProjectEntity.getCost();
 
         // Exercise SUT
-        ResultActions result = performTerminateProject(authorization, projectId);
+        ResultActions result = performTerminateProject(authorization, boundingBoxProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("project", "success"))
@@ -725,13 +724,12 @@ class ProjectControllerTest {
     public void terminateProjectButAlreadyTerminated() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 4;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(boundingBoxProjectId);
         fixtureProjectEntity.setStatus("결제완료");
 
         // Exercise SUT
-        ResultActions result = performTerminateProject(authorization, projectId);
+        ResultActions result = performTerminateProject(authorization, boundingBoxProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("project", "fail"));
@@ -741,10 +739,9 @@ class ProjectControllerTest {
     public void terminateProjectByOther() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(workerUserId);
-        int projectId = 4;
 
         // Exercise SUT
-        ResultActions result = performTerminateProject(authorization, projectId);
+        ResultActions result = performTerminateProject(authorization, boundingBoxProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("project", "fail"));
@@ -754,11 +751,10 @@ class ProjectControllerTest {
     public void successfulTerminateProjectByAccountWithClassification() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 6;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyHardest(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(hardestClassificationProjectId);
+        makeWorkedProblemsValidated(hardestClassificationProjectId);
+        makeProjectDifficultyHardest(hardestClassificationProjectId);
         UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
 
         int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDEST - fixtureProjectEntity.getCost();
@@ -766,7 +762,7 @@ class ProjectControllerTest {
         expectedUserEntity.setPoint(expectedUserEntity.getPoint() - expectedFinalCost);
 
         // Exercise SUT
-        ResultActions result = performTerminateByAccount(authorization, projectId);
+        ResultActions result = performTerminateByAccount(authorization, hardestClassificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "success"));
@@ -780,11 +776,10 @@ class ProjectControllerTest {
     public void successfulTerminateProjectByAccountAndRefundWithBoundingBox() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 4;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyHardest(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(boundingBoxProjectId);
+        makeWorkedProblemsValidated(boundingBoxProjectId);
+        makeProjectDifficultyHardest(boundingBoxProjectId);
         UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
 
         int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_HARDEST - fixtureProjectEntity.getCost();
@@ -792,7 +787,7 @@ class ProjectControllerTest {
         expectedUserEntity.setPoint(expectedUserEntity.getPoint() - expectedFinalCost);
 
         // Exercise SUT
-        ResultActions result = performTerminateByAccount(authorization, projectId);
+        ResultActions result = performTerminateByAccount(authorization, boundingBoxProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "success"));
@@ -806,16 +801,15 @@ class ProjectControllerTest {
     public void terminateProjectByAccountButAlreadyTerminated() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(classificationProjectId);
         fixtureProjectEntity.setStatus("결제완료");
         UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
 
         UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
 
         // Exercise SUT
-        ResultActions result = performTerminateByAccount(authorization, projectId);
+        ResultActions result = performTerminateByAccount(authorization, classificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "fail"));
@@ -829,7 +823,6 @@ class ProjectControllerTest {
     public void terminateProjectByAccountWithoutRegisteringOpenBanking() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
 
         UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
         fixtureUserEntity.setUserOpenBankingAccessToken(UUID.randomUUID().toString().replace("-", " "));
@@ -837,17 +830,17 @@ class ProjectControllerTest {
         repositories.saveUserEntity(fixtureUserEntity);
 
         UserEntity expectedUserEntity = copyUserEntity(fixtureUserEntity);
-        ProjectEntity expectedProjectEntity = copyProjectEntity(repositories.getProjectEntity(projectId));
+        ProjectEntity expectedProjectEntity = copyProjectEntity(repositories.getProjectEntity(classificationProjectId));
 
         // Exercise SUT
-        ResultActions result = performTerminateByAccount(authorization, projectId);
+        ResultActions result = performTerminateByAccount(authorization, classificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "fail"))
                 .andExpect(header().exists("state"));
 
         UserEntity actualUserEntity = repositories.getUserEntity(admin);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(classificationProjectId);
 
         assertUserPointEquals(expectedUserEntity, actualUserEntity);
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -857,11 +850,10 @@ class ProjectControllerTest {
     public void successfulTerminateProjectByPointWithCollection() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 1;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyNormal(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(collectionProjectId);
+        makeWorkedProblemsValidated(collectionProjectId);
+        makeProjectDifficultyNormal(collectionProjectId);
         UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
 
         int expectedFinalCost = fixtureProjectEntity.getValidatedData() * COST_PER_DATA_NORMAL - fixtureProjectEntity.getCost();
@@ -869,7 +861,7 @@ class ProjectControllerTest {
         expectedUserEntity.setPoint(expectedUserEntity.getPoint() - expectedFinalCost);
 
         // Exercise SUT
-        ResultActions result = performTerminateByPoint(authorization, projectId);
+        ResultActions result = performTerminateByPoint(authorization, collectionProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "success"));
@@ -883,22 +875,21 @@ class ProjectControllerTest {
     public void terminateProjectByPointButAlreadyTerminated() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 2;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(classificationProjectId);
         fixtureProjectEntity.setStatus("결제대기");
 
         UserEntity expectedUserEntity = repositories.getFixtureUserEntity(admin);
         ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
 
         // Exercise SUT
-        ResultActions result = performTerminateByPoint(authorization, projectId);
+        ResultActions result = performTerminateByPoint(authorization, classificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "fail"));
 
         UserEntity actualUserEntity = repositories.getUserEntity(admin);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(classificationProjectId);
 
         assertUserPointEquals(expectedUserEntity, actualUserEntity);
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -908,11 +899,10 @@ class ProjectControllerTest {
     public void terminateProjectByPointButNotEnoughPoint() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(admin);
-        int projectId = 6;
 
-        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        makeWorkedProblemsValidated(projectId);
-        makeProjectDifficultyHardest(projectId);
+        ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(hardestClassificationProjectId);
+        makeWorkedProblemsValidated(hardestClassificationProjectId);
+        makeProjectDifficultyHardest(hardestClassificationProjectId);
         UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(admin);
         fixtureUserEntity.setPoint(0);
 
@@ -920,13 +910,13 @@ class ProjectControllerTest {
         ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
 
         // Exercise SUT
-        ResultActions result = performTerminateByPoint(authorization, projectId);
+        ResultActions result = performTerminateByPoint(authorization, hardestClassificationProjectId);
 
         // Verify Outcome
         result.andExpect(header().string("payment", "fail"));
 
         UserEntity actualUserEntity = repositories.getUserEntity(admin);
-        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(hardestClassificationProjectId);
 
         assertUserPointEquals(expectedUserEntity, actualUserEntity);
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
@@ -1103,8 +1093,7 @@ class ProjectControllerTest {
         assertEquals(expectedProejctEntity.getWorkType(), actualJSONProjectEntity.getString("workType"));
         assertEquals(expectedProejctEntity.getDataType(), actualJSONProjectEntity.getString("dataType"));
         assertEquals(expectedProejctEntity.getSubject(), actualJSONProjectEntity.getString("subject"));
-        // 실수이므로 오차 감안
-        assertTrue(0.01 > Math.abs(expectedProejctEntity.getDifficulty() - actualJSONProjectEntity.getDouble("difficulty")));
+        assertEquals(expectedProejctEntity.getDifficulty(), actualJSONProjectEntity.getDouble("difficulty"), 0.01);
         assertEquals(expectedProejctEntity.getWayContent(), actualJSONProjectEntity.getString("wayContent"));
         assertEquals(expectedProejctEntity.getConditionContent(), actualJSONProjectEntity.getString("conditionContent"));
         assertEquals(expectedProejctEntity.getExampleContent(), actualJSONProjectEntity.getString("exampleContent"));
@@ -1145,7 +1134,7 @@ class ProjectControllerTest {
             }
             assertEquals(expectedReadLength, actualReadLength);
             assertArrayEquals(expectedBytes, actualBytes);
-        } while (expectedReadLength == -1 || actualReadLength == -1);
+        } while (expectedReadLength == -collectionProjectId || actualReadLength == -collectionProjectId);
     }
 
     private void assertProblemEntityEquals(ProblemEntity expectedProblemEntity, ProblemEntity actualProblemEntity) {
@@ -1171,7 +1160,7 @@ class ProjectControllerTest {
             if(!objectName.equals(fixtureProjectEntity.getExampleContent())) {
                 ProblemEntity expectedProblemEntity = makeEmptyProblemEntity();
                 expectedProblemEntity.setProjectId(fixtureProjectEntity.getProjectId());
-                expectedProblemEntity.setReferenceId(-1);
+                expectedProblemEntity.setReferenceId(-collectionProjectId);
                 expectedProblemEntity.setBucketName(fixtureProjectEntity.getBucketName());
                 expectedProblemEntity.setObjectName(objectName);
                 expectedProblemEntity.setValidationStatus("작업전");
@@ -1185,7 +1174,7 @@ class ProjectControllerTest {
         int fixtureValidateData = 0;
         List<ProblemEntity> fixtureProblemEntityList = repositories.getProblemEntityList(projectId);
         for (ProblemEntity fixtureProblemEntity : fixtureProblemEntityList) {
-            if(fixtureProblemEntity.getReferenceId() == -1 && fixtureProblemEntity.getValidationStatus().equals("작업후")) {
+            if(fixtureProblemEntity.getReferenceId() == -collectionProjectId && fixtureProblemEntity.getValidationStatus().equals("작업후")) {
                 fixtureValidateData++;
                 fixtureProblemEntity.setFinalAnswer(fixtureProblemEntity.getAnswer());
                 fixtureProblemEntity.setValidationStatus("검증완료");
@@ -1213,12 +1202,12 @@ class ProjectControllerTest {
 
     private void makeProjectDifficultyNormal(int projectId) {
         ProjectEntity fixtureProjectEntity = repositories.getProjectEntity(projectId);
-        fixtureProjectEntity.setDifficulty(getDifficulty(fixtureProjectEntity, 2));
+        fixtureProjectEntity.setDifficulty(getDifficulty(fixtureProjectEntity, classificationProjectId));
         repositories.saveProjectEntity(fixtureProjectEntity);
     }
 
     private float getDifficulty(ProjectEntity fixtureProjectEntity, float target) {
         int validationData = fixtureProjectEntity.getValidatedData();
-        return (6 - target) * validationData / 5;
+        return (hardestClassificationProjectId - target) * validationData / 5;
     }
 }
