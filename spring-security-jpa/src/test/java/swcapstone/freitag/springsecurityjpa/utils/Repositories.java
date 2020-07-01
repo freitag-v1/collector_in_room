@@ -3,9 +3,11 @@ package swcapstone.freitag.springsecurityjpa.utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ClassRepository;
+import swcapstone.freitag.springsecurityjpa.domain.repository.ProblemRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.ProjectRepository;
 import swcapstone.freitag.springsecurityjpa.domain.repository.UserRepository;
 
@@ -26,6 +28,8 @@ public class Repositories {
     private ProjectRepository projectRepository;
     @Autowired
     private ClassRepository classRepository;
+    @Autowired
+    private ProblemRepository problemRepository;
 
     public UserEntity getFixtureUserEntity(String userId) {
         if(!fixtureUserEntity.containsKey(userId)) {
@@ -66,5 +70,13 @@ public class Repositories {
 
     public void deletaAllClass() {
         classRepository.deleteAllInBatch();
+    }
+
+    public List<ProblemEntity> getProblemEntityList(int projectId) {
+        return problemRepository.findAllByProjectId(projectId);
+    }
+
+    public void deletaAllProblem() {
+        problemRepository.deleteAllInBatch();
     }
 }

@@ -21,7 +21,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import swcapstone.freitag.springsecurityjpa.api.ObjectStorageApiClient;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ClassEntity;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
+import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 import swcapstone.freitag.springsecurityjpa.utils.Repositories;
 
 import javax.sql.DataSource;
@@ -31,13 +33,11 @@ import java.io.IOException;
 import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static swcapstone.freitag.springsecurityjpa.utils.Common.makeExpiredAuthorizationToken;
 import static swcapstone.freitag.springsecurityjpa.utils.Common.makeValidAuthorizationToken;
 import static swcapstone.freitag.springsecurityjpa.utils.Fixture.*;
 
@@ -45,6 +45,7 @@ import static swcapstone.freitag.springsecurityjpa.utils.Fixture.*;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @Transactional
+public
 class ProjectControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -57,9 +58,11 @@ class ProjectControllerTest {
     private final String workerUserId = "worker";
     private final int projectId = 1;
     private final String bucketName = "freitag-test";
+    private final String prebuiltBucketName = "freitag-test-prebuilt";
+    private final int prebuiltBucketSize = 15;
     private final String exampleFile = "example.jpg";
     private final String labellingData = "LabellingData";
-    private final int COST_PER_DATA = 50;
+    public static final int COST_PER_DATA = 50;
 
     @BeforeAll
     static void setupSharedFixture(@Autowired DataSource dataSource) {
@@ -170,7 +173,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    public void successfulCollectionExampleUpload() throws Exception {
+    public void successfulImageCollectionExampleUpload() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(requesterUserId);
 
@@ -205,7 +208,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    public void successfulClassificationExampleUpload() throws Exception {
+    public void successfulImageClassificationExampleUpload() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(requesterUserId);
 
@@ -239,7 +242,7 @@ class ProjectControllerTest {
     }
 
     @Test
-    public void successfulClassificationLabellingDataUpload() throws Exception {
+    public void successfulImageClassificationLabellingDataUpload() throws Exception {
         // Setup Fixture
         String authorization = makeValidAuthorizationToken(requesterUserId);
 
@@ -277,6 +280,141 @@ class ProjectControllerTest {
         for (String objectName : expectedLabellingFilesList.keySet()) {
             assertFileEquals(expectedLabellingFilesList.get(objectName), actualLabellingDataList.get(objectName));
         }
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void successfulImageCollectionProjectPaymentByAccount() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        expectedProjectEntity.setStatus("진행중");
+        int expectedProblemListSize = fixtureProjectEntity.getTotalData();
+        ProblemEntity expectedProblemEntity = expectedCollectionProblem(fixtureProjectEntity);
+
+        // Exercise SUT
+        ResultActions result = performPayByAccount(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"))
+                .andExpect(header().doesNotExist("state"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
+        for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
+            assertProblemEntityEquals(expectedProblemEntity, actualProblemEntity);
+        }
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void successfulImageClassificationProjectPaymentByAccount() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageClassificationProjectEntity();
+        expectedAfterImageClassificationProjectLabellingUpload(requesterUserId, projectId, prebuiltBucketName, prebuiltBucketSize, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        expectedProjectEntity.setStatus("진행중");
+        int expectedProblemListSize = fixtureProjectEntity.getTotalData();
+        Map<String, ProblemEntity> expectedProblemEntityList = expectedLabellingProblemList(fixtureProjectEntity);
+
+        // Exercise SUT
+        ResultActions result = performPayByAccount(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "success"))
+                .andExpect(header().doesNotExist("state"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
+        for (ProblemEntity actualProblemEntity : actualProblemEntityList) {
+            assertProblemEntityEquals(expectedProblemEntityList.get(actualProblemEntity.getObjectName()), actualProblemEntity);
+        }
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void imageCollectionProjectPaymentByAccountWithoutRegisteringOpenBanking() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(requesterUserId);
+        fixtureUserEntity.setUserOpenBankingAccessToken(UUID.randomUUID().toString().replace("-", ""));
+        fixtureUserEntity.setUserOpenBankingNum(0);
+        repositories.saveUserEntity(fixtureUserEntity);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        int expectedProblemListSize = 0;
+
+        // Exercise SUT
+        ResultActions result = performPayByAccount(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"))
+                .andExpect(header().exists("state"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
+        assertProjectEquals(expectedProjectEntity, actualProjectEntity);
+    }
+
+    @Test
+    public void imageCollectionProjectPaymentByAccountButOpenBankingError() throws Exception {
+        // Setup Fixture
+        String authorization = makeValidAuthorizationToken(requesterUserId);
+
+        UserEntity fixtureUserEntity = repositories.getFixtureUserEntity(requesterUserId);
+        fixtureUserEntity.setUserOpenBankingAccessToken(makeExpiredAuthorizationToken(requesterUserId));
+        repositories.saveUserEntity(fixtureUserEntity);
+
+        repositories.deletaAllProject();
+        ProjectEntity fixtureProjectEntity = getFixtureImageCollectionProjectEntity();
+        expectedAfterImageCollectionProjectExampleUpload(requesterUserId, projectId, bucketName, exampleFile, fixtureProjectEntity);
+        repositories.saveProjectEntity(fixtureProjectEntity);
+
+        repositories.deletaAllProblem();
+
+        ProjectEntity expectedProjectEntity = copyProjectEntity(fixtureProjectEntity);
+        int expectedProblemListSize = 0;
+
+        // Exercise SUT
+        ResultActions result = performPayByAccount(authorization, fixtureProjectEntity);
+
+        // Verify Outcome
+        result.andExpect(header().string("payment", "fail"))
+                .andExpect(header().doesNotExist("state"));
+
+        List<ProblemEntity> actualProblemEntityList = repositories.getProblemEntityList(projectId);
+        ProjectEntity actualProjectEntity = repositories.getProjectEntity(projectId);
+
+        assertEquals(expectedProblemListSize, actualProblemEntityList.size());
         assertProjectEquals(expectedProjectEntity, actualProjectEntity);
     }
 
@@ -343,6 +481,18 @@ class ProjectControllerTest {
         return mockMvc.perform(request);
     }
 
+    private ResultActions performPayByAccount(String authorization, ProjectEntity fixtureProjectEntity) throws Exception {
+        String uri = new URIBuilder("/api/project/account/payment")
+                .addParameter("projectId", String.valueOf(fixtureProjectEntity.getProjectId()))
+                .build().toString();
+        uri = URLDecoder.decode(uri, "UTF-8");
+        MockHttpServletRequestBuilder request = MockMvcRequestBuilders.post(uri);
+        if(authorization != null) {
+            request.header("Authorization", authorization);
+        }
+        return mockMvc.perform(request);
+    }
+
     private void assertProjectEquals(ProjectEntity expectedProejctEntity, ProjectEntity actualProjectEntity) {
         assertEquals(expectedProejctEntity.getUserId(), actualProjectEntity.getUserId());
         assertEquals(expectedProejctEntity.getProjectName(), actualProjectEntity.getProjectName());
@@ -382,5 +532,30 @@ class ProjectControllerTest {
             assertEquals(expectedReadLength, actualReadLength);
             assertArrayEquals(expectedBytes, actualBytes);
         } while (expectedReadLength == -1 || actualReadLength == -1);
+    }
+
+    private void assertProblemEntityEquals(ProblemEntity expectedProblemEntity, ProblemEntity actualProblemEntity) {
+        assertEquals(expectedProblemEntity.getProjectId(), actualProblemEntity.getProjectId());
+        assertEquals(expectedProblemEntity.getReferenceId(), actualProblemEntity.getReferenceId());
+        assertEquals(expectedProblemEntity.getBucketName(), actualProblemEntity.getBucketName());
+        assertEquals(expectedProblemEntity.getObjectName(), actualProblemEntity.getObjectName());
+        assertEquals(expectedProblemEntity.getValidationStatus(), actualProblemEntity.getValidationStatus());
+    }
+
+    private Map<String, ProblemEntity> expectedLabellingProblemList(ProjectEntity fixtureProjectEntity) {
+        Map<String, ProblemEntity> expectedProblemEntityList = new HashMap<>();
+        List<String> objectList = objectStorageApiClient.listObjects(fixtureProjectEntity.getBucketName());
+        for (String objectName : objectList) {
+            if(!objectName.equals(fixtureProjectEntity.getExampleContent())) {
+                ProblemEntity expectedProblemEntity = makeEmptyProblemEntity();
+                expectedProblemEntity.setProjectId(fixtureProjectEntity.getProjectId());
+                expectedProblemEntity.setReferenceId(-1);
+                expectedProblemEntity.setBucketName(fixtureProjectEntity.getBucketName());
+                expectedProblemEntity.setObjectName(objectName);
+                expectedProblemEntity.setValidationStatus("작업전");
+                expectedProblemEntityList.put(objectName, expectedProblemEntity);
+            }
+        }
+        return expectedProblemEntityList;
     }
 }

@@ -40,7 +40,7 @@ import static swcapstone.freitag.springsecurityjpa.utils.Fixture.makeEmptyUserEn
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc
 @Transactional
-class UserControllerTest {
+public class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
     @Autowired

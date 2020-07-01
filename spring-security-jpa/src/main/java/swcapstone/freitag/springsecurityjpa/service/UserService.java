@@ -176,7 +176,7 @@ public class UserService implements UserDetailsService {
             if(OpenBankingClient.getInstance().deposit(openbankingAccessToken, openbankingNum, memo, cost)) {
                 response.setHeader("payment", "success");
 
-                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
+                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", cost);
                 try {
                     smsClient.sendSMS(userId, msg);
                 } catch (IOException e) {
@@ -188,7 +188,7 @@ public class UserService implements UserDetailsService {
             if(OpenBankingClient.getInstance().withdraw(openbankingAccessToken, openbankingNum, memo, cost)) {
                 response.setHeader("payment", "success");
 
-                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", cost);
+                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
                 try {
                     smsClient.sendSMS(userId, msg);
                 } catch (IOException e) {

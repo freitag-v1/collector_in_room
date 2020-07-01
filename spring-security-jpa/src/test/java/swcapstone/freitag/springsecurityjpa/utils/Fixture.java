@@ -1,12 +1,16 @@
 package swcapstone.freitag.springsecurityjpa.utils;
 
+import swcapstone.freitag.springsecurityjpa.domain.dto.ProblemDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.ProjectDto;
 import swcapstone.freitag.springsecurityjpa.domain.dto.UserDto;
+import swcapstone.freitag.springsecurityjpa.domain.entity.ProblemEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.ProjectEntity;
 import swcapstone.freitag.springsecurityjpa.domain.entity.UserEntity;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static swcapstone.freitag.springsecurityjpa.controller.ProjectControllerTest.COST_PER_DATA;
 
 public class Fixture {
     public static UserEntity makeEmptyUserEntity() {
@@ -95,11 +99,25 @@ public class Fixture {
         expectedProejctEntity.setCost(0);
     }
 
+    public static void expectedAfterImageCollectionProjectExampleUpload(String requesterUserId, int projectId, String bucketName, String exampleFile, ProjectEntity fixtureProjectEntity) {
+        expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
+        fixtureProjectEntity.setProjectId(projectId);
+        fixtureProjectEntity.setBucketName(bucketName);
+        fixtureProjectEntity.setCost(fixtureProjectEntity.getTotalData() * COST_PER_DATA);
+        fixtureProjectEntity.setExampleContent(exampleFile);
+    }
+
     public static void expectedAfterImageClassificationProjectExampleUpload(String requesterUserId, int projectId, String bucketName, String exampleFile, ProjectEntity fixtureProjectEntity) {
         expectedAfterProjectCreation(requesterUserId, fixtureProjectEntity);
         fixtureProjectEntity.setProjectId(projectId);
         fixtureProjectEntity.setBucketName(bucketName);
         fixtureProjectEntity.setExampleContent(exampleFile);
+    }
+
+    public static void expectedAfterImageClassificationProjectLabellingUpload(String requesterUserId, int projectId, String prebuiltBucketName, int prebuiltBucketSize, String exampleFile, ProjectEntity fixtureProjectEntity) {
+        expectedAfterImageClassificationProjectExampleUpload(requesterUserId, projectId, prebuiltBucketName, exampleFile, fixtureProjectEntity);
+        fixtureProjectEntity.setTotalData(prebuiltBucketSize);
+        fixtureProjectEntity.setCost(prebuiltBucketSize * COST_PER_DATA);
     }
 
     public static List<String> getFixtureClassList() {
@@ -108,5 +126,19 @@ public class Fixture {
         fixtureClassList.add("고양이");
         fixtureClassList.add("강아지");
         return fixtureClassList;
+    }
+
+    public static ProblemEntity makeEmptyProblemEntity() {
+        return new ProblemDto().toEntity();
+    }
+
+    public static ProblemEntity expectedCollectionProblem(ProjectEntity fixtureProjectEntity) {
+        ProblemEntity expectedProblemEntity = makeEmptyProblemEntity();
+        expectedProblemEntity.setProjectId(fixtureProjectEntity.getProjectId());
+        expectedProblemEntity.setReferenceId(-1);
+        expectedProblemEntity.setBucketName(fixtureProjectEntity.getBucketName());
+        expectedProblemEntity.setObjectName("");
+        expectedProblemEntity.setValidationStatus("작업전");
+        return expectedProblemEntity;
     }
 }
