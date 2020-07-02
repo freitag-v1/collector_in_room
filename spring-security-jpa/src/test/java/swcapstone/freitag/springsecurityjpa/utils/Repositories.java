@@ -92,4 +92,10 @@ public class Repositories {
     public void saveProblemEntity(ProblemEntity fixtureProblemEntity) {
         problemRepository.save(fixtureProblemEntity);
     }
+
+    public ProblemEntity getProblemEntity(int problemId) {
+        Optional<ProblemEntity> problemEntityOptional = problemRepository.findByProblemId(problemId);
+        assertTrue(problemEntityOptional.isPresent());
+        return problemEntityOptional.get();
+    }
 }
