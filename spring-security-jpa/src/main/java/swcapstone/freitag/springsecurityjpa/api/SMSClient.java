@@ -21,7 +21,7 @@ import java.util.Optional;
 @Service
 public class SMSClient {
     @Autowired
-    UserRepository userRepository;
+    private UserRepository userRepository;
 
     private final String sms_url = "https://sslsms.cafe24.com/sms_sender.php";
     private final String user_id = "ung27540421";
@@ -30,7 +30,7 @@ public class SMSClient {
     private final String sphone2 = "2754";
     private final String sphone3 = "0421";
     private final String smsType = "S";
-    private final String testflag = "Y";
+    private String testflag = "Y";
 
     private String nullCheck(String str) {
         String result;
@@ -44,12 +44,12 @@ public class SMSClient {
         return result;
     }
 
-    private String base64Encode(String str) {
-        return Base64.getEncoder().encodeToString(str.getBytes());
+    public void setTestflag(String testflag) {
+        this.testflag = testflag;
     }
 
-    private String base64Decode(String str) {
-        return new String(Base64.getDecoder().decode(str));
+    private String base64Encode(String str) {
+        return Base64.getEncoder().encodeToString(str.getBytes());
     }
 
     public boolean sendSMS(String userId, String msg) throws IOException {
@@ -68,7 +68,7 @@ public class SMSClient {
         builder.addTextBody("sphone2", base64Encode(sphone2));
         builder.addTextBody("sphone3", base64Encode(sphone3));
         builder.addTextBody("mode", base64Encode("1"));
-        //builder.addTextBody("testflag", base64Encode(testflag));
+        builder.addTextBody("testflag", base64Encode(testflag));
         builder.addTextBody("smsType", base64Encode(smsType));
 
         HttpPost httpPost = new HttpPost(sms_url);

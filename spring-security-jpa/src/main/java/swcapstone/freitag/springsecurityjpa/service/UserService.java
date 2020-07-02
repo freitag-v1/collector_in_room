@@ -173,10 +173,14 @@ public class UserService implements UserDetailsService {
         if(openbankingNum == 0) {
             response.setHeader("state", openbankingAccessToken);
         } else if(cost < 0) {
-            if(OpenBankingClient.getInstance().deposit(openbankingAccessToken, openbankingNum, memo, cost)) {
+            if(OpenBankingClient.getInstance().deposit(openbankingAccessToken, openbankingNum, memo, -cost)) {
+                userEntityWrapper.ifPresent(selectedUser -> {
+                    selectedUser.setPoint(selectedUser.getPoint() - cost);
+                    userRepository.save(selectedUser);
+                });
                 response.setHeader("payment", "success");
 
-                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
+                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", cost);
                 try {
                     smsClient.sendSMS(userId, msg);
                 } catch (IOException e) {
@@ -186,9 +190,13 @@ public class UserService implements UserDetailsService {
             }
         } else if(cost > 0) {
             if(OpenBankingClient.getInstance().withdraw(openbankingAccessToken, openbankingNum, memo, cost)) {
+                userEntityWrapper.ifPresent(selectedUser -> {
+                    selectedUser.setPoint(selectedUser.getPoint() - cost);
+                    userRepository.save(selectedUser);
+                });
                 response.setHeader("payment", "success");
 
-                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", cost);
+                String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 결제되었습니다.", cost);
                 try {
                     smsClient.sendSMS(userId, msg);
                 } catch (IOException e) {
@@ -219,7 +227,7 @@ public class UserService implements UserDetailsService {
                     selectUser.setPoint(selectUser.getPoint() - amount);
                     userRepository.save(selectUser);
                     response.setHeader("exchange", "success");
-                    String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환급되었습니다.", amount);
+                    String msg = String.format("[방구석 수집가]\n등록하신 계좌로 %d원이 환전되었습니다.", amount);
                     try {
                         smsClient.sendSMS(userId, msg);
                     } catch (IOException e) {

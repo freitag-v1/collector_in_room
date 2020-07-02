@@ -92,12 +92,17 @@ public class UserController {
     // 마이페이지 - 포인트 환전
     @RequestMapping(value = "/api/mypage/exchange", method = RequestMethod.PUT)
     public void exchangePoint(HttpServletRequest request, HttpServletResponse response) {
-
         if(authorizationService.isAuthorized(request)) {
             String userId = authorizationService.getUserId(request);
             int amount = request.getIntHeader("amount");
+            if(amount <= 0) {
+                response.setHeader("exchange", "fail");
+                return;
+            }
 
             userService.pointExchange(userId, amount, response);
+        } else {
+            response.setHeader("exchange", "fail");
         }
     }
 
